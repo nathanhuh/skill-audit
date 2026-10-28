@@ -1,5 +1,18 @@
 # Design: inventory, acquire references, audit
 
+## Boundary and operation reuse review (2026-10-28)
+
+Validate mandatory sync output before constructing queries or issuing requests. Refuse state recording after interruption and refuse creation of incomplete baselines (findings alone are allowed); still emit partial reports. Snapshots may preserve non-interrupted partial observations. Check cancellation again before atomic replacement. An unavailable baseline comparison explicitly labels findings `not_compared`.
+
+Classify by the nearest recognized agent directory. Global scope requires a selected/conventional home with an immediate agent `skills` or `plugins` tree; `.github` remains project scope. Nested worktrees are project identities. Existing stored identities are not rewritten. Visit deeper explicit roots before ancestors, then use existing priority/lexical order. Mark directories visited only after depth/exclusion checks; always preserve hard no-follow/OS exclusions.
+
+Within one sync client/operation, resolve each repository/ref once and reuse its validated tree and bounded blob cache. Validate every entry's mode/type/size before consulting cached content, and check cached length against declared size. The 16 MiB import-byte budget now spans targets in the same repository/ref. No persistent cache or network in audit. Share SHA-256, metadata exclusions and the atomic file-write primitive; preserve the distinction between traversal exclusions and package-fingerprint metadata exclusions.
+
+Probe the pinned Skill X-Ray version once per audit session. Keep an audit-owned temporary root, isolated staging/report subdirectories for each package, per-scan timeout and cleanup. Reuse probe failures without retrying each package; local findings survive. No scanner interface/version changes, downloads or cloud modes.
+
+Acceptance: offline failing regressions for request ordering, interrupted/partial baseline persistence, nested scope and `.github`, explicit roots, cache-hit symlinks/size mismatches and unavailable finding labels; request/probe-count fixtures, stale-SARIF isolation, atomic replacement and existing failure tests. Run format, vet, tests, builds and fixture demo from the canonical original `main` checkout. Preserve wire schemas and scanner rule versions.
+
+
 ## Traversal follow-up plan (2026-10-28)
 
 The earlier Data-tree exclusion fixes a known duplicate view, not budget starvation before reaching user directories. Replace the standard lexical-only walk with a small deterministic priority walk: directories containing the selected home first, known agent directory names second, conventional `Users`/`home`/`root` containers third, then other entries; lexical order breaks ties. Apply the same priorities across selected roots, while keeping output root/package ordering stable. Prioritization improves useful partial results; a large home can still exhaust limits and no scan promises all device skills.

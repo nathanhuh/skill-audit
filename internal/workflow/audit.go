@@ -29,6 +29,8 @@ func Audit(ctx context.Context, inventory Inventory, store Store, xray string, t
 		}
 		seen[pkg.Path] = true
 	}
+	scanner := audit.NewXRayScanner(xray, timeout)
+	defer scanner.Close()
 	packages := append([]Package{}, inventory.Packages...)
 	sort.Slice(packages, func(i, j int) bool { return packages[i].Path < packages[j].Path })
 	for _, pkg := range packages {
@@ -43,7 +45,7 @@ func Audit(ctx context.Context, inventory Inventory, store Store, xray string, t
 		s.Correlation = matcher.Correlate(s)
 		s.Origins = append([]audit.Candidate{}, s.Correlation.Candidates...)
 		audit.LocalScan(&s)
-		audit.XRayScan(ctx, &s, xray, timeout)
+		scanner.Scan(ctx, &s)
 		// Evidence and hashes survive; raw local content is needed only while scanning.
 		s.Data = nil
 		r.Skills = append(r.Skills, s)

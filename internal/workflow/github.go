@@ -27,6 +27,7 @@ type Client struct {
 	HTTP                  *http.Client
 	Token                 string
 	Requests, MaxRequests int
+	repositories          map[string]*repositorySnapshot
 }
 
 func NewClient(token string) *Client {
@@ -139,22 +140,32 @@ func (c *Client) Sync(ctx context.Context, repo, ref string, maxPackages int) (S
 	return c.SyncTarget(ctx, Hit{Repository: repo}, ref, maxPackages)
 }
 
-// SyncTarget fetches the matching package path (or registry slug hint), never unrelated first-N packages.
-func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPackages int) (Store, error) {
-	repo := target.Repository
-	out := EmptyStore()
-	if !repoPattern.MatchString(repo) || ref == "" || maxPackages < 1 || maxPackages > 100 {
-		return out, fmt.Errorf("invalid repository/ref/package limit")
+type repositorySnapshot struct {
+	commit    string
+	entries   []treeEntry
+	blobs     map[string][]byte
+	bytesRead int
+}
+
+// A client represents one acquisition operation. Pin each repo/ref once so
+// search hits share requests and immutable content, never a process-global cache.
+func (c *Client) repository(ctx context.Context, repo, ref string) (*repositorySnapshot, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	key := c.BaseURL + "\x00" + repo + "\x00" + ref
+	if cached := c.repositories[key]; cached != nil {
+		return cached, nil
 	}
 	base := "/repos/" + repo
 	var meta struct {
 		Private *bool `json:"private"`
 	}
 	if e := c.get(ctx, base, &meta); e != nil {
-		return out, e
+		return nil, e
 	}
 	if meta.Private == nil || *meta.Private {
-		return out, fmt.Errorf("only explicitly public repositories are imported")
+		return nil, fmt.Errorf("only explicitly public repositories are imported")
 	}
 	var commit struct {
 		SHA    string `json:"sha"`
@@ -165,35 +176,60 @@ func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPack
 		} `json:"commit"`
 	}
 	if e := c.get(ctx, base+"/commits/"+url.PathEscape(ref), &commit); e != nil {
-		return out, e
+		return nil, e
 	}
 	if !shaPattern.MatchString(commit.SHA) || !shaPattern.MatchString(commit.Commit.Tree.SHA) {
-		return out, fmt.Errorf("missing immutable commit/tree identity")
+		return nil, fmt.Errorf("missing immutable commit/tree identity")
 	}
 	var tree struct {
 		Truncated bool        `json:"truncated"`
 		Entries   []treeEntry `json:"tree"`
 	}
 	if e := c.get(ctx, base+"/git/trees/"+commit.Commit.Tree.SHA+"?recursive=1", &tree); e != nil {
-		return out, e
+		return nil, e
 	}
 	if tree.Truncated {
-		return out, fmt.Errorf("GitHub tree truncated; repository import refused")
+		return nil, fmt.Errorf("GitHub tree truncated; repository import refused")
 	}
 	sort.Slice(tree.Entries, func(i, j int) bool { return tree.Entries[i].Path < tree.Entries[j].Path })
 	for _, node := range tree.Entries {
 		if !safePath(node.Path) {
-			return out, fmt.Errorf("unsafe tree path; import refused")
+			return nil, fmt.Errorf("unsafe tree path; import refused")
 		}
 	}
-	cache := map[string][]byte{}
-	bytesRead := 0
+
+	snapshot := &repositorySnapshot{commit: commit.SHA, entries: tree.Entries, blobs: map[string][]byte{}}
+	if c.repositories == nil {
+		c.repositories = map[string]*repositorySnapshot{}
+	}
+	c.repositories[key] = snapshot
+	return snapshot, nil
+}
+
+// SyncTarget fetches the matching package path (or registry slug hint), never unrelated first-N packages.
+func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPackages int) (Store, error) {
+	repo := target.Repository
+	out := EmptyStore()
+	if !repoPattern.MatchString(repo) || ref == "" || maxPackages < 1 || maxPackages > 100 {
+		return out, fmt.Errorf("invalid repository/ref/package limit")
+	}
+	snapshot, err := c.repository(ctx, repo, ref)
+	if err != nil {
+		return out, err
+	}
+	base := "/repos/" + repo
 	blob := func(node treeEntry) ([]byte, error) {
-		if b, ok := cache[node.SHA]; ok {
-			return b, nil
-		}
 		if node.Type != "blob" || (node.Mode != "100644" && node.Mode != "100755") || !shaPattern.MatchString(node.SHA) || node.Size < 0 || node.Size > audit.MaxFile {
 			return nil, fmt.Errorf("unsupported or oversized blob: %s", node.Path)
+		}
+		if b, ok := snapshot.blobs[node.SHA]; ok {
+			if int64(len(b)) != node.Size {
+				return nil, fmt.Errorf("cached blob size mismatch: %s", node.Path)
+			}
+			return b, nil
+		}
+		if snapshot.bytesRead+int(node.Size) > 16<<20 {
+			return nil, fmt.Errorf("import exceeds 16 MiB")
 		}
 		var raw struct {
 			Encoding string `json:"encoding"`
@@ -217,14 +253,14 @@ func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPack
 		if hex.EncodeToString(h.Sum(nil)) != node.SHA {
 			return nil, fmt.Errorf("blob hash mismatch")
 		}
-		bytesRead += len(b)
-		if bytesRead > 16<<20 {
+		if snapshot.bytesRead+len(b) > 16<<20 {
 			return nil, fmt.Errorf("import exceeds 16 MiB")
 		}
-		cache[node.SHA] = b
+		snapshot.bytesRead += len(b)
+		snapshot.blobs[node.SHA] = b
 		return b, nil
 	}
-	for _, n := range tree.Entries {
+	for _, n := range snapshot.entries {
 		baseName := strings.ToLower(path.Base(n.Path))
 		if !strings.Contains(n.Path, "/") && (strings.HasPrefix(baseName, "license") || strings.Contains(baseName, "notice")) {
 			b, e := blob(n)
@@ -232,10 +268,10 @@ func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPack
 				out.Diagnostics = append(out.Diagnostics, audit.Diagnostic{Path: n.Path, Code: "attribution_error", Message: e.Error(), Incomplete: true})
 				continue
 			}
-			out.Attribution[repo+"@"+commit.SHA+"/"+n.Path] = b
+			out.Attribution[repo+"@"+snapshot.commit+"/"+n.Path] = b
 		}
 	}
-	for _, manifest := range tree.Entries {
+	for _, manifest := range snapshot.entries {
 		if target.Path != "" && manifest.Path != target.Path {
 			continue
 		}
@@ -258,7 +294,7 @@ func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPack
 		files := []audit.File{}
 		failed := false
 		packageBytes := 0
-		for _, node := range tree.Entries {
+		for _, node := range snapshot.entries {
 			if !strings.HasPrefix(node.Path, prefix) || node.Type == "tree" {
 				continue
 			}
@@ -284,12 +320,12 @@ func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPack
 				break
 			}
 			data[relative] = b
-			files = append(files, audit.File{Path: relative, SHA256: hash(b), Size: int64(len(b))})
+			files = append(files, audit.File{Path: relative, SHA256: audit.Hash(b), Size: int64(len(b))})
 		}
 		if failed || data["SKILL.md"] == nil {
 			continue
 		}
-		r := audit.Reference{ID: repo + ":" + dir + "@" + commit.SHA, Repository: "https://github.com/" + repo, Commit: commit.SHA, UpstreamPath: dir, Digest: audit.Digest(files), Files: files}
+		r := audit.Reference{ID: repo + ":" + dir + "@" + snapshot.commit, Repository: "https://github.com/" + repo, Commit: snapshot.commit, UpstreamPath: dir, Digest: audit.Digest(files), Files: files}
 		out.Entries = append(out.Entries, Entry{r, data})
 	}
 	if len(out.Entries) == 0 {
@@ -299,8 +335,7 @@ func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPack
 }
 func metadataPath(p string) bool {
 	for _, part := range strings.Split(p, "/") {
-		switch part {
-		case ".git", ".hg", ".svn", ".DS_Store":
+		if audit.ExcludedMetadata(part) {
 			return true
 		}
 	}

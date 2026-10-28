@@ -48,7 +48,7 @@ func LoadBuiltinCatalog() (Catalog, error) {
 			}
 			rel := strings.TrimPrefix(p, root+"/")
 			r.Data[rel] = b
-			actual = append(actual, File{rel, hash(b), int64(len(b))})
+			actual = append(actual, File{rel, Hash(b), int64(len(b))})
 			return nil
 		})
 		if err != nil {
@@ -70,5 +70,5 @@ func (c Catalog) Fingerprint() string {
 	refs := append([]Reference{}, c.Skills...)
 	sort.Slice(refs, func(i, j int) bool { return refs[i].ID < refs[j].ID })
 	b, _ := json.Marshal(refs) // Reference.Data is excluded; Files carries its hashes.
-	return hash(append([]byte("skill-audit/reference-catalog/v1\x00"), b...))
+	return Hash(append([]byte("skill-audit/reference-catalog/v1\x00"), b...))
 }

@@ -42,7 +42,7 @@ func TestShebangEligibilityAndRawOffsets(t *testing.T) {
 				t.Fatal("raw bytes changed")
 			}
 			for _, f := range s.Files {
-				if f.Path == "run.sh" && f.SHA256 != hash([]byte(script)) {
+				if f.Path == "run.sh" && f.SHA256 != Hash([]byte(script)) {
 					t.Fatal("raw hash changed")
 				}
 			}
@@ -102,7 +102,7 @@ func TestLineageIncludesIdentitiesAbsentFromBaseline(t *testing.T) {
 	roots := []Root{{Scope: "project", Path: p}}
 	base := testReport(context.Background(), roots, c, "", time.Second)
 	statePath := filepath.Join(d, "state.json")
-	if err := SaveObservation(statePath, base, true); err != nil {
+	if err := SaveObservation(context.Background(), statePath, base, true); err != nil {
 		t.Fatal(err)
 	}
 	before, err := os.ReadFile(statePath)
@@ -137,7 +137,7 @@ func TestLineageIncludesIdentitiesAbsentFromBaseline(t *testing.T) {
 	}
 	r := testReport(context.Background(), roots, c, "", time.Second)
 	Compare(&r, st)
-	if err = SaveObservation(statePath, r, false); err != nil {
+	if err = SaveObservation(context.Background(), statePath, r, false); err != nil {
 		t.Fatal(err)
 	}
 	loaded, err := LoadState(statePath)

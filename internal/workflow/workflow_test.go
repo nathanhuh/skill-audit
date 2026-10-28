@@ -292,7 +292,7 @@ func TestOfflineAuditDetectsDriftAndKeepsFindings(t *testing.T) {
 		t.Fatal(after, e)
 	}
 	state := filepath.Join(root, "state.json")
-	if e = audit.SaveObservation(state, before, true); e != nil {
+	if e = audit.SaveObservation(context.Background(), state, before, true); e != nil {
 		t.Fatal(e)
 	}
 	st, e := audit.LoadState(state)

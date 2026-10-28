@@ -1,11 +1,9 @@
 package workflow
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 	"sort"
@@ -16,8 +14,6 @@ import (
 
 const CatalogSchema = "skill-audit/catalog-store/v2"
 const MaxStore = 64 << 20
-
-func hash(b []byte) string { v := sha256.Sum256(b); return hex.EncodeToString(v[:]) }
 
 type Entry struct {
 	Reference audit.Reference   `json:"reference"`
@@ -72,7 +68,7 @@ func (s Store) Catalog() (audit.Catalog, error) {
 			if !safePath(p) {
 				return c, fmt.Errorf("unsafe catalog path")
 			}
-			files = append(files, audit.File{Path: p, SHA256: hash(b), Size: int64(len(b))})
+			files = append(files, audit.File{Path: p, SHA256: audit.Hash(b), Size: int64(len(b))})
 		}
 		sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 		a, _ := json.Marshal(files)
@@ -91,44 +87,18 @@ func WriteJSON(p string, v any) error {
 	if e != nil {
 		return e
 	}
-	for dir := filepath.Dir(absolute); ; {
-		if _, err := os.Lstat(filepath.Join(dir, "SKILL.md")); err == nil {
-			return fmt.Errorf("tool-owned JSON must be outside skill packages")
-		} else if !os.IsNotExist(err) {
-			return fmt.Errorf("cannot verify output placement: %w", err)
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
-	}
-	if e := audit.NoSymlinks(p); e != nil {
+	if e := audit.StateOutside(absolute, nil); e != nil {
 		return e
 	}
 	b, e := json.MarshalIndent(v, "", "  ")
 	if e != nil {
 		return e
 	}
+	b = append(b, '\n')
 	if len(b) > MaxStore {
 		return fmt.Errorf("output exceeds 64 MiB")
 	}
-	f, e := os.CreateTemp(filepath.Dir(p), ".skill-audit-")
-	if e != nil {
-		return e
-	}
-	defer os.Remove(f.Name())
-	if _, e = f.Write(append(b, '\n')); e == nil {
-		e = f.Sync()
-	}
-	ce := f.Close()
-	if e == nil {
-		e = ce
-	}
-	if e != nil {
-		return e
-	}
-	return os.Rename(f.Name(), p)
+	return audit.WriteAtomic(context.Background(), absolute, b)
 }
 func ReadJSON(p string, v any) error {
 	b, e := audit.ReadBounded(p, MaxStore)

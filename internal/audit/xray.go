@@ -64,9 +64,28 @@ func runProcess(ctx context.Context, exe, dir string, args ...string) (string, s
 	}
 	return out.String(), errout.String(), code, err
 }
-func XRayScan(ctx context.Context, s *Skill, exe string, timeout time.Duration) {
-	e := Evaluation{Scanner: "skill-xray", Status: "disabled", Analyzed: []string{}, OutsideScope: []string{}}
-	defer func() { s.Evaluations = append(s.Evaluations, e); sortFindings(s.Findings) }()
+
+// XRayScanner is scoped to one audit. The executable remains trusted code;
+// a single version probe does not protect against executable replacement races.
+type XRayScanner struct {
+	exe             string
+	timeout         time.Duration
+	prepared, ready bool
+	dir             string
+	evaluation      Evaluation
+}
+
+func NewXRayScanner(exe string, timeout time.Duration) *XRayScanner {
+	return &XRayScanner{exe: exe, timeout: timeout, evaluation: Evaluation{Scanner: "skill-xray", Status: "disabled", Analyzed: []string{}, OutsideScope: []string{}}}
+}
+func (x *XRayScanner) Close() {
+	if x.dir != "" {
+		os.RemoveAll(x.dir)
+	}
+}
+func (x *XRayScanner) prepare(ctx context.Context) {
+	x.prepared = true
+	exe, e := x.exe, &x.evaluation
 	if exe == "" {
 		return
 	}
@@ -86,14 +105,12 @@ func XRayScan(ctx context.Context, s *Skill, exe string, timeout time.Duration) 
 		e.Message = err.Error()
 		return
 	}
-	defer os.RemoveAll(dir)
+	x.dir = dir
 	dir, err = filepath.EvalSymlinks(dir)
 	if err != nil {
 		e.Message = err.Error()
 		return
 	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
 	stdout, stderr, _, err := runProcess(ctx, exe, dir, "version")
 	if err != nil {
 		e.Message = fmt.Sprintf("version probe: %v; %s", err, stderr)
@@ -104,6 +121,39 @@ func XRayScan(ctx context.Context, s *Skill, exe string, timeout time.Duration) 
 		return
 	}
 	e.Version = XRayVersion
+	x.dir = dir
+	x.ready = true
+}
+
+// XRayScan is a convenience for a standalone package. Workflow audits reuse one
+// XRayScanner and close it after all packages, including on partial failures.
+func XRayScan(ctx context.Context, s *Skill, exe string, timeout time.Duration) {
+	scanner := NewXRayScanner(exe, timeout)
+	defer scanner.Close()
+	scanner.Scan(ctx, s)
+}
+func (x *XRayScanner) Scan(ctx context.Context, s *Skill) {
+	ctx, cancel := context.WithTimeout(ctx, x.timeout)
+	defer cancel()
+	if !x.prepared {
+		x.prepare(ctx)
+	}
+	e := x.evaluation
+	defer func() { s.Evaluations = append(s.Evaluations, e); sortFindings(s.Findings) }()
+	if !x.ready {
+		return
+	}
+	if err := ctx.Err(); err != nil {
+		e.Message = "scan canceled/timed out: " + err.Error()
+		return
+	}
+	dir, err := os.MkdirTemp(x.dir, "scan-")
+	if err != nil {
+		e.Message = err.Error()
+		return
+	}
+	defer os.RemoveAll(dir)
+	exe := x.exe
 	stage := filepath.Join(dir, "package")
 	if err = os.Mkdir(stage, 0700); err != nil {
 		e.Message = err.Error()

@@ -110,7 +110,8 @@ type Report struct {
 	Diagnostics    []Diagnostic `json:"diagnostics"`
 }
 
-func hash(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }
+// Hash fingerprints raw bytes without normalization.
+func Hash(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }
 func Digest(files []File) string {
 	fs := append([]File(nil), files...)
 	sort.Slice(fs, func(i, j int) bool { return fs[i].Path < fs[j].Path })

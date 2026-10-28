@@ -4,7 +4,7 @@ package audit
 
 import "os"
 
-func syncStateDirectory(parent string) error {
+func syncDirectory(parent string) error {
 	d, err := os.Open(parent)
 	if err != nil {
 		return err

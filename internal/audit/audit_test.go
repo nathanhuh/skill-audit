@@ -169,7 +169,7 @@ func TestCorrelationAndBundledChanges(t *testing.T) {
 	}
 }
 func TestDigestEncodingAndDeterminism(t *testing.T) {
-	a := []File{{Path: "a", SHA256: hash([]byte("bc"))}, {Path: "ab", SHA256: hash([]byte("c"))}}
+	a := []File{{Path: "a", SHA256: Hash([]byte("bc"))}, {Path: "ab", SHA256: Hash([]byte("c"))}}
 	b := []File{a[1], a[0]}
 	if Digest(a) != Digest(b) {
 		t.Fatal("order dependent")
@@ -269,11 +269,11 @@ func TestLineagePersistence(t *testing.T) {
 	roots := []Root{{Scope: "project", Path: p}}
 	statePath := filepath.Join(d, "state.json")
 	base := testReport(context.Background(), roots, c, "", time.Second)
-	if e := SaveObservation(statePath, base, true); e != nil {
+	if e := SaveObservation(context.Background(), statePath, base, true); e != nil {
 		t.Fatal(e)
 	}
 	before, _ := os.ReadFile(statePath)
-	if e := SaveObservation(statePath, base, true); e == nil {
+	if e := SaveObservation(context.Background(), statePath, base, true); e == nil {
 		t.Fatal("baseline overwritten")
 	}
 	after, _ := os.ReadFile(statePath)
@@ -303,7 +303,7 @@ func TestLineagePersistence(t *testing.T) {
 	if string(before) != string(after) {
 		t.Fatal("ordinary scan mutated state")
 	}
-	if e = SaveObservation(statePath, r, false); e != nil {
+	if e = SaveObservation(context.Background(), statePath, r, false); e != nil {
 		t.Fatal(e)
 	}
 	st, e = LoadState(statePath)
@@ -349,10 +349,10 @@ func TestStateFailures(t *testing.T) {
 	root := filepath.Join(d, "skills")
 	skill(t, root, "x", "body")
 	r := testReport(context.Background(), []Root{{Scope: "global", Path: filepath.Join(root, "x")}}, catalog(t), "", time.Second)
-	if e := SaveObservation(filepath.Join(root, "x", "state.json"), r, true); e == nil {
+	if e := SaveObservation(context.Background(), filepath.Join(root, "x", "state.json"), r, true); e == nil {
 		t.Fatal("state in scan root accepted")
 	}
-	if e := SaveObservation(filepath.Join(d, "valid.json"), r, true); e != nil {
+	if e := SaveObservation(context.Background(), filepath.Join(d, "valid.json"), r, true); e != nil {
 		t.Fatal(e)
 	}
 	st, e := LoadState(filepath.Join(d, "valid.json"))
@@ -367,7 +367,7 @@ func TestStateFailures(t *testing.T) {
 	}
 	lockPath := filepath.Join(d, "locked.json")
 	put(t, lockPath+".lock", nil)
-	if e = SaveObservation(lockPath, r, true); e == nil {
+	if e = SaveObservation(context.Background(), lockPath, r, true); e == nil {
 		t.Fatal("lock ignored")
 	}
 }

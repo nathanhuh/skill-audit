@@ -80,6 +80,9 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 	if f.NArg() != 0 {
 		return fail(fmt.Errorf("unexpected positional arguments"))
 	}
+	if args[0] == "sync" && output == "" {
+		return fail(fmt.Errorf("sync requires --out catalog file"))
+	}
 	if deadline <= 0 || limit < 1 || limit > 100 {
 		return fail(fmt.Errorf("invalid timeout/limit"))
 	}
@@ -231,9 +234,6 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 		if len(targets) == 0 {
 			return fail(fmt.Errorf("provide --repo, --search, --query, or --search-names"))
 		}
-		if output == "" {
-			return fail(fmt.Errorf("sync requires --out catalog file"))
-		}
 		store := workflow.EmptyStore()
 		store.Diagnostics = append(store.Diagnostics, combined.Diagnostics...)
 		if combined.Incomplete {
@@ -319,8 +319,8 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 				if e = checkPaths(); e != nil {
 					return fail(e)
 				}
-				if e = audit.SaveObservation(state, r, record == "baseline"); e != nil {
-					return fail(e)
+				if e = audit.SaveObservation(ctx, state, r, record == "baseline"); e != nil {
+					r.Diagnostics = append(r.Diagnostics, audit.Diagnostic{Path: state, Code: "state_not_recorded", Message: e.Error(), Incomplete: true})
 				}
 			}
 		}

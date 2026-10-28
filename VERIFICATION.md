@@ -1,3 +1,45 @@
+# Verification — boundary and reuse fixes, 2026-10-28
+
+Reviewed and changed the canonical original checkout on `main`, starting at `3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0`. The first seven items below were reproduced with failing offline regressions before their fixes. Request/probe repetition was measured before reuse changes. Shared-write duplication was established by source inspection.
+
+| Item | Change and evidence |
+| --- | --- |
+| 1. Names transmitted before missing-output error | Mandatory sync output is checked before reading name-search input or requesting data. A fake transport recorded one request before the fix and zero after it; the compiled CLI reports the missing output before its transmission notice. |
+| 2. Interrupted immutable baseline | State recording now accepts context, checks it before work and again before atomic rename. Baselines require complete selected-scope coverage/package evaluations; findings alone are allowed. Canceled/deadline audits retain reports with `state_not_recorded` and cannot create/append state. Tests preserve existing bytes, permit a later valid baseline, refuse incomplete baselines, and preserve non-interrupted partial snapshots. |
+| 3. Nested worktree scope | Classification follows the nearest agent marker and limits global installations to immediate home-agent skills/plugins trees. Nested `.codex/worktrees` project fixtures retain project scope and the inner agent hint. Relative home hints preserve the same classification. |
+| 4. Explicit root silently lost | Roots run deepest first; skipped directories are not marked visited. Fixtures cover dependency exclusions, depth-cut roots and admitted ancestors with deeper content. Overlap/budget/coverage tests remain passing. Hard OS exclusions and no-follow policy still apply. |
+| 5. Cache hit bypasses mode/type/size | Regressions previously imported symlink, submodule and inconsistent-size entries sharing a fetched SHA. Validation now precedes every cache lookup, including a cached-length check; unsafe packages are refused while regular repeated bytes remain supported. |
+| 6. Empty finding comparison | Incomplete baseline/current comparison explicitly resets all finding changes to `not_compared`, including previously set labels. Both incomplete-side cases pass. |
+| 7. `.github` scope depends on home | Selected/custom and conventional homes now consistently classify `.github` as project scope. Current and alternate-home fixtures pass. |
+| 8. Repeated repository requests | A sync client caches a validated repository/ref snapshot and verified blobs for one operation. Three target imports now use four total requests in the shared-content fixture (metadata, commit, tree, blob); distinct refs do not share resolution. The 16 MiB cached-byte bound spans targets for the same repository/ref. Request/size limits and diagnostics remain. |
+| 9. Repeated write/hash/exclusion helpers | State and report/catalog output share `WriteAtomic`, including file flush, cancellation before rename and OS-specific directory sync. Destination preservation, successful replacement, temp cleanup and placement tests pass. Raw SHA-256 and fingerprint metadata exclusions are shared. Discovery dependency exclusions remain a separate policy. |
+| 10. Per-package X-Ray probe | Workflow owns one lazy X-Ray session. The two-package fixture changed from two probes/two scans to one probe/two scans. Each scan still has an isolated staging/report directory; a missing second report stays failed rather than reusing the first SARIF. Probe failures are cached, session temp data is cleaned, and local findings survive. |
+
+No wire schema or scanner/rule version changed. Scope correction can change local identities: refresh inventories and review old baseline identities rather than silently rewriting history. Complete-baseline policy is stricter: broad device scans with coverage gaps need a narrower scope before creating a baseline. Historical incomplete states remain readable and receive unavailable comparisons where appropriate.
+
+## Final verification from the original checkout
+
+Host: macOS arm64, Go 1.23.5. Go commands used `GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off` and pinned vendored dependencies. Full tests were approved to bind loopback-only fake HTTP servers. No live service calls, external scanner installation or skill-script execution occurred.
+
+`gofmt -l cmd internal`: no output. `go vet ./...`: exit 0. `go test -count=1 ./...`: exit 0:
+
+```text
+ok  skill-audit/cmd/skill-audit    0.833s
+ok  skill-audit/internal/audit    3.307s
+ok  skill-audit/internal/workflow 1.376s
+```
+
+- Native build `/private/tmp/skill-audit-boundaries`: exit 0.
+- Linux amd64 cross-build `/private/tmp/skill-audit-boundaries-linux`: exit 0.
+- Windows amd64 cross-build `/private/tmp/skill-audit-boundaries-windows.exe`: exit 0.
+- Windows audit-test compilation `/private/tmp/skill-audit-boundaries-audit.test.exe`: exit 0; compilation only.
+- `sh scripts/demo.sh`: exit 0, with expected finding-producing audit exit 1.
+- Nine compiled-CLI checks passed: scope inventory, relative-home equivalence, missing sync output, valid baseline, interrupted baseline/snapshot, partial inventory, incomplete-baseline refusal and overlapping explicit-root depth recovery. Evidence: `/private/tmp/skill-audit-boundary-final-y3w6_qh9/commands.json`.
+
+Native Linux/Windows runtime, real Skill X-Ray integration and real device-wide discovery remain unverified. The supplied scanner remains trusted executable code; caching its probe does not prevent executable replacement races. Repository and scanner caches live only for the current operation. No publishing, pushing or submission occurred.
+
+## Prior verification records
+
 # Verification — promotion to original main checkout, 2026-10-28
 
 The tested inventory/search/sync/audit implementation is promoted into the original repository on `main`. Before edits, all 85 source files matched the previous tested V2 archive by SHA-256. The original checkout's 73 files were backed up and verified against an archive before replacement. Eight obsolete V1-only files were removed from the active tree: COMPARISON.md, EXPANDED_SCOPE.md, REBUILD_PROMPT.md, internal/audit/device.go, device_test.go, public.go, public_test.go, and scripts/demo-device.sh. Subsequent promotion edits only identify the canonical checkout in README/AGENTS and record this verification.

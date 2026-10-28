@@ -94,3 +94,15 @@ The macOS Data mount is a documented exclusion to avoid walking a known alternat
 The priority walker in `internal/workflow/walk.go` exists because `filepath.WalkDir` cannot change sibling order: a lexical walk can consume a device budget in system trees before user directories. It keeps the same callback boundary for exclusions, errors, limits and cancellation. Directory-only deduplication prevents overlapping selected roots from charging twice; removing it outright would regress that behavior. The root's `Lstat` metadata is reused. This is a deliberate small traversal seam, not a filesystem framework. All ordering tests use temporary synthetic trees.
 
 Cancellation and deadline diagnostics now identify both the interrupted root and roots not started, preserving prior findings. This differs from budget exhaustion and does not claim an interrupted scan is complete. Known names guide ordering; they do not establish trust or activation. Per-directory listings and very large homes remain memory/coverage limitations.
+
+## Boundary fixes and reuse
+
+Mandatory command inputs are checked before network transmission. Cancellation prevents state recording, with a second check before atomic replacement. A complete audit can establish a baseline even when findings exist; incomplete first observations are refused so an immutable baseline does not permanently start with unusable coverage. Partial reports remain inspectable, and non-interrupted partial snapshots remain possible.
+
+Scope now follows the nearest agent marker and recognized home installation trees. A `.claude` project nested in `.codex/worktrees` therefore stays project scoped. `.github` is always project scoped. Scope corrections do not rewrite earlier identities, so old inventories should be refreshed and existing baseline identity changes reviewed explicitly.
+
+Explicit roots run deepest first; marking only admitted directories avoids silently losing a root that a broader walk excluded or cut by depth. Root-local depth and dependency exclusions can be overridden by a narrower explicit root; symlinks and protected OS trees remain excluded.
+
+One sync client pins a repository/ref once and shares bounded blob content across its targets. Validation of mode/type/declared size happens before cache lookup, because a SHA identifies bytes, not whether a tree entry is a symlink or regular file. One X-Ray session similarly caches a version probe, while per-package staging/report directories preserve isolation. These caches last only for their operation, without a persistent invalidation protocol.
+
+`WriteAtomic` hides temporary-file creation, flushing, cancellation before rename, replacement and OS-specific directory syncing. State still owns locking and immutable-baseline policy; catalog/report output owns its own size and placement checks. Hash and metadata-name helpers are shared without treating discovery dependency exclusions as fingerprint exclusions.

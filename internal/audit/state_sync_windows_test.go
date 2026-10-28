@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 )
@@ -10,10 +11,10 @@ import (
 func TestWindowsStateBaselineAndReplacement(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "state.json")
 	r := Report{Schema: ReportSchema, CatalogVersion: "fixture", Skills: []Skill{}, Roots: []Root{}, Lineage: []Lineage{}, Diagnostics: []Diagnostic{}}
-	if err := SaveObservation(p, r, true); err != nil {
+	if err := SaveObservation(context.Background(), p, r, true); err != nil {
 		t.Fatal(err)
 	}
-	if err := SaveObservation(p, r, false); err != nil {
+	if err := SaveObservation(context.Background(), p, r, false); err != nil {
 		t.Fatal(err)
 	}
 	s, err := LoadState(p)

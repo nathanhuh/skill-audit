@@ -67,7 +67,9 @@ func ReadBounded(path string, limit int64) ([]byte, error) {
 	}
 	return b, err
 }
-func excluded(name string) bool {
+
+// ExcludedMetadata identifies names intentionally omitted from package fingerprints.
+func ExcludedMetadata(name string) bool {
 	return name == ".git" || name == ".hg" || name == ".svn" || name == ".DS_Store"
 }
 func Inspect(ctx context.Context, scope, path string) Skill {
@@ -117,7 +119,7 @@ func Inspect(ctx context.Context, scope, path string) Skill {
 			issue(rel, "symlink", "symlink skipped", true)
 			return nil
 		}
-		if excluded(d.Name()) {
+		if ExcludedMetadata(d.Name()) {
 			issue(rel, "excluded_metadata", "excluded from fingerprint and scanning", false)
 			if d.IsDir() {
 				return fs.SkipDir
@@ -142,7 +144,7 @@ func Inspect(ctx context.Context, scope, path string) Skill {
 		}
 		total += len(b)
 		s.Data[rel] = b
-		s.Files = append(s.Files, File{rel, hash(b), int64(len(b))})
+		s.Files = append(s.Files, File{rel, Hash(b), int64(len(b))})
 		return nil
 	})
 	if ctx.Err() != nil {

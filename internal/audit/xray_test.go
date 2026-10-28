@@ -150,3 +150,24 @@ func TestBoundedSARIFAndPartialFailures(t *testing.T) {
 		t.Fatal("partial failure lost independent findings")
 	}
 }
+
+func TestXRaySessionCachesProbeFailure(t *testing.T) {
+	p := skill(t, temp(t), "pkg", "body")
+	exe := fakeScanner(t, "exit 0")
+	b, err := os.ReadFile(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(t, exe, []byte(strings.Replace(string(b), "0.1.0", "9.9.9", 1)))
+	scanner := NewXRayScanner(exe, time.Second)
+	defer scanner.Close()
+	first := Inspect(context.Background(), "project", p)
+	scanner.Scan(context.Background(), &first)
+	// Making the executable valid does not silently change the probe result mid-audit.
+	put(t, exe, b)
+	second := Inspect(context.Background(), "project", p)
+	scanner.Scan(context.Background(), &second)
+	if first.Evaluations[0].Status != "failed" || second.Evaluations[0].Message != first.Evaluations[0].Message || !strings.Contains(second.Evaluations[0].Message, "unsupported scanner version") {
+		t.Fatal(first.Evaluations, second.Evaluations)
+	}
+}

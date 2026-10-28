@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -111,7 +112,19 @@ func StateOutside(path string, roots []Root) error {
 
 // SaveObservation serializes writers using an exclusive lock and re-reads state
 // under it. Baseline creation cannot overwrite earlier evidence.
-func SaveObservation(path string, r Report, baseline bool) error {
+func SaveObservation(ctx context.Context, path string, r Report, baseline bool) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("state recording interrupted: %w", err)
+	}
+	if baseline {
+		incomplete := r.ExitCode() == 2
+		for _, s := range r.Skills {
+			incomplete = incomplete || !s.Complete
+		}
+		if incomplete {
+			return fmt.Errorf("baseline requires a complete audit; no state written")
+		}
+	}
 	if err := StateOutside(path, r.Roots); err != nil {
 		return err
 	}
@@ -149,28 +162,7 @@ func SaveObservation(path string, r Report, baseline bool) error {
 	if len(b) > MaxState {
 		return fmt.Errorf("state exceeds 32 MiB; archive state and start a separate baseline")
 	}
-	tmp, err := os.CreateTemp(parent, ".skill-audit-state-")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
-	if _, err = tmp.Write(b); err == nil {
-		err = tmp.Sync()
-	}
-	closeErr := tmp.Close()
-	if err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return err
-	}
-	if err = os.Rename(tmp.Name(), path); err != nil {
-		return err
-	}
-	if err = syncStateDirectory(parent); err != nil {
-		return fmt.Errorf("state replaced, but directory durability could not be confirmed; inspect state before retrying: %w", err)
-	}
-	return nil
+	return WriteAtomic(ctx, path, b)
 }
 func Compare(r *Report, st State) {
 	baseline := st.Observations[0].Report
@@ -191,6 +183,9 @@ func Compare(r *Report, st State) {
 			r.Diagnostics = append(r.Diagnostics, Diagnostic{b.Scope, b.Path, "tracked_missing", "tracked package missing or outside current discovery; no deletions inferred", true})
 		} else if !b.Complete || !s.Complete {
 			l.Status = "comparison_unavailable"
+			for i := range s.Findings {
+				s.Findings[i].Change = "not_compared"
+			}
 		} else {
 			old := map[string]string{}
 			now := map[string]string{}

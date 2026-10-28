@@ -16,9 +16,10 @@ func directoryPriority(p, home string) int {
 	if home != "" && audit.Within(home, p) {
 		return 0
 	}
-	switch filepath.Base(p) {
-	case ".claude", ".codex", ".agents", ".cursor", ".gemini", ".github", ".opencode":
+	if agentDirectory(filepath.Base(p)) {
 		return 1
+	}
+	switch filepath.Base(p) {
 	case "Users", "home", "root":
 		return 2
 	}

@@ -71,6 +71,11 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 	sort.Strings(out.Roots)
 	walkRoots := append([]string{}, out.Roots...)
 	sort.SliceStable(walkRoots, func(i, j int) bool {
+		// Deeper explicit roots get their own depth/exclusion scope before ancestors.
+		di, dj := strings.Count(filepath.ToSlash(walkRoots[i]), "/"), strings.Count(filepath.ToSlash(walkRoots[j]), "/")
+		if di != dj {
+			return di > dj
+		}
 		return directoryPriority(walkRoots[i], home) < directoryPriority(walkRoots[j], home)
 	})
 	interrupted := func() string {
@@ -110,7 +115,6 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 				if seenDirectories[p] {
 					return fs.SkipDir
 				}
-				seenDirectories[p] = true
 			}
 			out.Entries++
 			if out.Entries > limits.Entries {
@@ -132,6 +136,7 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 					issue(p, "excluded_subtree", "outside device-search policy; subtree not inspected")
 					return fs.SkipDir
 				}
+				seenDirectories[p] = true
 				return nil
 			}
 			if d.Name() != "SKILL.md" {
@@ -190,43 +195,49 @@ func excludedOnOS(p, name, root, goos string) bool {
 	if p == root {
 		return false
 	}
+	if audit.ExcludedMetadata(name) {
+		return true
+	}
 	switch name {
-	case ".git", ".hg", ".svn", "node_modules", "vendor", ".venv", "venv", "__pycache__":
+	case "node_modules", "vendor", ".venv", "venv", "__pycache__":
 		return true
 	}
 	return false
 }
+func agentDirectory(name string) bool {
+	switch name {
+	case ".claude", ".codex", ".agents", ".cursor", ".gemini", ".github", ".opencode":
+		return true
+	}
+	return false
+}
+
 func classify(p, home string) (string, string) {
-	slash := filepath.ToSlash(p)
-	agent := "unknown"
-	for _, a := range []string{".claude", ".codex", ".agents", ".cursor", ".gemini", ".github", ".opencode"} {
-		if strings.Contains(slash, "/"+a+"/") {
-			agent = a
+	// Prefer the nearest agent marker, so a project nested in an agent worktree
+	// does not inherit global scope from the outer home configuration directory.
+	for dir := filepath.Clean(p); ; dir = filepath.Dir(dir) {
+		agent := filepath.Base(dir)
+		if agentDirectory(agent) {
+			parent := filepath.Dir(dir)
+			rel, _ := filepath.Rel(dir, p)
+			first := strings.Split(filepath.ToSlash(rel), "/")[0]
+			installation := first == "skills" || first == "plugins"
+			if agent != ".github" && installation && ((home != "" && audit.Within(parent, home) && audit.Within(home, parent)) || conventionalHome(parent)) {
+				return "global", agent
+			}
+			return "project", agent
+		}
+		if filepath.Dir(dir) == dir {
 			break
 		}
 	}
-	for _, a := range []string{".claude", ".codex", ".agents", ".cursor", ".gemini", ".opencode"} {
-		base := filepath.Join(home, a)
-		if home != "" && audit.Within(p, base) {
-			return "global", agent
-		}
-	}
+	return "machine", "unknown"
+}
+func conventionalHome(p string) bool {
+	slash := filepath.ToSlash(p)
 	parts := strings.Split(strings.Trim(slash, "/"), "/")
-	conventional := ""
-	if len(parts) > 2 && (parts[0] == "home" || parts[0] == "Users") {
-		conventional = parts[2]
+	if strings.HasPrefix(slash, "/") {
+		return len(parts) == 1 && parts[0] == "root" || len(parts) == 2 && (parts[0] == "Users" || parts[0] == "home")
 	}
-	if len(parts) > 1 && parts[0] == "root" {
-		conventional = parts[1]
-	}
-	if len(parts) > 3 && strings.HasSuffix(parts[0], ":") && strings.EqualFold(parts[1], "Users") {
-		conventional = parts[3]
-	}
-	if agent != "unknown" && conventional == agent {
-		return "global", agent
-	}
-	if agent != "unknown" {
-		return "project", agent
-	}
-	return "machine", agent
+	return len(parts) == 3 && strings.HasSuffix(parts[0], ":") && strings.EqualFold(parts[1], "Users")
 }
