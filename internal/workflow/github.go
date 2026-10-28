@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +22,26 @@ import (
 
 var repoPattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)
 var shaPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
+const MaxBlobCache = 16 << 20
+
+type githubHTTPError struct {
+	status     int
+	retryAfter string
+}
+
+func (e *githubHTTPError) Error() string {
+	return fmt.Sprintf("GitHub HTTP %d (check authorization/rate limits; retry-after=%q)", e.status, e.retryAfter)
+}
+
+type permanentRepositoryError struct{ message string }
+
+func (e *permanentRepositoryError) Error() string { return e.message }
+func permanentRepositoryFailure(err error) bool {
+	var httpErr *githubHTTPError
+	var repositoryErr *permanentRepositoryError
+	return errors.As(err, &repositoryErr) || errors.As(err, &httpErr) && httpErr.status == http.StatusNotFound
+}
 
 type Client struct {
 	BaseURL               string
@@ -55,7 +76,7 @@ func (c *Client) get(ctx context.Context, endpoint string, out any) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("GitHub HTTP %d (check authorization/rate limits; retry-after=%q)", resp.StatusCode, resp.Header.Get("Retry-After"))
+		return &githubHTTPError{status: resp.StatusCode, retryAfter: resp.Header.Get("Retry-After")}
 	}
 	b, e := io.ReadAll(io.LimitReader(resp.Body, 8<<20+1))
 	if e != nil {
@@ -142,12 +163,12 @@ func (c *Client) Sync(ctx context.Context, repo, ref string, maxPackages int) (S
 }
 
 type repositorySnapshot struct {
-	treeSHA   string
-	err       error
-	commit    string
-	entries   []treeEntry
-	blobs     map[string][]byte
-	bytesRead int
+	treeSHA     string
+	err         error
+	commit      string
+	entries     []treeEntry
+	blobs       map[string][]byte
+	cachedBytes int
 }
 
 // A client represents one acquisition operation. Pin each repo/ref once so
@@ -169,12 +190,13 @@ func (c *Client) repository(ctx context.Context, repo, ref string) (result *repo
 	if c.activeRepository != key {
 		if previous := c.repositories[c.activeRepository]; previous != nil {
 			previous.entries, previous.blobs = nil, nil
+			previous.cachedBytes = 0
 		}
 		c.activeRepository = key
 	}
 	requestsBefore := c.Requests
 	defer func() {
-		if err != nil && ctx.Err() == nil && c.Requests > requestsBefore {
+		if err != nil && ctx.Err() == nil && c.Requests > requestsBefore && permanentRepositoryFailure(err) {
 			c.repositories[key] = &repositorySnapshot{err: err}
 		}
 	}()
@@ -186,8 +208,11 @@ func (c *Client) repository(ctx context.Context, repo, ref string) (result *repo
 		if e := c.get(ctx, base, &meta); e != nil {
 			return nil, e
 		}
-		if meta.Private == nil || *meta.Private {
-			return nil, fmt.Errorf("only explicitly public repositories are imported")
+		if meta.Private == nil {
+			return nil, fmt.Errorf("repository response omitted public/private status")
+		}
+		if *meta.Private {
+			return nil, &permanentRepositoryError{message: "only explicitly public repositories are imported"}
 		}
 		var commit struct {
 			SHA    string `json:"sha"`
@@ -218,12 +243,12 @@ func (c *Client) repository(ctx context.Context, repo, ref string) (result *repo
 		return nil, e
 	}
 	if tree.Truncated {
-		return nil, fmt.Errorf("GitHub tree truncated; repository import refused")
+		return nil, &permanentRepositoryError{message: "GitHub tree truncated; repository import refused"}
 	}
 	sort.Slice(tree.Entries, func(i, j int) bool { return tree.Entries[i].Path < tree.Entries[j].Path })
 	for _, node := range tree.Entries {
 		if !safePath(node.Path) {
-			return nil, fmt.Errorf("unsafe tree path; import refused")
+			return nil, &permanentRepositoryError{message: "unsafe tree path; import refused"}
 		}
 	}
 
@@ -254,9 +279,6 @@ func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPack
 			}
 			return b, nil
 		}
-		if snapshot.bytesRead+int(node.Size) > 16<<20 {
-			return nil, fmt.Errorf("import exceeds 16 MiB")
-		}
 		var raw struct {
 			Encoding string `json:"encoding"`
 			Content  string `json:"content"`
@@ -279,11 +301,12 @@ func (c *Client) SyncTarget(ctx context.Context, target Hit, ref string, maxPack
 		if hex.EncodeToString(h.Sum(nil)) != node.SHA {
 			return nil, fmt.Errorf("blob hash mismatch")
 		}
-		if snapshot.bytesRead+len(b) > 16<<20 {
-			return nil, fmt.Errorf("import exceeds 16 MiB")
+		// Cache admission bounds retained memory, never which valid skills
+		// may be imported. Per-file/package and operation limits are separate.
+		if snapshot.cachedBytes+len(b) <= MaxBlobCache {
+			snapshot.cachedBytes += len(b)
+			snapshot.blobs[node.SHA] = b
 		}
-		snapshot.bytesRead += len(b)
-		snapshot.blobs[node.SHA] = b
 		return b, nil
 	}
 	for _, n := range snapshot.entries {

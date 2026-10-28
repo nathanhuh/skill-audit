@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func Print(w io.Writer, r Report) {
+func Print(w io.Writer, r Report, exitCode int) {
 	fmt.Fprintf(w, "skill-audit report/v1 | %d packages | catalog %s\n", len(r.Skills), r.CatalogVersion)
 	fmt.Fprintln(w, "Inventory is not evidence that an agent loads a skill. Findings are risky patterns, not malicious-intent verdicts.")
 	for _, root := range r.Roots {
@@ -45,5 +45,5 @@ func Print(w io.Writer, r Report) {
 	for _, d := range r.Diagnostics {
 		diagnostic(d)
 	}
-	fmt.Fprintf(w, "\nexit=%d (0=no findings in selected scope; 1=findings; 2=operational/incomplete; 3=state not recorded)\n", r.ExitCode())
+	fmt.Fprintf(w, "\nexit=%d (0=no findings in selected scope; 1=findings; 2=operational/incomplete; 3=state not recorded)\n", exitCode)
 }

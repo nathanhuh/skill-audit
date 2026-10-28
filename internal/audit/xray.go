@@ -18,7 +18,6 @@ const XRayVersion = "0.1.0"
 const XRayCommit = "c89eacfdd643e50d5f8e3ed18cf3c4992d174ff2"
 const MaxScannerOutput = 64 << 10
 const MaxSARIF = 8 << 20
-const XRayProbeTimeout = 5 * time.Second
 
 type boundedBuffer struct {
 	bytes.Buffer
@@ -74,10 +73,11 @@ type XRayScanner struct {
 	prepared, ready bool
 	dir             string
 	evaluation      Evaluation
+	process         func(context.Context, string, string, ...string) (string, string, int, error)
 }
 
 func NewXRayScanner(exe string, timeout time.Duration) *XRayScanner {
-	return &XRayScanner{exe: exe, timeout: timeout, evaluation: Evaluation{Scanner: "skill-xray", Status: "disabled", Analyzed: []string{}, OutsideScope: []string{}}}
+	return &XRayScanner{exe: exe, timeout: timeout, process: runProcess, evaluation: Evaluation{Scanner: "skill-xray", Status: "disabled", Analyzed: []string{}, OutsideScope: []string{}}}
 }
 func (x *XRayScanner) Close() {
 	if x.dir != "" {
@@ -120,15 +120,14 @@ func (x *XRayScanner) prepare(ctx context.Context) {
 	// Startup has its own budget. Retry a probe process failure once; unsupported
 	// versions and other deterministic failures remain cached for the audit.
 	for attempt := 0; attempt < 2; attempt++ {
-		probeCtx, cancel := context.WithTimeout(ctx, XRayProbeTimeout)
-		stdout, stderr, _, err = runProcess(probeCtx, exe, dir, "version")
+		probeCtx, cancel := context.WithTimeout(ctx, x.timeout)
+		stdout, stderr, _, err = x.process(probeCtx, exe, dir, "version")
 		cancel()
 		if err == nil {
 			break
 		}
 		e.Message = fmt.Sprintf("version probe: %v; %s", err, stderr)
 		if ctx.Err() != nil {
-			x.prepared = false
 			return
 		}
 		if attempt == 1 {
@@ -145,14 +144,17 @@ func (x *XRayScanner) prepare(ctx context.Context) {
 	x.ready = true
 }
 
-// XRayScan is a convenience for a standalone package. Workflow audits reuse one
-// XRayScanner and close it after all packages, including on partial failures.
-func XRayScan(ctx context.Context, s *Skill, exe string, timeout time.Duration) {
-	scanner := NewXRayScanner(exe, timeout)
-	defer scanner.Close()
-	scanner.Scan(ctx, s)
-}
 func (x *XRayScanner) Scan(ctx context.Context, s *Skill) {
+	if err := ctx.Err(); err != nil {
+		e := x.evaluation
+		if x.exe != "" {
+			e.Status = "failed"
+			e.Message = "scan canceled/timed out: " + err.Error()
+		}
+		s.Evaluations = append(s.Evaluations, e)
+		sortFindings(s.Findings)
+		return
+	}
 	if !x.prepared {
 		x.prepare(ctx)
 	}
@@ -190,7 +192,7 @@ func (x *XRayScanner) Scan(ctx context.Context, s *Skill) {
 		}
 	}
 	reportPath := filepath.Join(dir, "report.sarif.json")
-	_, stderr, code, runErr := runProcess(ctx, exe, dir, "scan", "--output", reportPath, "--llm=false", "--", stage)
+	_, stderr, code, runErr := x.process(ctx, exe, dir, "scan", "--output", reportPath, "--llm=false", "--", stage)
 	if ctx.Err() != nil {
 		e.Message = "scan canceled/timed out: " + ctx.Err().Error()
 		return

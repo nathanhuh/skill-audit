@@ -90,8 +90,18 @@ func TestInventoryLinkPolicyDoesNotHidePackageGap(t *testing.T) {
 		return report
 	}
 	report := inspect()
-	if report.HasCoverageGaps() || len(report.Diagnostics) == 0 {
-		t.Fatal("policy note became failure or disappeared", report)
+	if !report.HasCoverageGaps() || len(report.Diagnostics) == 0 {
+		t.Fatal("unscanned link target treated as complete", report)
+	}
+	if err = audit.SaveObservation(context.Background(), filepath.Join(root, "blocked.json"), report, true); err == nil {
+		t.Fatal("link-gap baseline accepted")
+	}
+	if err = os.Remove(filepath.Join(root, "project", "link")); err != nil {
+		t.Fatal(err)
+	}
+	report = inspect()
+	if report.HasCoverageGaps() {
+		t.Fatal(report)
 	}
 	if err = audit.SaveObservation(context.Background(), filepath.Join(root, "baseline.json"), report, true); err != nil {
 		t.Fatal(err)
@@ -126,5 +136,48 @@ func TestOutputPlacementErrorUsesNeutralRoleAndRejectsLinks(t *testing.T) {
 	b, err := os.ReadFile(dest)
 	if err != nil || string(b) != "original" {
 		t.Fatal("link destination changed", string(b), err)
+	}
+}
+
+func TestManagedSkillLinkAndLegacyNoteRemainIncomplete(t *testing.T) {
+	root := temp(t)
+	actual := filepath.Join(root, "home", ".agents", "skills", "actual")
+	put(t, filepath.Join(actual, "SKILL.md"), "fixture")
+	install := filepath.Join(root, "home", ".claude", "skills")
+	if err := os.MkdirAll(install, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(actual, filepath.Join(install, "foo")); err != nil {
+		t.Skip("fixture symlinks unavailable: ", err)
+	}
+	inv := Discover(context.Background(), []string{install}, filepath.Join(root, "home"), DefaultLimits())
+	if len(inv.Packages) != 0 || len(inv.Diagnostics) != 1 || !inv.Diagnostics[0].Incomplete {
+		t.Fatal("managed skill link reported complete", inv)
+	}
+	// Previously written informational link notes cannot justify a clean re-audit.
+	inv.Diagnostics[0].Incomplete = false
+	store, err := LoadStore("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := Audit(context.Background(), inv, store, "", time.Second)
+	if err != nil || !report.HasCoverageGaps() || !report.Diagnostics[0].Incomplete {
+		t.Fatal(report, err)
+	}
+	if err = audit.SaveObservation(context.Background(), filepath.Join(root, "state.json"), report, true); err == nil {
+		t.Fatal("baseline accepted uninspected linked skill")
+	}
+}
+
+func TestWriterRetainsObservedRootProtectionAfterManifestRemoval(t *testing.T) {
+	root := temp(t)
+	pkg := filepath.Join(root, "pkg")
+	put(t, filepath.Join(pkg, "SKILL.md"), "fixture")
+	observed := audit.Root{Path: pkg}
+	if err := os.Remove(filepath.Join(pkg, "SKILL.md")); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteJSON(filepath.Join(pkg, "inventory.json"), map[string]string{}, observed); err == nil {
+		t.Fatal("output entered observed package after manifest disappeared")
 	}
 }

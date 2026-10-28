@@ -51,7 +51,7 @@ func DeviceRoots() []string {
 func Discover(ctx context.Context, roots []string, home string, limits Limits) Inventory {
 	out := Inventory{Schema: InventorySchema, Roots: []string{}, Packages: []Package{}, Diagnostics: []audit.Diagnostic{}}
 	issue := func(p, code, msg string) {
-		out.Diagnostics = append(out.Diagnostics, audit.Diagnostic{Path: p, Code: code, Message: msg, Incomplete: code != "excluded_subtree" && code != "policy_symlink"})
+		out.Diagnostics = append(out.Diagnostics, audit.Diagnostic{Path: p, Code: code, Message: msg, Incomplete: code != "excluded_subtree"})
 	}
 	stopped := ""
 	rootset := map[string]bool{}
@@ -125,21 +125,25 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 				issue(p, "depth_limit", "subtree skipped")
 				return fs.SkipDir
 			}
-			if d.Type()&os.ModeSymlink != 0 {
-				issue(p, "policy_symlink", "link not followed by inventory policy")
-				return nil
-			}
-			if d.IsDir() {
-				if excluded(p, d.Name(), root) {
-					code := "excluded_subtree"
-					if p == root {
-						code = "excluded_root"
-					}
-					issue(p, code, "outside device-search policy; subtree not inspected")
+			if excluded(p, d.Name(), root) {
+				code := "excluded_subtree"
+				if p == root {
+					code = "excluded_root"
+				}
+				issue(p, code, "outside device-search policy; entry not inspected")
+				if d.IsDir() {
 					return fs.SkipDir
 				}
 				return nil
 			}
+			if d.Type()&os.ModeSymlink != 0 {
+				issue(p, "policy_symlink", "link not followed; target skill coverage is unknown")
+				return nil
+			}
+			if d.IsDir() {
+				return nil
+			}
+
 			if d.Name() != "SKILL.md" {
 				return nil
 			}

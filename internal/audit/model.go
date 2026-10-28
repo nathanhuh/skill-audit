@@ -167,12 +167,9 @@ func (r Report) HasCoverageGaps() bool {
 	}
 	return false
 }
+
+// ExitCode describes analysis only; the CLI owns persistence-operation status.
 func (r Report) ExitCode() int {
-	for _, d := range r.Diagnostics {
-		if d.Code == "state_not_recorded" {
-			return 3
-		}
-	}
 	if r.HasCoverageGaps() {
 		return 2
 	}

@@ -38,6 +38,14 @@ func fakeScanner(t *testing.T, scanBody string) string {
 func reportScript(payload string, code int) string {
 	return "cat >\"$3\" <<'REPORT_EOF'\n" + payload + "\nREPORT_EOF\nexit " + fmt.Sprint(code)
 }
+
+// Standalone fixture helper; production uses the audit-scoped session API.
+func scanXRayFixture(ctx context.Context, s *Skill, exe string, timeout time.Duration) {
+	scanner := NewXRayScanner(exe, timeout)
+	defer scanner.Close()
+	scanner.Scan(ctx, s)
+}
+
 func TestXRayAdapterStates(t *testing.T) {
 	cases := []struct {
 		name, body, want string
@@ -58,7 +66,7 @@ func TestXRayAdapterStates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			p := skill(t, temp(t), "pkg", "body")
 			s := Inspect(context.Background(), "project", p)
-			XRayScan(context.Background(), &s, fakeScanner(t, tc.body), 3*time.Second)
+			scanXRayFixture(context.Background(), &s, fakeScanner(t, tc.body), 3*time.Second)
 			if s.Evaluations[0].Status != tc.want || len(s.Findings) != tc.findings {
 				t.Fatalf("%+v %+v", s.Evaluations, s.Findings)
 			}
@@ -77,7 +85,7 @@ func TestXRayTimeoutAndLocalSurvival(t *testing.T) {
 	s := Inspect(context.Background(), "project", p)
 	LocalScan(&s)
 	start := time.Now()
-	XRayScan(context.Background(), &s, fakeScanner(t, "sleep 5"), 200*time.Millisecond)
+	scanXRayFixture(context.Background(), &s, fakeScanner(t, "sleep 5"), 200*time.Millisecond)
 	if time.Since(start) > time.Second {
 		t.Fatal("timeout did not bound process/pipe wait")
 	}
@@ -87,17 +95,17 @@ func TestXRayTimeoutAndLocalSurvival(t *testing.T) {
 	if len(s.Findings) != 1 || s.Findings[0].Scanner != "skill-audit" {
 		t.Fatal("local result lost")
 	}
-	XRayScan(context.Background(), &s, "", time.Second)
+	scanXRayFixture(context.Background(), &s, "", time.Second)
 	if s.Evaluations[2].Status != "disabled" {
 		t.Fatal(s.Evaluations)
 	}
-	XRayScan(context.Background(), &s, filepath.Join(temp(t), "missing"), time.Second)
+	scanXRayFixture(context.Background(), &s, filepath.Join(temp(t), "missing"), time.Second)
 	if s.Evaluations[3].Status != "unavailable" {
 		t.Fatal(s.Evaluations)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	XRayScan(ctx, &s, fakeScanner(t, "exit 0"), time.Second)
+	scanXRayFixture(ctx, &s, fakeScanner(t, "exit 0"), time.Second)
 	if s.Evaluations[4].Status != "failed" {
 		t.Fatal(s.Evaluations)
 	}
@@ -110,14 +118,14 @@ func TestXRayStagingVersionAndContract(t *testing.T) {
 	}
 	s := Inspect(context.Background(), "project", p)
 	script := "[ -f \"$6/SKILL.md\" ] && [ ! -L \"$6/link.sh\" ] && [ -f \"$6/run.sh\" ] || exit 9\n" + reportScript(sarifFixture("no-reported-gap", []any{}), 0)
-	XRayScan(context.Background(), &s, fakeScanner(t, script), time.Second)
+	scanXRayFixture(context.Background(), &s, fakeScanner(t, script), time.Second)
 	if s.Evaluations[0].Status != "partial" {
 		t.Fatal(s.Evaluations)
 	}
 	exe := fakeScanner(t, "exit 0")
 	b, _ := os.ReadFile(exe)
 	put(t, exe, []byte(strings.Replace(string(b), "0.1.0", "9.9.9", 1)))
-	XRayScan(context.Background(), &s, exe, time.Second)
+	scanXRayFixture(context.Background(), &s, exe, time.Second)
 	if s.Evaluations[1].Status != "failed" || !strings.Contains(s.Evaluations[1].Message, "unsupported") {
 		t.Fatal(s.Evaluations)
 	}
@@ -137,7 +145,7 @@ func TestBoundedSARIFAndPartialFailures(t *testing.T) {
 	p := skill(t, temp(t), "pkg", "body")
 	s := Inspect(context.Background(), "project", p)
 	exe := fakeScanner(t, "dd if=/dev/zero of=\"$3\" bs=1048576 count=9 2>/dev/null")
-	XRayScan(context.Background(), &s, exe, 3*time.Second)
+	scanXRayFixture(context.Background(), &s, exe, 3*time.Second)
 	if s.Evaluations[0].Status != "failed" {
 		t.Fatal(s.Evaluations)
 	}
@@ -180,7 +188,7 @@ func TestSlowXRayStartupDoesNotConsumePackageTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 	put(t, exe, []byte(strings.Replace(string(b), "then printf", "then sleep 0.6; printf", 1)))
-	scanner := NewXRayScanner(exe, 300*time.Millisecond)
+	scanner := NewXRayScanner(exe, time.Second)
 	defer scanner.Close()
 	for i := 0; i < 2; i++ {
 		s := Inspect(context.Background(), "project", p)
@@ -208,5 +216,80 @@ func TestXRayProbeFailureRetriesBeforeScanning(t *testing.T) {
 	scanner.Scan(context.Background(), &s)
 	if s.Evaluations[0].Status != "completed_without_findings" {
 		t.Fatal("transient cold start poisoned audit", s.Evaluations)
+	}
+}
+
+func TestXRayProbeUsesConfiguredAndParentDeadlines(t *testing.T) {
+	p := skill(t, temp(t), "pkg", "body")
+	exe := fakeScanner(t, "exit 99")
+	for _, parentBudget := range []time.Duration{0, 200 * time.Millisecond} {
+		ctx := context.Background()
+		cancel := func() {}
+		if parentBudget > 0 {
+			ctx, cancel = context.WithTimeout(ctx, parentBudget)
+		}
+		scanner := NewXRayScanner(exe, 12*time.Second)
+		probes := 0
+		scanner.process = func(callCtx context.Context, _, _ string, args ...string) (string, string, int, error) {
+			deadline, ok := callCtx.Deadline()
+			if !ok {
+				t.Fatal("process has no deadline")
+			}
+			remaining := time.Until(deadline)
+			if args[0] == "version" {
+				probes++
+				if parentBudget == 0 && remaining < 11*time.Second {
+					t.Fatal("fixed cap shortened configured probe", remaining)
+				}
+				if parentBudget > 0 && remaining > parentBudget {
+					t.Fatal("probe ignored operation deadline", remaining)
+				}
+				return "skill-xray " + XRayVersion, "", 0, nil
+			}
+			err := os.WriteFile(args[2], []byte(sarifFixture("no-reported-gap", []any{})), 0600)
+			return "", "", 0, err
+		}
+		s := Inspect(context.Background(), "project", p)
+		scanner.Scan(ctx, &s)
+		scanner.Close()
+		cancel()
+		if probes != 1 || s.Evaluations[0].Status != "completed_without_findings" {
+			t.Fatal(s.Evaluations, probes)
+		}
+	}
+}
+
+func TestCanceledXRaySessionDoesNotRepeatSetup(t *testing.T) {
+	p := skill(t, temp(t), "pkg", "body")
+	exe := fakeScanner(t, "exit 99")
+	scanner := NewXRayScanner(exe, time.Second)
+	defer scanner.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	calls := 0
+	scanner.process = func(context.Context, string, string, ...string) (string, string, int, error) {
+		calls++
+		cancel()
+		return "", "", -1, context.Canceled
+	}
+	first := Inspect(context.Background(), "project", p)
+	scanner.Scan(ctx, &first)
+	dir := scanner.dir
+	for i := 0; i < 3; i++ {
+		s := Inspect(context.Background(), "project", p)
+		scanner.Scan(ctx, &s)
+		if s.Evaluations[0].Status != "failed" {
+			t.Fatal(s.Evaluations)
+		}
+	}
+	if calls != 1 || dir == "" || scanner.dir != dir {
+		t.Fatal("canceled setup repeated", calls, dir, scanner.dir)
+	}
+	neverStarted := NewXRayScanner(exe, time.Second)
+	defer neverStarted.Close()
+	s := Inspect(context.Background(), "project", p)
+	neverStarted.Scan(ctx, &s)
+	if neverStarted.dir != "" {
+		t.Fatal("already-canceled session created staging")
 	}
 }

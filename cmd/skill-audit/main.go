@@ -100,12 +100,13 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 	}
 	ctx, cancel := context.WithTimeout(ctx, deadline)
 	defer cancel()
+	var outputRoots []audit.Root
 	emit := func(v any) error {
 		if output != "" {
 			if e := checkPaths(); e != nil {
 				return e
 			}
-			return workflow.WriteJSON(output, v)
+			return workflow.WriteJSON(output, v, outputRoots...)
 		}
 		enc := json.NewEncoder(out)
 		enc.SetIndent("", "  ")
@@ -123,19 +124,10 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 			return fail(fmt.Errorf("choose --device or at least one --root"))
 		}
 		inv := workflow.Discover(ctx, roots, home, workflow.Limits{Entries: maxEntries, Packages: maxPackages, Depth: maxDepth})
-		if output != "" {
-			absolute, e := filepath.Abs(output)
-			if e != nil {
-				return fail(e)
-			}
-			packages := []audit.Root{}
-			for _, p := range inv.Packages {
-				packages = append(packages, audit.Root{Path: p.Path})
-			}
-			if e = audit.OutputOutside(absolute, packages); e != nil {
-				return fail(e)
-			}
+		for _, p := range inv.Packages {
+			outputRoots = append(outputRoots, audit.Root{Path: p.Path})
 		}
+
 		if e := emit(inv); e != nil {
 			return fail(e)
 		}
@@ -299,6 +291,8 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 		if e != nil {
 			return fail(e)
 		}
+		outputRoots = r.Roots
+		recordFailed := false
 		if state != "" {
 			stateErr := func() error {
 				absolute, err := filepath.Abs(state)
@@ -328,18 +322,28 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 				if record == "" {
 					return fail(stateErr)
 				}
-				fmt.Fprintf(errout, "skill-audit: state not recorded: %q\n", stateErr.Error())
-				r.Diagnostics = append(r.Diagnostics, audit.Diagnostic{Path: state, Code: "state_not_recorded", Message: stateErr.Error(), Incomplete: true})
+				diagnostic, failed := recordingDiagnostic(state, stateErr)
+				recordFailed = failed
+				label := "state not recorded"
+				if !failed {
+					label = "state recorded; durability unconfirmed"
+				}
+				fmt.Fprintf(errout, "skill-audit: %s: %q\n", label, stateErr.Error())
+				r.Diagnostics = append(r.Diagnostics, diagnostic)
 			}
+		}
+		exitCode := r.ExitCode()
+		if recordFailed {
+			exitCode = 3
 		}
 		if output != "" || asJSON {
 			if e = emit(r); e != nil {
 				return fail(e)
 			}
 		} else {
-			audit.Print(out, r)
+			audit.Print(out, r, exitCode)
 		}
-		return r.ExitCode()
+		return exitCode
 	default:
 		return fail(fmt.Errorf("unknown command %q", args[0]))
 	}

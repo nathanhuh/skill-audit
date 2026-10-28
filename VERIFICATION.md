@@ -1,3 +1,46 @@
+# Verification — import limits and persistence outcomes, 2026-10-29
+
+Reviewed canonical original `main` at `2b6fc1f274a6d2ff54c6272466274885d6a30eae`. The supplied findings were hypotheses. The table separates executed reproductions, injected fault evidence and source qualifications.
+
+| Item | Evidence and disposition |
+| --- | --- |
+| 1. Evicted content counted twice | **Reproduced before fix.** A valid 9 MiB package imported from A, then B, then A lost its final import under the stale ledger. Cache bytes now track retained memory only and reset on eviction; reload does not alter package eligibility. |
+| 2. Monorepo shares 16 MiB cap | **Reproduced before fix.** Four distinct approximately 5 MiB packages returned only three. The previous code did emit `package_incomplete` (so the loss was not silent), but the aggregate cap was wrong. All four now import. MaxFile/MaxPackage/MaxEntries/request limits remain; a full 16 MiB cache declines further admission instead of rejecting valid bytes. The cache stays bounded. |
+| 3. Transient lookup poisoned repo | **Reproduced before fix** for initial 502, 403 and dropped transport. Later targets now recover. Permanent private/truncated failures remain memoized with existing request-count tests. HTTP 404 is classified permanent by its typed status; transient status/transport errors are not memoized. |
+| 4. Linked skills counted complete | **Reproduced using a rebuilt frozen 2b6fc1f binary**: a .claude/skills/foo link into .agents yielded no inspected packages, inventory exit 0 and accepted baseline. The current binary rejects the same legacy inventory with exit 3. Non-routine skipped links now make coverage incomplete; targets are never followed. Routine metadata/dependency exclusions remain notes. Legacy informational `policy_symlink` diagnostics are promoted to gaps during audit. Evidence: `/private/tmp/skill-audit-link-repro-qn_491hh/commands.json`. |
+| 5. Committed save reported unsaved | **Injected final-directory-sync fault**, not an observed native filesystem failure. The test proves replacement bytes are visible and a typed `CommittedWriteError` is returned. The CLI classifies it as `state_recorded_durability_unconfirmed`, stderr says recorded/durability unconfirmed, and exit 2 avoids the failed-recording exit 3. Tests distinguish plain pre-commit errors. No automatic retry or duplicate write is performed. |
+| 6. Fixed probe cap ignores timeout | **Qualified.** The CLI parent operation deadline already bounded probing, so it did not ignore an expired --timeout. The fixed five-second child cap could shorten longer configured budgets. Probe and scan now both use the configured timeout under their parent context. A deterministic process-boundary test captures a 12-second configured probe and a shorter parent deadline; fake executables still test real process arguments/timeouts. |
+| 7. Cancellation repeats setup | **Not reproduced in the normal workflow**: it already breaks before later packages when canceled. The session API could retry setup if called again. Added an entry cancellation guard and terminal canceled-probe state. Tests cancel during a probe, call the session repeatedly and verify one process call and one temporary root; an already-canceled session creates none. |
+| 8. Input diagnostic forces exit 3 | **Reproduced before fix** with an informational inventory diagnostic named state_not_recorded masking a real SA001 finding. Analysis ExitCode now handles findings/coverage only; a local CLI boolean from the actual state phase selects exit 3. Compiled checks cover forged inventory and catalog diagnostics, including a successfully saved finding snapshot that returns 1. Readable output receives the actual exit code explicitly. |
+| 9. Output placement duplicated | **Source-confirmed cleanup.** Inventory passes observed package roots to the shared WriteJSON placement check. A regression removes SKILL.md after observation and verifies output remains forbidden inside that package. Preflight alias checks and final no-follow guards retain their distinct roles. |
+| 10. Scanner wrapper only used in tests | **Source-confirmed cleanup.** Removed production XRayScan. Workflow and core report fixtures use the audit-scoped session; standalone test setup has a private test helper. No production references remain. |
+
+No JSON schema, pinned catalog bytes, dependency version or scanner/rule version changed. Exit 3 still means an actual failed record phase before commit. A committed record with uncertain directory durability gets exit 2 plus an explicit recorded warning; callers should inspect state before retrying. Cache capacity is separate from import limits. Accumulated catalog/serialization memory is still proportional to retained results.
+
+## Final checks from original main checkout
+
+Host: macOS arm64, Go 1.23.5. Go commands used `GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off`, pinned vendored dependencies and approved loopback-only fake HTTP servers. No live public service calls, scanner installation or skill-script execution occurred.
+
+`gofmt -l cmd internal`: no output. `git diff --check`: exit 0. `go vet ./...`: exit 0. `go test -count=1 ./...`: exit 0:
+
+```text
+ok  skill-audit/cmd/skill-audit    0.713s
+ok  skill-audit/internal/audit    6.171s
+ok  skill-audit/internal/workflow 1.376s
+```
+
+- Native build `/private/tmp/skill-audit-outcomes`: exit 0.
+- Linux amd64 cross-build `/private/tmp/skill-audit-outcomes-linux`: exit 0.
+- Windows amd64 cross-build `/private/tmp/skill-audit-outcomes-windows.exe`: exit 0.
+- Windows audit test compilation `/private/tmp/skill-audit-outcomes-audit.test.exe`: exit 0; compilation only.
+- `sh scripts/demo.sh`: exit 0, expected finding audit exit 1.
+- Twelve compiled CLI checks passed: routine-exclusion inventory/baseline, updated finding inventory, forged inventory/catalog diagnostics returning 1, successful finding snapshot, real baseline/lock failures returning 3, managed-link discovery and baseline refusal, legacy-link refusal, interrupted snapshot preservation and output placement rejection. Evidence: `/private/tmp/skill-audit-outcome-smoke-8kjx2ykb/commands.json`.
+- Three additional frozen/current CLI checks reproduce the skipped-link regression on 2b6fc1f and show current refusal of its saved inventory. The old source was extracted to a disposable directory and built offline, without altering the canonical checkout.
+
+Native Linux/Windows runtime, real Skill X-Ray integration, real device-wide discovery and a native post-rename directory-sync failure remain unverified. Timeout/cancellation conclusions use fixtures and deterministic process boundaries, not real scanner cold-start performance. No publishing, pushing or submission occurred.
+
+## Prior verification records
+
 # Verification — coverage/root/cache policy correction, 2026-10-29
 
 Reviewed canonical original `main` at `cf23e89aac804a9d621c0f7d7c4da3e2724f973f`. Failing offline regressions reproduced routine-exclusion baseline refusal, hidden recording failures, community-installation scope changes, home-root starvation, repeated failed repository requests, retained inactive content caches and startup consuming package timeout. The component-depth collision, duplicate coverage checks and placement wording were confirmed by source inspection and covered by focused tests.

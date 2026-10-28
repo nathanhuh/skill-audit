@@ -1,5 +1,16 @@
 # Design: inventory, acquire references, audit
 
+## Import/write-outcome review (2026-10-29)
+
+Keep per-file (1 MiB), per-package (16 MiB), entry and operation request limits independent of the active blob cache's 16 MiB memory budget. Reloading an evicted repository must not consume a stale import ledger; uncached validated bytes may still be imported. Cache only permanent resolution errors (404, explicit private status, truncated/structurally invalid tree), leaving 403/5xx/transport failures retryable on later targets.
+
+All skipped symlinks outside explicit routine metadata/dependency exclusions remain incomplete, including manager-installed skills; never follow them. Treat legacy inventory link notes as coverage gaps during audit. A successful rename is the write commit point. Return a typed durability warning after it, report state recorded with unconfirmed durability, and use exit 2 rather than claiming no record. Exit 3 is owned by the CLI's actual failed state phase, never by diagnostic names in input data.
+
+Use the configured timeout for probe and scan phases within the operation context. An already canceled session must perform no further setup; the workflow already stops between packages. Remove the unused production one-package scanner wrapper in favor of the session API. Route inventory output placement through the shared writer once, passing observed package roots to preserve protection if a manifest disappears.
+
+Acceptance: reproduce eviction accounting, monorepo loss, transient-error poisoning, skipped-skill-link coverage and forged persistence exit; inject a directory-sync failure to distinguish committed data from pre-rename failure; capture probe deadlines/cancellation deterministically, retain real fake-executable tests, then run offline format/vet/tests/builds/demo and CLI checks. Keep schemas, pinned content and rule versions intact.
+
+
 ## Coverage policy and bounded startup/cache review (2026-10-29)
 
 Routine inventory exclusions are visible policy notes rather than operational gaps. Unreadable paths, limits, cancellation, rejected explicit roots and skipped content inside skill packages remain incomplete. One report-level coverage predicate drives exit 2 and baseline eligibility. Recording failures retain the report, write a clear stderr message and return distinct exit 3. No JSON shape changes; exit 3 extends the CLI contract.

@@ -82,12 +82,12 @@ func (s Store) Catalog() (audit.Catalog, error) {
 	c.Version = c.Fingerprint()
 	return c, nil
 }
-func WriteJSON(p string, v any) error {
+func WriteJSON(p string, v any, roots ...audit.Root) error {
 	absolute, e := filepath.Abs(p)
 	if e != nil {
 		return e
 	}
-	if e := audit.OutputOutside(absolute, nil); e != nil {
+	if e := audit.OutputOutside(absolute, roots); e != nil {
 		return e
 	}
 	b, e := json.MarshalIndent(v, "", "  ")

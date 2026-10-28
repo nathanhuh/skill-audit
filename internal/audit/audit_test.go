@@ -416,7 +416,7 @@ func TestTerminalEscapesExternalRuleIDs(t *testing.T) {
 	r := Report{Skills: []Skill{{Findings: []Finding{{RuleID: "untrusted\x1b[2J\nrule"}}}}, Lineage: []Lineage{{Origin: []Candidate{{Reference: Reference{ID: "\x1b[2J"}}}}}}
 	r.Skills[0].Correlation.Candidates = []Candidate{{Reference: Reference{ID: "untrusted\x1b[2J\nreference"}}}
 	var out strings.Builder
-	Print(&out, r)
+	Print(&out, r, r.ExitCode())
 	if strings.Contains(out.String(), "\x1b") {
 		t.Fatal("terminal control injection")
 	}
@@ -465,6 +465,8 @@ func TestPipelineEvidenceAndPriorRuleVersion(t *testing.T) {
 func testReport(ctx context.Context, packages []Root, c Catalog, xray string, timeout time.Duration) Report {
 	r := Report{Schema: ReportSchema, CatalogVersion: c.Version, Roots: packages, Skills: []Skill{}, Diagnostics: []Diagnostic{}, Lineage: []Lineage{}}
 	matcher := NewMatcher(c)
+	scanner := NewXRayScanner(xray, timeout)
+	defer scanner.Close()
 	for _, p := range packages {
 		if _, e := os.Lstat(filepath.Join(p.Path, "SKILL.md")); os.IsNotExist(e) {
 			continue
@@ -473,7 +475,7 @@ func testReport(ctx context.Context, packages []Root, c Catalog, xray string, ti
 		s.Correlation = matcher.Correlate(s)
 		s.Origins = append([]Candidate{}, s.Correlation.Candidates...)
 		LocalScan(&s)
-		XRayScan(ctx, &s, xray, timeout)
+		scanner.Scan(ctx, &s)
 		r.Skills = append(r.Skills, s)
 	}
 	return r

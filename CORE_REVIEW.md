@@ -12,7 +12,7 @@ Read `internal/workflow/inventory.go`, followed by `internal/audit/discovery.go`
 
 **Why separate them?** Finding a package and determining its complete contents have different failure modes. The same inspection logic serves recursive discovery and the later audit re-read. Two passes cost extra I/O, but the audit can detect a package changed after inventory; saved hashes alone cannot supply current scanner evidence.
 
-**Tradeoffs:** traversal is lexical and bounded; package limits are 1 MiB/file, 16 MiB/package, 1,000 entries. Device search has additional entry/depth/package limits. `WalkDir` can allocate a directory listing before a callback checks the budget. Cancellation is cooperative between traversal steps, not a hard interruption of an OS filesystem call. The no-symlink checks do not eliminate hostile filesystem races. Native Windows link/path semantics still need runtime tests.
+**Tradeoffs:** traversal uses deterministic priority and is bounded; package limits are 1 MiB/file, 16 MiB/package, 1,000 entries. Device search has additional entry/depth/package limits. The walker materializes a directory listing before checking each entry against the budget. Cancellation is cooperative between traversal steps, not a hard interruption of an OS filesystem call. The no-symlink checks do not eliminate hostile filesystem races. Native Windows link/path semantics still need runtime tests.
 
 ## 2. Fingerprint bytes, then correlate evidence
 
@@ -114,3 +114,13 @@ One sync client pins a repository/ref once and shares bounded blob content acros
 Root priority precedes component depth, and explicit subtrees are delegated to their own traversal. This preserves independent root scope without a depth-first race against the home directory or a per-entry visited map. Global scope covers community installation paths inside home agent trees; known project containers and nested agent markers remain project scoped.
 
 Repository failures and compact pinned references last for the invocation. A single active content cache limits retained tree/blob data; returning to an evicted repository can spend requests and byte budget again. Catalog output still retains imported content. Scanner startup has a separate bounded budget and a single probe-process retry, followed by fresh package scan budgets. Read/write boundaries enforce no-follow checks; state additionally checks before creating parents/locks. `OutputOutside` only determines placement and uses neutral error text.
+
+## Import and commit-point refinement
+
+Cache capacity and import eligibility are different limits: the active blob cache retains at most 16 MiB, while each package has its own 16 MiB content bound. Cache saturation bypasses admission, and eviction cannot shrink import coverage. Only permanent lookup failures are memoized; transient HTTP/transport errors remain retryable on later targets under the existing request budget.
+
+Skipped links remain real coverage gaps, including skill-manager installations. Routine directory exclusions still allow a policy-scoped baseline. Legacy link notes are conservatively upgraded during fresh audits. A baseline cannot claim that an unseen link target was inspected.
+
+Atomic rename is the commit point. `CommittedWriteError` signals that data was replaced but durability is uncertain; the CLI reports recorded/unconfirmed with exit 2. Pre-commit state failures select exit 3 using local control state. Report diagnostic data cannot select a persistence exit, and readable output receives the actual exit explicitly. The final-sync fault is tested through an injected filesystem boundary, not a claimed native disk failure.
+
+Probe and package-process budgets use the configured timeout under the operation context. A private process boundary permits deterministic deadline/cancellation assertions; fake executable tests still exercise real argument passing and subprocess handling. The production one-package scanner wrapper was removed. Inventory output passes its observed roots to the shared writer, preserving placement protection through one implementation even if SKILL.md disappears.

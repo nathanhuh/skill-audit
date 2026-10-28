@@ -2,6 +2,8 @@ package audit
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -132,5 +134,21 @@ func TestStateRejectsSymlinkBeforeCreatingParentOrLock(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(outside, "new")); !os.IsNotExist(err) {
 		t.Fatal("state created a parent through a link", err)
+	}
+}
+
+func TestPostRenameSyncFailureReportsCommittedWrite(t *testing.T) {
+	root := temp(t)
+	path := filepath.Join(root, "state.json")
+	put(t, path, []byte("old"))
+	cause := fmt.Errorf("fixture directory sync failure")
+	err := writeAtomic(context.Background(), path, []byte("committed"), func(string) error { return cause })
+	var committed *CommittedWriteError
+	if !errors.As(err, &committed) || !errors.Is(err, cause) || committed.Path != path {
+		t.Fatal("commit point lost", err)
+	}
+	b, readErr := os.ReadFile(path)
+	if readErr != nil || string(b) != "committed" {
+		t.Fatal("reported committed but file missing", string(b), readErr)
 	}
 }
