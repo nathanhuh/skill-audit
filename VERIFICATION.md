@@ -1,0 +1,149 @@
+# Verification — promotion to original main checkout, 2026-10-28
+
+The tested inventory/search/sync/audit implementation is promoted into the original repository on `main`. Before edits, all 85 source files matched the previous tested V2 archive by SHA-256. The original checkout's 73 files were backed up and verified against an archive before replacement. Eight obsolete V1-only files were removed from the active tree: COMPARISON.md, EXPANDED_SCOPE.md, REBUILD_PROMPT.md, internal/audit/device.go, device_test.go, public.go, public_test.go, and scripts/demo-device.sh. Subsequent promotion edits only identify the canonical checkout in README/AGENTS and record this verification.
+
+A local main commit records the complete implementation, tests, pinned dependencies/catalog and licenses. The recovery archive and its manifest are retained under `.git/skill-audit-backups/promotion-l1havboq/` outside the reviewed source tree. Nothing is pushed, published or submitted.
+
+The app refused to attach the primary repository as a managed worktree and refused to archive this chat's primary checkout. The attached V2 worktree therefore remains, synchronized to the canonical main commit; it must not be used as an independent development copy. AGENTS.md directs future edits/reviews to the primary checkout. The app attachment itself was not changed.
+
+## Checks run from the original repository
+
+Host: macOS arm64, Go 1.23.5. Go commands used `GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off`. The full suite needed approved loopback access for local fake HTTP servers. No live service calls, installed-skill mutations or skill script execution occurred.
+
+`gofmt -l cmd internal`: no output. `go vet ./...`: exit 0. `go test -count=1 ./...`: exit 0:
+
+```text
+ok  skill-audit/cmd/skill-audit    1.019s
+ok  skill-audit/internal/audit    5.322s
+ok  skill-audit/internal/workflow 1.164s
+```
+
+- Native build `/private/tmp/skill-audit-promoted`: exit 0.
+- Linux amd64 cross-build `/private/tmp/skill-audit-promoted-linux`: exit 0.
+- Windows amd64 cross-build `/private/tmp/skill-audit-promoted-windows.exe`: exit 0.
+- `sh scripts/demo.sh`: exit 0, with expected finding audit exit 1.
+- Eight compiled CLI checks: help succeeds for inventory/search/sync/audit, and retired scan/catalog/baseline/snapshot commands are rejected with exit 2.
+
+Native Linux/Windows runtime, real device-wide discovery and real Skill X-Ray integration remain unverified. Promotion changes repository ownership/location, not those evidence limits.
+
+## Prior implementation verification
+
+# Verification — traversal follow-up, 2026-10-28
+
+This section records evidence for the latest ten-item pass separately from the prior review. The cited `internal/audit/device.go` and `public.go` belong to the retired implementation and are absent from the active inventory/search/sync/audit CLI. Source inspection and native runtime evidence are not interchangeable.
+
+| Latest item | Current assessment and evidence |
+| --- | --- |
+| 1. User directories starved by device budget | The duplicate Data-tree risk was already addressed, but ordering starvation remained. **Reproduced before changes** using synthetic Users/home trees: 50 Applications files exhausted a 20-entry budget with zero packages. After priority traversal, both global and project packages appear before a visible entry-limit diagnostic. This demonstrates the failure mechanism, not the claim that every real macOS device scan fails. No real device-wide scan was run. |
+| 2. Newly added skills omitted | Fixed in the previous patch; current complete/incomplete first-observation and snapshot regressions pass. `not_in_baseline` does not establish installation time. |
+| 3. Explicit repository narrowed by search | The current CLI keeps full-repository targets distinct from path/slug hints. Existing CLI fake-transport regressions pass; no current narrowing failure was reproduced. |
+| 4. Windows state failure | Source-inspected, not reproduced on Windows. The prior OS-specific helper skips directory Sync on Windows. Native NTFS replacement/durability and the Windows-only regression remain **not run**. Cross-build success is only compilation evidence. |
+| 5. Flags/CRLF shebangs skipped | Previously fixed; retained tests exercise supported headers and raw-byte evidence. No additional scanner change in this follow-up. |
+| 6. Cancellation misreported | The current code used generic `walk_error`, not the retired `device_limit`, and omitted pending roots. **Reproduced before changes** with canceled/deadline contexts. Now `inventory_canceled` / `inventory_timeout` identify interrupted and unstarted roots. Mid-traversal cancellation preserves collected package evidence. Context cancellation is tested; an actual OS Ctrl-C signal was not injected. |
+| 7. HOME override blocked | Not present in current CLI; existing regression unsets HOME/USERPROFILE and passes with explicit `--home`. |
+| 8. Zero limits become defaults | Not present in current CLI. Zero entry/package/depth/search limits fail before work; retired `--public-requests` is an unknown flag. A zero internal request budget makes zero requests instead of resetting to 100. New tests and compiled-CLI checks pass. |
+| 9. Duplicate containment | Addressed in the previous patch through `audit.Within`; file-alias and symlink checks serve different purposes. |
+| 10. Visited map / repeated stat | The current map is useful for overlapping roots. It now stores directory paths only, rather than every file. Root Lstat metadata is reused by the priority walker. Regression and compiled CLI checks verify equal package and entry counts with overlapping roots. |
+
+## Final checks for this follow-up
+
+macOS arm64, Go 1.23.5. Commands used `GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off` and vendored dependencies. The full suite was authorized to bind loopback listeners for its fake HTTP servers; no live public search or registry was called.
+
+`gofmt -l cmd internal`: no output. `go vet ./...`: exit 0. `go test -count=1 ./...`: exit 0:
+
+```text
+ok  skill-audit/cmd/skill-audit    0.505s
+ok  skill-audit/internal/audit    5.991s
+ok  skill-audit/internal/workflow 0.783s
+```
+
+- `go build -o /private/tmp/skill-audit-priority ./cmd/skill-audit`: exit 0.
+- `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-priority-linux ./cmd/skill-audit`: exit 0.
+- `CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-priority-windows.exe ./cmd/skill-audit`: exit 0.
+- `sh scripts/demo.sh`: exit 0; expected finding audit exit 1.
+- Eleven compiled-CLI invocations: deterministic bounded priority discovery twice, deadline diagnostics for two unstarted roots, six invalid/retired limit combinations, and two overlapping-root comparisons. All expected exits/assertions passed. Evidence: `/private/tmp/skill-audit-priority-smoke-q96167ux/{commands,priority,timeout}.json`.
+
+Priority ordering is a heuristic, not an exhaustive-discovery guarantee. A large home may still exhaust the budget before another user/project. Directory listings are materialized before sorting, so entry limits do not cap a single unusually wide listing's memory. Existing Data-only/mount-alias exclusions remain. Native Linux/Windows, real device-wide discovery, actual Ctrl-C signal injection and real Skill X-Ray integration were not run. No real installed skills were modified or executed.
+
+## Previous verification records
+
+# Verification — ten-item correctness review, 2026-10-28
+
+Reviewed against the sole current `cmd/skill-audit` workflow. Source paths in the review sometimes refer to the retired CLI; their behavioral equivalents were checked before edits.
+
+| Item | Current disposition |
+| --- | --- |
+| 1. macOS duplicate Data traversal | Same risk in `workflow/inventory.go`; exclude `/System/Volumes/Data` and descendants on macOS, including explicit selections, with existing incomplete-coverage diagnostics. Unified `/Users` remains eligible. Policy tables cover exact boundaries and other OSes. No real device-wide scan or mounted-volume integration test was run. |
+| 2. Packages absent from baseline | Fixed: emit `not_in_baseline`, no baseline origin/file-addition claims, findings `not_compared`. Complete/incomplete fixtures, duplicate names across scopes, immutable baseline and appended snapshot checked. |
+| 3. HOME before flags | Already absent in this CLI: lookup errors are ignored and `--home` overrides the default. Regression unsets HOME and USERPROFILE and tests both explicit and absent home hints. Empty home no longer makes a relative agent directory global. The retired `catalog` command remains retired. |
+| 4. Shebang eligibility | Fixed: interpreter token, CRLF/trailing whitespace, sh/bash flag-only arguments and supported env forms. Unsupported interpreters/arguments remain partial. Raw hashes, evidence offsets and line numbers tested. |
+| 5. Hints shrink explicit imports | Already absent: full-repo and hinted targets are distinct. CLI fake-transport regressions verify full imports survive both GitHub path hints and registry slug hints. |
+| 6. Explicit repo lost to result limit | No repository-count truncation in current CLI. Regression tests per-repository `--limit=1`, visible omitted-package diagnostics and both explicit/search repositories. Hardened ordering so explicit full imports run first against the shared request budget. |
+| 7. Windows directory Sync | Fixed at the OS boundary: Windows skips unsupported directory Sync; file Sync remains before replacement. Unix post-replacement errors explain that state is already replaced. Native Windows baseline/append/readback test added and cross-compiled, **not run**. NTFS atomicity/crash durability unverified. |
+| 8. UTF-8 evidence | Fixed: 240-byte prefix ends at a rune boundary. 2-, 3- and 4-byte boundary cases round-trip through JSON without introduced replacement characters. |
+| 9. Repeated reference features | `NewMatcher` computes reference line sets once per audit. Existing exact/modified/ambiguous/unknown tests and repeated correlation evidence regression pass. No global mutable cache or new dependency. |
+| 10. Repeated path logic / Stat | The cited CLI containment copy and repeated device Stat were already removed. Remaining scope/state lexical containment now shares `audit.Within`; boundary tests added. Symlink and same-file checks remain separate because they serve different purposes. |
+
+The report/state JSON shape and schema IDs remain unchanged; `not_in_baseline` is an additive string-valued lineage status/diagnostic. The scanner evaluation changes to `SA001/v2;sh/v3.10.0;scope/v2`; its rule version remains v2. Tests ensure earlier scope/v1 evaluations cannot establish `new` findings.
+
+## Final checks for this review
+
+Host: macOS arm64, Go 1.23.5. Final Go commands used `GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off` and existing vendored dependencies. The initial sandboxed suite could not bind loopback ports; the final test run was explicitly approved for its local fake HTTP servers. No live service calls, external scanner installation or skill execution occurred.
+
+`gofmt -l cmd internal` produced no output. `go vet ./...` exited 0. `go test -count=1 ./...` exited 0:
+
+```text
+ok  skill-audit/cmd/skill-audit    0.959s
+ok  skill-audit/internal/audit    6.515s
+ok  skill-audit/internal/workflow 0.823s
+```
+
+- `go build -o /private/tmp/skill-audit-review-10 ./cmd/skill-audit`: exit 0.
+- `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-review-10-linux ./cmd/skill-audit`: exit 0.
+- `CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-review-10-windows.exe ./cmd/skill-audit`: exit 0.
+- `CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review-10-audit.test.exe ./internal/audit`: exit 0; compilation only.
+- `sh scripts/demo.sh`: exit 0; its finding-producing audit returned the expected exit 1.
+- Nine additional compiled-CLI invocations: four command helps, fixture inventory with HOME unset, exact baseline, refreshed inventory, ordinary audit and appended snapshot. Verified CRLF/argument shebang detection, Unicode evidence, original package `changed`/finding `new`, added package `not_in_baseline`/finding `not_compared`, unchanged state bytes after ordinary audit and two preserved observations. Evidence: `/private/tmp/skill-audit-review-10-smoke-0y3jxg69/{commands,report}.json`.
+
+Native Linux/Windows runtime, real mount alias traversal, crash interruption and real Skill X-Ray integration remain unverified. This patch does not promise general mount deduplication or universal discovery; Data-only macOS content may be excluded and old duplicate identities remain in existing baselines.
+
+## Earlier review record
+
+# Verification — targeted review fixes, 2026-10-28
+
+The pasted review's F1–F3 were reproduced with failing regressions before code changes. The active state was replaced by a report, stderr-redirection and longer-pipeline cases produced no finding, and bash -- -s produced a false positive. The changes address these cases without adding enterprise features or executing fixture scripts.
+
+## Final tests
+
+All Go commands used `GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off` with vendored dependencies. `go test -count=1 ./...` exited 0:
+
+```text
+ok  skill-audit/cmd/skill-audit    0.561s
+ok  skill-audit/internal/audit    5.288s
+ok  skill-audit/internal/workflow 0.942s
+```
+
+The fake GitHub/registry tests required permission only for loopback listeners; there were no live service calls. Focused regressions also passed before the full run.
+
+F1 tests preserve exact state bytes and both observations for ordinary audit and explicit record/output collisions. Other tests cover inventory/catalog/saved-search input collisions, state/input collisions, a nonexistent baseline destination, relative and normalized paths, hardlinks, symlinks and case aliases. Validation occurs before work and is repeated before writes. Case-only paths are conservatively rejected even on case-sensitive filesystems. This is not protection from hostile concurrent filesystem mutation.
+
+F2/F3 tests include adjacent pipeline stages, stderr redirection and duplication, unaffected receiver stdout, redirects that sever the pipe, descriptor moves outside scope, no duplicate findings in longer pipelines, precise evidence location and interpreter option order. SA001's version is now 2, with a regression proving that v1 evaluations cannot establish new v2 findings. Existing state remains readable.
+
+## Builds and fixture smoke
+
+- `gofmt -l cmd internal`: exit 0; no output.
+- `go vet ./...`: exit 0; no output.
+- `go build -o /private/tmp/skill-audit-targeted ./cmd/skill-audit`: exit 0.
+- `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-targeted-linux ./cmd/skill-audit`: exit 0.
+- `CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-targeted-windows.exe ./cmd/skill-audit`: exit 0.
+- `sh scripts/demo.sh`: exit 0. Global/project Claude fixtures, exact baseline, bundled modification, possible modified upstream, comparable new SA001/v2 finding and appended snapshot passed. The inner audit returned expected exit 1.
+
+Seventeen separate built-CLI invocations also passed, covering all reviewed shell forms plus redirects severing the connection, baseline/snapshot creation and output collisions. The selected state's SHA-256 and two observations remained unchanged after rejected ordinary and snapshot audits. Source fixture strings were never executed. Local evidence: `/private/tmp/skill-audit-fix-checks-fqf3i8jc/commands.json` and `results.json`.
+
+## Delivery and remaining limits
+
+The Go implementation still exists as working files rather than in Git HEAD. A Git-only submission of HEAD is not runnable. The local source bundle includes the intended untracked code, tests, module files, vendored dependencies/licenses, pinned catalog/attribution, demo and documentation, with a SHA-256 file manifest. Packaging is not publication or submission; no Git history is changed.
+
+Real Skill X-Ray, authenticated public search/registry integration, native Linux/Windows execution, crash durability and exhaustive device coverage remain unverified. Cross-compilation is compilation evidence only. SA001 still excludes descriptor moves/variable descriptors, direct |& connections, expansions, command resolution and general dataflow. Its completion status applies to this bounded rule, not comprehensive shell safety.
+
+Source bundle verification: the extracted tree at `/private/tmp/skill-audit-delivery-oo_klmg5/skill-audit` built successfully with offline Go settings and passed `sh scripts/demo.sh`. All 75 source-file hashes matched the bundle manifest. The verification documentation was then updated and the archive regenerated; compiled source bytes did not change. The bundle is `/private/tmp/skill-audit-reviewed-source.tar.gz` and contains `SOURCE_MANIFEST.json`.

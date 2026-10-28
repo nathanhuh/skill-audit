@@ -1,0 +1,7 @@
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
+# mvdan.cc/sh/v3 v3.10.0
+## explicit; go 1.22
+mvdan.cc/sh/v3/fileutil
+mvdan.cc/sh/v3/syntax

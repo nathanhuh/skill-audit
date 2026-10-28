@@ -1,0 +1,5 @@
+# Catalog hashes describe upstream raw bytes, even on autocrlf-enabled checkouts.
+internal/audit/catalog/** -text
+
+# The fixture demo is a POSIX shell script.
+scripts/*.sh text eol=lf
