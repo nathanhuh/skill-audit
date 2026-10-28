@@ -171,3 +171,42 @@ func TestXRaySessionCachesProbeFailure(t *testing.T) {
 		t.Fatal(first.Evaluations, second.Evaluations)
 	}
 }
+
+func TestSlowXRayStartupDoesNotConsumePackageTimeout(t *testing.T) {
+	p := skill(t, temp(t), "pkg", "body")
+	exe := fakeScanner(t, reportScript(sarifFixture("no-reported-gap", []any{}), 0))
+	b, err := os.ReadFile(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(t, exe, []byte(strings.Replace(string(b), "then printf", "then sleep 0.6; printf", 1)))
+	scanner := NewXRayScanner(exe, 300*time.Millisecond)
+	defer scanner.Close()
+	for i := 0; i < 2; i++ {
+		s := Inspect(context.Background(), "project", p)
+		scanner.Scan(context.Background(), &s)
+		if s.Evaluations[0].Status != "completed_without_findings" {
+			t.Fatal("startup consumed scan budget", s.Evaluations)
+		}
+	}
+}
+
+func TestXRayProbeFailureRetriesBeforeScanning(t *testing.T) {
+	p := skill(t, temp(t), "pkg", "body")
+	marker := filepath.Join(temp(t), "cold-start")
+	quoted := "'" + strings.ReplaceAll(marker, "'", "'\\''") + "'"
+	exe := fakeScanner(t, reportScript(sarifFixture("no-reported-gap", []any{}), 0))
+	b, err := os.ReadFile(exe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delay := "then if [ ! -f " + quoted + " ]; then : >" + quoted + "; exit 75; fi; printf"
+	put(t, exe, []byte(strings.Replace(string(b), "then printf", delay, 1)))
+	scanner := NewXRayScanner(exe, 500*time.Millisecond)
+	defer scanner.Close()
+	s := Inspect(context.Background(), "project", p)
+	scanner.Scan(context.Background(), &s)
+	if s.Evaluations[0].Status != "completed_without_findings" {
+		t.Fatal("transient cold start poisoned audit", s.Evaluations)
+	}
+}

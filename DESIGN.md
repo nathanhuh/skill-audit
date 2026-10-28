@@ -1,5 +1,16 @@
 # Design: inventory, acquire references, audit
 
+## Coverage policy and bounded startup/cache review (2026-10-29)
+
+Routine inventory exclusions are visible policy notes rather than operational gaps. Unreadable paths, limits, cancellation, rejected explicit roots and skipped content inside skill packages remain incomplete. One report-level coverage predicate drives exit 2 and baseline eligibility. Recording failures retain the report, write a clear stderr message and return distinct exit 3. No JSON shape changes; exit 3 extends the CLI contract.
+
+Restore global scope throughout home agent trees, including community installation directories, while keeping known worktrees/projects containers and nearest nested agent markers project scoped. Root priority precedes component depth. An ancestor walk delegates explicitly selected subtrees to their own root, preserving root-local depth without starving the selected home; no per-entry visited map is needed. Protected OS trees and symlinks remain excluded.
+
+Memoize repository resolution failures for the invocation. Retain compact pinned commit/tree references, but only one active repository's tree/blob cache (16 MiB blobs plus the bounded tree). Revisiting another repository reloads pinned content; accumulated catalog output still needs memory. Give X-Ray startup its own five-second probe budget per attempt, one retry for a probe process failure and a fresh per-package scan budget. Operation cancellation bounds all phases. Share neutral output placement checks; no-follow validation belongs at read/write boundaries.
+
+Acceptance: reproduce realistic baseline, record-error, scope and home-starvation failures before fixes; cover root component depth/delegation, memoized failures and active-cache eviction, slow/retried scanner startup, package symlink gaps, neutral output errors, full offline suite/builds and fixture-only CLI demo. Keep native OS/scanner runtime limits explicit.
+
+
 ## Boundary and operation reuse review (2026-10-28)
 
 Validate mandatory sync output before constructing queries or issuing requests. Refuse state recording after interruption and refuse creation of incomplete baselines (findings alone are allowed); still emit partial reports. Snapshots may preserve non-interrupted partial observations. Check cancellation again before atomic replacement. An unavailable baseline comparison explicitly labels findings `not_compared`.

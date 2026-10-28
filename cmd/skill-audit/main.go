@@ -132,7 +132,7 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 			for _, p := range inv.Packages {
 				packages = append(packages, audit.Root{Path: p.Path})
 			}
-			if e = audit.StateOutside(absolute, packages); e != nil {
+			if e = audit.OutputOutside(absolute, packages); e != nil {
 				return fail(e)
 			}
 		}
@@ -300,28 +300,36 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 			return fail(e)
 		}
 		if state != "" {
-			absolute, e := filepath.Abs(state)
-			if e != nil {
-				return fail(e)
-			}
-			state = absolute
-			if e = audit.StateOutside(state, r.Roots); e != nil {
-				return fail(e)
-			}
-			if record != "baseline" {
-				st, e := audit.LoadState(state)
-				if e != nil {
-					return fail(e)
+			stateErr := func() error {
+				absolute, err := filepath.Abs(state)
+				if err != nil {
+					return err
 				}
-				audit.Compare(&r, st)
-			}
-			if record != "" {
-				if e = checkPaths(); e != nil {
-					return fail(e)
+				state = absolute
+				if err = audit.OutputOutside(state, r.Roots); err != nil {
+					return err
 				}
-				if e = audit.SaveObservation(ctx, state, r, record == "baseline"); e != nil {
-					r.Diagnostics = append(r.Diagnostics, audit.Diagnostic{Path: state, Code: "state_not_recorded", Message: e.Error(), Incomplete: true})
+				if record != "baseline" {
+					st, err := audit.LoadState(state)
+					if err != nil {
+						return err
+					}
+					audit.Compare(&r, st)
 				}
+				if record != "" {
+					if err = checkPaths(); err != nil {
+						return err
+					}
+					return audit.SaveObservation(ctx, state, r, record == "baseline")
+				}
+				return nil
+			}()
+			if stateErr != nil {
+				if record == "" {
+					return fail(stateErr)
+				}
+				fmt.Fprintf(errout, "skill-audit: state not recorded: %q\n", stateErr.Error())
+				r.Diagnostics = append(r.Diagnostics, audit.Diagnostic{Path: state, Code: "state_not_recorded", Message: stateErr.Error(), Incomplete: true})
 			}
 		}
 		if output != "" || asJSON {

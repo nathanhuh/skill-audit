@@ -140,32 +140,48 @@ func finishStatus(findings int, partial bool) string {
 	}
 	return "completed_without_findings"
 }
-func (r Report) ExitCode() int {
-	findings := false
+
+// HasCoverageGaps is the single completeness policy for reports and baselines.
+// Diagnostic.Incomplete records whether an observation is an operational gap;
+// explicit policy exclusions remain visible without becoming failures.
+func (r Report) HasCoverageGaps() bool {
 	for _, d := range r.Diagnostics {
 		if d.Incomplete {
-			return 2
+			return true
 		}
 	}
 	for _, s := range r.Skills {
+		if !s.Complete {
+			return true
+		}
 		for _, d := range s.Diagnostics {
 			if d.Incomplete {
-				return 2
+				return true
 			}
 		}
 		for _, e := range s.Evaluations {
 			if e.Status != "disabled" && !completed(e.Status) {
-				return 2
-			}
-		}
-		for _, f := range s.Findings {
-			if f.Kind == "security" {
-				findings = true
+				return true
 			}
 		}
 	}
-	if findings {
-		return 1
+	return false
+}
+func (r Report) ExitCode() int {
+	for _, d := range r.Diagnostics {
+		if d.Code == "state_not_recorded" {
+			return 3
+		}
+	}
+	if r.HasCoverageGaps() {
+		return 2
+	}
+	for _, s := range r.Skills {
+		for _, f := range s.Findings {
+			if f.Kind == "security" {
+				return 1
+			}
+		}
 	}
 	return 0
 }

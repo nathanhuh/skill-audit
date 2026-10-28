@@ -80,7 +80,10 @@ func validHash(s string) bool {
 	}
 	return true
 }
-func StateOutside(path string, roots []Root) error {
+
+// OutputOutside checks placement only. ReadBounded and WriteAtomic enforce
+// no-follow policy at their I/O boundaries.
+func OutputOutside(path string, roots []Root) error {
 	absolute, e := filepath.Abs(path)
 	if e != nil {
 		return e
@@ -88,10 +91,10 @@ func StateOutside(path string, roots []Root) error {
 	for dir := filepath.Dir(absolute); ; {
 		_, err := os.Lstat(filepath.Join(dir, "SKILL.md"))
 		if err == nil {
-			return fmt.Errorf("state must be outside skill packages")
+			return fmt.Errorf("tool-owned files must be outside skill packages")
 		}
 		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("cannot verify state placement: %w", err)
+			return fmt.Errorf("cannot verify output placement: %w", err)
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
@@ -99,12 +102,9 @@ func StateOutside(path string, roots []Root) error {
 		}
 		dir = parent
 	}
-	if err := NoSymlinks(path); err != nil {
-		return err
-	}
 	for _, r := range roots {
 		if Within(absolute, r.Path) {
-			return fmt.Errorf("state must be outside skill root %s", r.Path)
+			return fmt.Errorf("tool-owned files must be outside skill root %s", r.Path)
 		}
 	}
 	return nil
@@ -116,16 +116,15 @@ func SaveObservation(ctx context.Context, path string, r Report, baseline bool) 
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("state recording interrupted: %w", err)
 	}
-	if baseline {
-		incomplete := r.ExitCode() == 2
-		for _, s := range r.Skills {
-			incomplete = incomplete || !s.Complete
-		}
-		if incomplete {
-			return fmt.Errorf("baseline requires a complete audit; no state written")
-		}
+	if baseline && r.HasCoverageGaps() {
+		return fmt.Errorf("baseline requires a complete audit within the declared policy; no state written")
 	}
-	if err := StateOutside(path, r.Roots); err != nil {
+	// Parent creation and the lock are writes too; guard them before the
+	// separate final no-follow check in WriteAtomic.
+	if err := NoSymlinks(path); err != nil {
+		return err
+	}
+	if err := OutputOutside(path, r.Roots); err != nil {
 		return err
 	}
 	parent := filepath.Dir(path)

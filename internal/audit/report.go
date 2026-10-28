@@ -45,5 +45,5 @@ func Print(w io.Writer, r Report) {
 	for _, d := range r.Diagnostics {
 		diagnostic(d)
 	}
-	fmt.Fprintf(w, "\nexit=%d (0=no findings in selected scope; 1=findings; 2=operational/incomplete)\n", r.ExitCode())
+	fmt.Fprintf(w, "\nexit=%d (0=no findings in selected scope; 1=findings; 2=operational/incomplete; 3=state not recorded)\n", r.ExitCode())
 }

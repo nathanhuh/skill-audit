@@ -1,3 +1,45 @@
+# Verification — coverage/root/cache policy correction, 2026-10-29
+
+Reviewed canonical original `main` at `cf23e89aac804a9d621c0f7d7c4da3e2724f973f`. Failing offline regressions reproduced routine-exclusion baseline refusal, hidden recording failures, community-installation scope changes, home-root starvation, repeated failed repository requests, retained inactive content caches and startup consuming package timeout. The component-depth collision, duplicate coverage checks and placement wording were confirmed by source inspection and covered by focused tests.
+
+| Item | Result |
+| --- | --- |
+| 1. Routine exclusions block baselines | Inventory `.git`, dependency caches, implicit OS subtrees and skipped inventory links remain visible policy notes with `incomplete=false`. Unreadable paths, limits, rejected explicit roots and skipped package content remain gaps. A realistic project fixture now inventories and records baseline with .git/node_modules; an outside-package link remains visible, while a bundled link still prevents a complete baseline. |
+| 2. Recording failure indistinguishable | Requested state-phase errors emit `state not recorded` on stderr, retain `state_not_recorded` in the report and return **exit 3**. Tests cover locks, existing baselines, corrupt snapshot state and interruption. Coverage-only/preflight failures retain exit 2. This is an intentional CLI exit-contract extension. |
+| 3. Community global layouts | Scope covers home agent trees including .codex/superpowers/skills and .claude/community/skills. Known worktrees/projects containers and nearer nested agent markers remain project scoped; .github remains project scoped. Existing observations are never rewritten. |
+| 4. Root depth collision | Component depth is calculated after Clean and volume/root removal. Host-root tests pass. Native-Windows drive/UNC cases compile but were not run on Windows. Explicit descendants are delegated to their own traversal, so correctness no longer depends on which ancestor runs first. |
+| 5. Deep root starves home | Root priority precedes depth. Selected home and its global installation roots precede external roots. Tight-budget fixtures cover both HOME itself and a selected global skill root. Explicit subtree delegation preserves independent depth scopes. The per-directory visited map is removed; overlapping-root counts still match. |
+| 6. Failed lookups repeated | Repository/ref failures are memoized for the invocation when requests were actually attempted. Four private targets use one request; four truncated-repository targets use three requests. Cancellation and budget refusals do not accumulate new failure memos. A new invocation retries with a fresh client. |
+| 7. Content cache grows per repo | Only one repository's parsed tree and up to 16 MiB blob cache remain active. Compact pinned references, failures and import-byte counters are retained. Switching back reloads pinned content and consumes request/byte budget; eviction/revisit tests pass. Accumulated catalog data and serialization still consume memory. |
+| 8. Startup poisons audit | Version probing gets a separate five-second budget per attempt and one retry for a failed probe process. Package timeouts begin after startup. Slow-start and deterministic first-process-failure fixtures pass; incompatible versions remain terminal. Parent operation cancellation still bounds every phase. |
+| 9. Output says state / duplicate link guard | Neutral `OutputOutside` checks placement. `WriteJSON` uses one no-follow check at the atomic write boundary, and reports neutral placement errors. State separately checks before parent/lock creation and again before final replacement because both phases write. Tests prevent linked state paths from creating outside parents, and output links cannot overwrite their destinations. |
+| 10. Completeness duplicated | `Report.HasCoverageGaps` covers report/package diagnostics, package Complete flags and scanner status. Both baseline eligibility and exit 2 use it; the extra baseline per-skill loop is removed. Policy notes do not erase genuine package/scanner gaps. |
+
+Fresh inventory is required for the corrected routine-exclusion flags; older persisted diagnostics are not silently reinterpreted. Baselines remain immutable. Exit 3 is new; automation should treat it as failure to record, while exit 2 can accompany a successfully saved partial snapshot. JSON schemas and scanner/rule versions are unchanged.
+
+## Final verification from original main checkout
+
+macOS arm64, Go 1.23.5. Go commands used `GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off`, pinned vendored dependencies, and approved loopback access for fake HTTP servers. No live public service calls or skill-script execution occurred.
+
+`gofmt -l cmd internal`: no output. `git diff --check`: exit 0. `go vet ./...`: exit 0. `go test -count=1 ./...`: exit 0:
+
+```text
+ok  skill-audit/cmd/skill-audit    1.196s
+ok  skill-audit/internal/audit    7.681s
+ok  skill-audit/internal/workflow 1.878s
+```
+
+- Native build `/private/tmp/skill-audit-policy`: exit 0.
+- Linux amd64 cross-build `/private/tmp/skill-audit-policy-linux`: exit 0.
+- Windows amd64 cross-build `/private/tmp/skill-audit-policy-windows.exe`: exit 0.
+- Windows audit/workflow test compilation `/private/tmp/skill-audit-policy-{audit,workflow}.test.exe`: exit 0; compilation only.
+- `sh scripts/demo.sh`: exit 0, expected finding audit exit 1.
+- Twelve compiled-CLI checks passed: community/global and nested/project inventory with routine exclusions, valid baseline, repeated baseline/locked/corrupt/interrupted record failures, partial inventory/read-only audit/baseline refusal, home priority, bundled-link inventory and baseline refusal. Evidence: `/private/tmp/skill-audit-policy-smoke-dhhcjz8p/commands.json`.
+
+Native Linux/Windows, real Skill X-Ray and real device-wide discovery remain unverified. Cold-start retry uses a fake executable; it does not establish real scanner startup performance. Cache eviction bounds retained cache content, not total catalog/output memory. Large directories and genuine coverage gaps can still limit discovery. No publishing, pushing or submission occurred.
+
+## Prior verification records
+
 # Verification — boundary and reuse fixes, 2026-10-28
 
 Reviewed and changed the canonical original checkout on `main`, starting at `3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0`. The first seven items below were reproduced with failing offline regressions before their fixes. Request/probe repetition was measured before reuse changes. Shared-write duplication was established by source inspection.

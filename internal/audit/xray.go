@@ -18,6 +18,7 @@ const XRayVersion = "0.1.0"
 const XRayCommit = "c89eacfdd643e50d5f8e3ed18cf3c4992d174ff2"
 const MaxScannerOutput = 64 << 10
 const MaxSARIF = 8 << 20
+const XRayProbeTimeout = 5 * time.Second
 
 type boundedBuffer struct {
 	bytes.Buffer
@@ -85,6 +86,10 @@ func (x *XRayScanner) Close() {
 }
 func (x *XRayScanner) prepare(ctx context.Context) {
 	x.prepared = true
+	if x.dir != "" {
+		os.RemoveAll(x.dir)
+		x.dir = ""
+	}
 	exe, e := x.exe, &x.evaluation
 	if exe == "" {
 		return
@@ -111,16 +116,31 @@ func (x *XRayScanner) prepare(ctx context.Context) {
 		e.Message = err.Error()
 		return
 	}
-	stdout, stderr, _, err := runProcess(ctx, exe, dir, "version")
-	if err != nil {
+	var stdout, stderr string
+	// Startup has its own budget. Retry a probe process failure once; unsupported
+	// versions and other deterministic failures remain cached for the audit.
+	for attempt := 0; attempt < 2; attempt++ {
+		probeCtx, cancel := context.WithTimeout(ctx, XRayProbeTimeout)
+		stdout, stderr, _, err = runProcess(probeCtx, exe, dir, "version")
+		cancel()
+		if err == nil {
+			break
+		}
 		e.Message = fmt.Sprintf("version probe: %v; %s", err, stderr)
-		return
+		if ctx.Err() != nil {
+			x.prepared = false
+			return
+		}
+		if attempt == 1 {
+			return
+		}
 	}
 	if strings.TrimSpace(stdout) != "skill-xray "+XRayVersion {
 		e.Message = "unsupported scanner version; expected skill-xray " + XRayVersion + ", got " + strings.TrimSpace(stdout)
 		return
 	}
 	e.Version = XRayVersion
+	e.Message = ""
 	x.dir = dir
 	x.ready = true
 }
@@ -133,8 +153,6 @@ func XRayScan(ctx context.Context, s *Skill, exe string, timeout time.Duration) 
 	scanner.Scan(ctx, s)
 }
 func (x *XRayScanner) Scan(ctx context.Context, s *Skill) {
-	ctx, cancel := context.WithTimeout(ctx, x.timeout)
-	defer cancel()
 	if !x.prepared {
 		x.prepare(ctx)
 	}
@@ -143,6 +161,8 @@ func (x *XRayScanner) Scan(ctx context.Context, s *Skill) {
 	if !x.ready {
 		return
 	}
+	ctx, cancel := context.WithTimeout(ctx, x.timeout)
+	defer cancel()
 	if err := ctx.Err(); err != nil {
 		e.Message = "scan canceled/timed out: " + err.Error()
 		return

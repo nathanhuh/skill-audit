@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"skill-audit/internal/audit"
 )
@@ -60,4 +61,29 @@ func walkInventory(p string, d fs.DirEntry, home string, visit fs.WalkDirFunc) e
 		}
 	}
 	return nil
+}
+
+// Count host path components after removing the volume and root separators.
+func rootDepth(p string) int {
+	clean := filepath.Clean(p)
+	rest := strings.Trim(clean[len(filepath.VolumeName(clean)):], string(filepath.Separator))
+	if rest == "" || rest == "." {
+		return 0
+	}
+	return len(strings.Split(rest, string(filepath.Separator)))
+}
+
+func rootPriority(p, home string) int {
+	if home != "" {
+		if audit.Within(home, p) {
+			return 0
+		}
+		if audit.Within(p, home) {
+			if scope, _ := classify(p, home); scope == "global" {
+				return 0
+			}
+			return 1
+		}
+	}
+	return directoryPriority(p, home)
 }

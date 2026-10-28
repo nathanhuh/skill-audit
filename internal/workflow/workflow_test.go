@@ -66,7 +66,7 @@ func TestInventoryGapsAndCancellation(t *testing.T) {
 	for _, d := range inv.Diagnostics {
 		codes[d.Code] = true
 	}
-	if len(inv.Packages) != 1 || !codes["symlink"] || !codes["excluded_subtree"] || !codes["root_error"] {
+	if len(inv.Packages) != 1 || !codes["policy_symlink"] || !codes["excluded_subtree"] || !codes["root_error"] {
 		t.Fatal(inv)
 	}
 	inv = Discover(context.Background(), []string{d}, "/none", Limits{Entries: 1, Packages: 10, Depth: 10})
@@ -349,7 +349,7 @@ func TestOutputPlacementAndLimitCoverage(t *testing.T) {
 func TestStatePlacementDespiteOmittedInventory(t *testing.T) {
 	root := temp(t)
 	put(t, filepath.Join(root, "omitted", "SKILL.md"), "body")
-	if e := audit.StateOutside(filepath.Join(root, "omitted", "state.json"), nil); e == nil {
+	if e := audit.OutputOutside(filepath.Join(root, "omitted", "state.json"), nil); e == nil {
 		t.Fatal("state in omitted package accepted")
 	}
 }

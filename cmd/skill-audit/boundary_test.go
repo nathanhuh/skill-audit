@@ -49,7 +49,7 @@ func TestInterruptedAuditDoesNotRecordBaseline(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	out, errout := new(bytes.Buffer), new(bytes.Buffer)
-	if code := run(ctx, []string{"audit", "--inventory", inv, "--state", state, "--record", "baseline", "--json"}, out, errout); code != 2 {
+	if code := run(ctx, []string{"audit", "--inventory", inv, "--state", state, "--record", "baseline", "--json"}, out, errout); code != 3 {
 		t.Fatal(code, out, errout)
 	}
 	if _, err = os.Stat(state); !os.IsNotExist(err) {
@@ -63,7 +63,7 @@ func TestInterruptedAuditDoesNotRecordBaseline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if code := run(ctx, []string{"audit", "--inventory", inv, "--state", state, "--record", "snapshot", "--json"}, new(bytes.Buffer), errout); code != 2 {
+	if code := run(ctx, []string{"audit", "--inventory", inv, "--state", state, "--record", "snapshot", "--json"}, new(bytes.Buffer), errout); code != 3 {
 		t.Fatal(code)
 	}
 	after, err := os.ReadFile(state)

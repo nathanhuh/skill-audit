@@ -98,3 +98,69 @@ func TestRepositoryAndBlobsReusedAcrossTargets(t *testing.T) {
 		t.Fatal("cache ignored ref/request budget")
 	}
 }
+
+func TestFailedRepositoryResolutionIsMemoized(t *testing.T) {
+	for _, kind := range []string{"private", "truncated"} {
+		t.Run(kind, func(t *testing.T) {
+			c := NewClient("")
+			requests := 0
+			c.HTTP.Transport = importTransport(func(r *http.Request) (*http.Response, error) {
+				requests++
+				var payload any
+				switch {
+				case strings.Contains(r.URL.Path, "/commits/"):
+					payload = map[string]any{"sha": strings.Repeat("a", 40), "commit": map[string]any{"tree": map[string]any{"sha": strings.Repeat("b", 40)}}}
+				case strings.Contains(r.URL.Path, "/git/trees/"):
+					payload = map[string]any{"truncated": true, "tree": []any{}}
+				default:
+					payload = map[string]any{"private": kind == "private"}
+				}
+				b, _ := json.Marshal(payload)
+				return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(bytes.NewReader(b))}, nil
+			})
+			for i := 0; i < 4; i++ {
+				if _, err := c.SyncTarget(context.Background(), Hit{Repository: "owner/repo", Hint: fmt.Sprint(i)}, "HEAD", 1); err == nil {
+					t.Fatal("failure accepted")
+				}
+			}
+			expected := 1
+			if kind == "truncated" {
+				expected = 3
+			}
+			if requests != expected {
+				t.Fatal("same failed repository repeatedly requested", requests, expected)
+			}
+		})
+	}
+}
+
+func TestOnlyOneRepositoryContentCacheIsRetained(t *testing.T) {
+	body := []byte("fixture")
+	sha := gitBlob(body)
+	c, _ := importFixture(t, []treeEntry{{"skills/a/SKILL.md", "100644", "blob", sha, int64(len(body))}}, map[string][]byte{sha: body})
+	transport := c.HTTP.Transport
+	// Reuse the fixture protocol for distinct public repository names.
+	c.HTTP.Transport = importTransport(func(r *http.Request) (*http.Response, error) {
+		copy := r.Clone(r.Context())
+		u := *r.URL
+		copy.URL = &u
+		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+		copy.URL.Path = "/repos/owner/repo" + strings.TrimPrefix(r.URL.Path, "/repos/"+parts[1]+"/"+parts[2])
+		return transport.RoundTrip(copy)
+	})
+	for _, repo := range []string{"owner/one", "owner/two", "owner/three", "owner/one"} {
+		s, err := c.Sync(context.Background(), repo, "HEAD", 1)
+		if err != nil || len(s.Entries) != 1 {
+			t.Fatal(s, err)
+		}
+		retained := 0
+		for _, snapshot := range c.repositories {
+			if snapshot.blobs != nil {
+				retained++
+			}
+		}
+		if retained != 1 {
+			t.Fatal("content retained for inactive repositories", retained)
+		}
+	}
+}

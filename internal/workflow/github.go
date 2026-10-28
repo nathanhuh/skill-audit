@@ -28,6 +28,7 @@ type Client struct {
 	Token                 string
 	Requests, MaxRequests int
 	repositories          map[string]*repositorySnapshot
+	activeRepository      string
 }
 
 func NewClient(token string) *Client {
@@ -141,6 +142,8 @@ func (c *Client) Sync(ctx context.Context, repo, ref string, maxPackages int) (S
 }
 
 type repositorySnapshot struct {
+	treeSHA   string
+	err       error
 	commit    string
 	entries   []treeEntry
 	blobs     map[string][]byte
@@ -149,43 +152,69 @@ type repositorySnapshot struct {
 
 // A client represents one acquisition operation. Pin each repo/ref once so
 // search hits share requests and immutable content, never a process-global cache.
-func (c *Client) repository(ctx context.Context, repo, ref string) (*repositorySnapshot, error) {
+func (c *Client) repository(ctx context.Context, repo, ref string) (result *repositorySnapshot, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	key := c.BaseURL + "\x00" + repo + "\x00" + ref
-	if cached := c.repositories[key]; cached != nil {
-		return cached, nil
+	if c.repositories == nil {
+		c.repositories = map[string]*repositorySnapshot{}
 	}
+	snapshot := c.repositories[key]
+	if snapshot != nil && snapshot.err != nil {
+		return nil, snapshot.err
+	}
+	// Pin compact references and failures for the invocation, but retain content
+	// for only the active repository. Catalog output owns any bytes it retains.
+	if c.activeRepository != key {
+		if previous := c.repositories[c.activeRepository]; previous != nil {
+			previous.entries, previous.blobs = nil, nil
+		}
+		c.activeRepository = key
+	}
+	requestsBefore := c.Requests
+	defer func() {
+		if err != nil && ctx.Err() == nil && c.Requests > requestsBefore {
+			c.repositories[key] = &repositorySnapshot{err: err}
+		}
+	}()
 	base := "/repos/" + repo
-	var meta struct {
-		Private *bool `json:"private"`
+	if snapshot == nil {
+		var meta struct {
+			Private *bool `json:"private"`
+		}
+		if e := c.get(ctx, base, &meta); e != nil {
+			return nil, e
+		}
+		if meta.Private == nil || *meta.Private {
+			return nil, fmt.Errorf("only explicitly public repositories are imported")
+		}
+		var commit struct {
+			SHA    string `json:"sha"`
+			Commit struct {
+				Tree struct {
+					SHA string `json:"sha"`
+				} `json:"tree"`
+			} `json:"commit"`
+		}
+		if e := c.get(ctx, base+"/commits/"+url.PathEscape(ref), &commit); e != nil {
+			return nil, e
+		}
+		if !shaPattern.MatchString(commit.SHA) || !shaPattern.MatchString(commit.Commit.Tree.SHA) {
+			return nil, fmt.Errorf("missing immutable commit/tree identity")
+		}
+		snapshot = &repositorySnapshot{commit: commit.SHA, treeSHA: commit.Commit.Tree.SHA}
+		c.repositories[key] = snapshot
+
 	}
-	if e := c.get(ctx, base, &meta); e != nil {
-		return nil, e
-	}
-	if meta.Private == nil || *meta.Private {
-		return nil, fmt.Errorf("only explicitly public repositories are imported")
-	}
-	var commit struct {
-		SHA    string `json:"sha"`
-		Commit struct {
-			Tree struct {
-				SHA string `json:"sha"`
-			} `json:"tree"`
-		} `json:"commit"`
-	}
-	if e := c.get(ctx, base+"/commits/"+url.PathEscape(ref), &commit); e != nil {
-		return nil, e
-	}
-	if !shaPattern.MatchString(commit.SHA) || !shaPattern.MatchString(commit.Commit.Tree.SHA) {
-		return nil, fmt.Errorf("missing immutable commit/tree identity")
+	if snapshot.blobs != nil {
+		return snapshot, nil
 	}
 	var tree struct {
 		Truncated bool        `json:"truncated"`
 		Entries   []treeEntry `json:"tree"`
 	}
-	if e := c.get(ctx, base+"/git/trees/"+commit.Commit.Tree.SHA+"?recursive=1", &tree); e != nil {
+	if e := c.get(ctx, base+"/git/trees/"+snapshot.treeSHA+"?recursive=1", &tree); e != nil {
 		return nil, e
 	}
 	if tree.Truncated {
@@ -198,11 +227,8 @@ func (c *Client) repository(ctx context.Context, repo, ref string) (*repositoryS
 		}
 	}
 
-	snapshot := &repositorySnapshot{commit: commit.SHA, entries: tree.Entries, blobs: map[string][]byte{}}
-	if c.repositories == nil {
-		c.repositories = map[string]*repositorySnapshot{}
-	}
-	c.repositories[key] = snapshot
+	snapshot.entries = tree.Entries
+	snapshot.blobs = map[string][]byte{}
 	return snapshot, nil
 }
 

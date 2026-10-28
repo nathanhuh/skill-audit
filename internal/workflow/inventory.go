@@ -51,11 +51,9 @@ func DeviceRoots() []string {
 func Discover(ctx context.Context, roots []string, home string, limits Limits) Inventory {
 	out := Inventory{Schema: InventorySchema, Roots: []string{}, Packages: []Package{}, Diagnostics: []audit.Diagnostic{}}
 	issue := func(p, code, msg string) {
-		out.Diagnostics = append(out.Diagnostics, audit.Diagnostic{Path: p, Code: code, Message: msg, Incomplete: true})
+		out.Diagnostics = append(out.Diagnostics, audit.Diagnostic{Path: p, Code: code, Message: msg, Incomplete: code != "excluded_subtree" && code != "policy_symlink"})
 	}
 	stopped := ""
-	// Only directories can overlap selected directory roots. No per-file cache.
-	seenDirectories := map[string]bool{}
 	rootset := map[string]bool{}
 	for _, root := range roots {
 		p, e := filepath.Abs(root)
@@ -71,12 +69,11 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 	sort.Strings(out.Roots)
 	walkRoots := append([]string{}, out.Roots...)
 	sort.SliceStable(walkRoots, func(i, j int) bool {
-		// Deeper explicit roots get their own depth/exclusion scope before ancestors.
-		di, dj := strings.Count(filepath.ToSlash(walkRoots[i]), "/"), strings.Count(filepath.ToSlash(walkRoots[j]), "/")
-		if di != dj {
-			return di > dj
+		pi, pj := rootPriority(walkRoots[i], home), rootPriority(walkRoots[j], home)
+		if pi != pj {
+			return pi < pj
 		}
-		return directoryPriority(walkRoots[i], home) < directoryPriority(walkRoots[j], home)
+		return rootDepth(walkRoots[i]) > rootDepth(walkRoots[j])
 	})
 	interrupted := func() string {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
@@ -111,11 +108,12 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 				issue(p, "read_error", e.Error())
 				return nil
 			}
-			if d.IsDir() {
-				if seenDirectories[p] {
-					return fs.SkipDir
-				}
+			// A selected descendant gets its own traversal, regardless of which
+			// ancestor has priority. Pending-root diagnostics cover interruptions.
+			if d.IsDir() && p != root && rootset[p] {
+				return fs.SkipDir
 			}
+
 			out.Entries++
 			if out.Entries > limits.Entries {
 				stopped = "entry_limit"
@@ -128,15 +126,18 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 				return fs.SkipDir
 			}
 			if d.Type()&os.ModeSymlink != 0 {
-				issue(p, "symlink", "link not followed")
+				issue(p, "policy_symlink", "link not followed by inventory policy")
 				return nil
 			}
 			if d.IsDir() {
 				if excluded(p, d.Name(), root) {
-					issue(p, "excluded_subtree", "outside device-search policy; subtree not inspected")
+					code := "excluded_subtree"
+					if p == root {
+						code = "excluded_root"
+					}
+					issue(p, code, "outside device-search policy; subtree not inspected")
 					return fs.SkipDir
 				}
-				seenDirectories[p] = true
 				return nil
 			}
 			if d.Name() != "SKILL.md" {
@@ -221,7 +222,7 @@ func classify(p, home string) (string, string) {
 			parent := filepath.Dir(dir)
 			rel, _ := filepath.Rel(dir, p)
 			first := strings.Split(filepath.ToSlash(rel), "/")[0]
-			installation := first == "skills" || first == "plugins"
+			installation := first != "worktrees" && first != "projects"
 			if agent != ".github" && installation && ((home != "" && audit.Within(parent, home) && audit.Within(home, parent)) || conventionalHome(parent)) {
 				return "global", agent
 			}

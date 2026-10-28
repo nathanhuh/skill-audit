@@ -99,3 +99,38 @@ func TestBaselineAllowsFindingsButNotPartialCoverage(t *testing.T) {
 		t.Fatal(st, err)
 	}
 }
+
+func TestReportCompletenessAndBaselineSharePolicy(t *testing.T) {
+	for _, tc := range []struct {
+		report Report
+		gap    bool
+	}{
+		{Report{Diagnostics: []Diagnostic{{Code: "excluded_subtree", Incomplete: false}}}, false},
+		{Report{Diagnostics: []Diagnostic{{Code: "read_error", Incomplete: true}}}, true},
+		{Report{Skills: []Skill{{Complete: false}}}, true},
+		{Report{Skills: []Skill{{Complete: true, Evaluations: []Evaluation{{Status: "partial"}}}}}, true},
+	} {
+		if tc.report.HasCoverageGaps() != tc.gap || (tc.report.ExitCode() == 2) != tc.gap {
+			t.Fatal("completeness policy diverged", tc)
+		}
+	}
+}
+
+func TestStateRejectsSymlinkBeforeCreatingParentOrLock(t *testing.T) {
+	root := temp(t)
+	outside := filepath.Join(root, "outside")
+	if err := os.Mkdir(outside, 0700); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, "link")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Skip("fixture symlinks unavailable: ", err)
+	}
+	report := Report{Schema: ReportSchema, CatalogVersion: "fixture", Skills: []Skill{}}
+	if err := SaveObservation(context.Background(), filepath.Join(link, "new", "state.json"), report, true); err == nil {
+		t.Fatal("state followed a link")
+	}
+	if _, err := os.Stat(filepath.Join(outside, "new")); !os.IsNotExist(err) {
+		t.Fatal("state created a parent through a link", err)
+	}
+}

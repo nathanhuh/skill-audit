@@ -106,3 +106,11 @@ Explicit roots run deepest first; marking only admitted directories avoids silen
 One sync client pins a repository/ref once and shares bounded blob content across its targets. Validation of mode/type/declared size happens before cache lookup, because a SHA identifies bytes, not whether a tree entry is a symlink or regular file. One X-Ray session similarly caches a version probe, while per-package staging/report directories preserve isolation. These caches last only for their operation, without a persistent invalidation protocol.
 
 `WriteAtomic` hides temporary-file creation, flushing, cancellation before rename, replacement and OS-specific directory syncing. State still owns locking and immutable-baseline policy; catalog/report output owns its own size and placement checks. Hash and metadata-name helpers are shared without treating discovery dependency exclusions as fingerprint exclusions.
+
+## Coverage and resource policy refinement
+
+`HasCoverageGaps` checks report diagnostics, package completeness and scanner status in one place. Inventory policy notes remain visible without blocking baselines; skipped package content still blocks them. Persistence failures have explicit stderr plus exit 3, preserving automation's distinction from a coverage-only exit 2. Previous exit contracts should be updated when integrating scripts.
+
+Root priority precedes component depth, and explicit subtrees are delegated to their own traversal. This preserves independent root scope without a depth-first race against the home directory or a per-entry visited map. Global scope covers community installation paths inside home agent trees; known project containers and nested agent markers remain project scoped.
+
+Repository failures and compact pinned references last for the invocation. A single active content cache limits retained tree/blob data; returning to an evicted repository can spend requests and byte budget again. Catalog output still retains imported content. Scanner startup has a separate bounded budget and a single probe-process retry, followed by fresh package scan budgets. Read/write boundaries enforce no-follow checks; state additionally checks before creating parents/locks. `OutputOutside` only determines placement and uses neutral error text.

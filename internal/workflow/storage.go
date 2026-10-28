@@ -87,7 +87,7 @@ func WriteJSON(p string, v any) error {
 	if e != nil {
 		return e
 	}
-	if e := audit.StateOutside(absolute, nil); e != nil {
+	if e := audit.OutputOutside(absolute, nil); e != nil {
 		return e
 	}
 	b, e := json.MarshalIndent(v, "", "  ")
