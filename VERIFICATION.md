@@ -1,3 +1,30 @@
+# Verification — committed comparison baseline, 2026-10-29
+
+Prepared the canonical `main` checkout from parent revision `5fed934` as the frozen reference for a separate document-driven rewrite. All nine ADRs are accepted; their pending implementation gaps remain explicit. Corrected stale README wording that still called accepted ADRs proposed, and aligned the move-tracking roadmap's state-placement wording with ADR-0004. The sole Go-file change remains an ADR reference in a test comment.
+
+Environment: macOS arm64, Go 1.23.5. Executed in the canonical checkout:
+
+- `gofmt -w cmd/skill-audit/outcome_test.go`; `gofmt -l cmd internal`: no unformatted files.
+- `git diff --check`: passed.
+- `GOPROXY=off GOSUMDB=off go vet ./...`: passed.
+- `GOPROXY=off GOSUMDB=off go test -count=1 ./...`: passed (CLI 2.797s, audit 6.712s, workflow 2.569s).
+- `GOPROXY=off GOSUMDB=off go build -o /private/tmp/skill-audit-adr-baseline ./cmd/skill-audit`: passed.
+- `GOPROXY=off GOSUMDB=off sh scripts/demo.sh`: passed using temporary global/project fixtures, baseline recording, a bundled-script byte edit, refresh, attributed SA001 finding and snapshot recording. The fixture script was inspected as data, never executed.
+
+The baseline still has the documented ADR implementation gaps. These checks validate its existing behavior, not the newly accepted but unimplemented rules. No real installed skills, real Skill X-Ray, public network acquisition or native Linux/Windows runtime validation was used.
+
+# Verification — interactive ADR review, 2026-10-29
+
+Documentation review on canonical `main` at `5fed934`, including existing uncommitted changes. The user accepted all nine ADRs (0001–0009) during this review, with amendments and acceptance sources recorded in the ADRs. New accepted behavior, including default-device inventory, designated state exclusion, text recording summaries and scanner budget changes, is not implied to be implemented. ADR-0006 now specifies a best-effort 25% local reserve, configurable 30-second phase budgets, stop-after-timeout behavior, and one exit-75 probe retry sharing the original phase deadline; package scans are not automatically retried. ADR-0007 now requires complete-import admission under both a 40 MiB retained raw-content budget and the actual 64 MiB serialized-store bound, including required attribution and diagnostic headroom; prior complete imports survive budget exhaustion. These acquisition changes remain unimplemented. ADR-0008 accepts publication-based version freezing, published-format readers, no state migration, and removal of unpublished intermediate readers. It scopes compatibility to each kind of evidence and preserves ADR-0005 exit priority when legacy-state appends fail. Reader removal, compatibility verification and the pre-publication freeze checklist remain pending. ADR-0009 accepts isolated filesystem discovery/persistence and child-process boundaries. Cross-host fingerprint agreement remains pending validation with identical bytes and relative paths on another target platform; single-host macOS checks do not establish it. Native Linux/Windows runtime work remains pending.
+
+This review changes documentation only. Checked edited text and `git diff --check`; no Go tests, build, demo or real external-scanner execution was performed for these decision updates. Earlier verification entries below describe prior work and do not validate the newly accepted behavior.
+
+# Verification — ADR set restructure, 2026-10-29
+
+Documentation-only change on canonical `main` at `5fed934`. The former single ADR-0001 was split into nine ADRs under `docs/adr/` with an index and process rules. Its accepted rules and scenario IDs (B1–B9, E1–E8, S1–S2, C1–C2) are unchanged. The former file moved to `docs/history/`, marked superseded. Dated review plans moved verbatim from DESIGN.md to `docs/history/design-review-notes.md`, and DESIGN.md keeps only the architecture sections. ADRs 0006 and 0008 contain recommendations that need a user decision. The gap tables come from source inspection of `5fed934`, not from new test runs. The only Go change is one test comment (`ADR-0001` to `ADR-0005`).
+
+Checks: every relative Markdown link in `docs/`, AGENTS.md, README.md, DESIGN.md and PORTABILITY.md resolves; `git diff --check` exits 0; `gofmt -l cmd internal` prints nothing; `go vet ./...` and `go test -count=1 ./...` exit 0 (offline, `GOPROXY=off`).
+
 # Verification — review corrections, 2026-10-29
 
 Reviewed and edited the canonical original checkout on `main`, starting from clean `207a4f5d4d68810ff0e8d94c7fcf7210f35acd61`. These corrections are local, uncommitted changes. The detached checkout was not edited. Initial failing fixture regressions reproduced a hung version probe exhausting the operation deadline, repeated permanent launch failures, cancellation replacing a cached configuration error, explicit macOS aliases hidden behind policy exclusions, and speculative recording status in saved history.

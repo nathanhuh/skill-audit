@@ -38,6 +38,24 @@ Current discovery has exclusions, depth/entry/package limits and a deadline. Cur
 
 Keep acquisition credentials out of endpoint collection where possible. Reports may themselves contain sensitive usernames, paths and script snippets: define local retention, access control and redaction before central transport. Explicit evidence collection does not authorize uploading full skill content.
 
+## Later: persistent identity across moves
+
+Explore opt-in package-local metadata, analogous to a small `.git` directory, containing a persistent package ID that travels with a moved directory. This could link observations across path changes, including moves accompanied by content edits. It is a roadmap proposal requested during ADR review on 2026-10-29, not an implemented feature or a requirement to use Git.
+
+Copying a package also copies its metadata. Define duplicate-ID, copy/fork, cross-scope and cross-endpoint behavior before carrying comparison anchors forward. An ID is correlation evidence, not proof of ownership, authenticity or an uninterrupted history. Missing or replaced metadata must not silently attach another package's history.
+
+Enrollment would require an explicit action; ordinary inventory and audit must remain read-only with respect to scanned packages. Decide how metadata interacts with package fingerprints and upstream matching, and how to handle read-only or manager-owned installations. Keep observation history outside skill packages in the designated discovery-excluded state location under ADR-0004, and preserve existing records. A new ADR must define these semantics and any version changes before implementation; the accepted scope-plus-path identity in [ADR-0002](docs/adr/0002-local-identity-and-installation-ownership.md) remains current behavior.
+
+Acceptance evidence should use temporary fixtures: move an enrolled package, move and edit it, copy it while retaining the original, copy then delete the original, cross an installation scope, and remove or duplicate its metadata. Ambiguous cases must remain explicit rather than silently merging history.
+
+## Later: linked-skill support
+
+Support skills installed through symbolic links, including skill-manager layouts, with native Windows junction/reparse-point handling considered explicitly. Requested during ADR review on 2026-10-29; not implemented. The current no-follow policy and visible coverage gaps remain in effect until a new ADR defines the supported traversal behavior.
+
+Define allowed target scope, cycle detection, traversal budgets, target deduplication and installation ownership before following links. Preserve the installation link path and resolved target as separate evidence; sharing a target must not silently merge distinct installations or global/project identities. Broken, inaccessible or disallowed targets remain explicit gaps. Account for links changing during measurement so fingerprints and scanner input describe the same inspected bytes.
+
+Acceptance evidence should use temporary fixtures for a manager-installed link, two installations sharing a target, a cycle, a broken link, an out-of-scope target and a target changed during collection. Validate Windows junction behavior natively before claiming support. Ordinary scans must not modify links or target packages.
+
 ## Measures of usefulness
 
 - Successful observations among expected endpoint check-ins; distinguish missing check-ins from scan failures and partial coverage.

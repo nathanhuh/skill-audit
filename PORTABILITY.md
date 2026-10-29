@@ -1,6 +1,8 @@
 # Windows and Linux adaptation
 
-Both are intended future targets. Keep the core portable; add OS-specific behavior only at filesystem persistence and child-process boundaries. No new platform framework is needed. A native runtime environment can be supplied later; none is needed for the current design review.
+The rules behind this checklist are in [ADR-0009](docs/adr/0009-portability-boundaries.md).
+
+Both are intended future targets. Keep the core portable; isolate OS-specific behavior at filesystem discovery/persistence and child-process boundaries. Filesystem discovery includes drive enumeration, path handling and link/reparse-point detection. No new platform framework is needed. A native runtime environment can be supplied later; none is needed for the current design review.
 
 ## Current evidence
 
@@ -35,11 +37,11 @@ Use disposable fixtures and a non-administrator/non-root account. Record OS, arc
 - Build, vet and run the complete offline suite; list any skips and unsupported cases explicitly. Windows still needs the fake-scanner helper work above before expecting the full suite to pass.
 - Run the copy → baseline → bundled edit → audit → snapshot demo. Confirm exact initial bytes, possible modified correlation, added/removed/modified files, and comparable `new` finding labels.
 - Test unreadable files and state directories, missing roots, duplicate names, symlink/junction loops, lock contention, corrupt state, and replacement while another process reads state.
-- Copy identical fixture bytes between hosts and compare file/directory hashes, not entire reports containing host-specific absolute paths. Separately convert LF to CRLF and expect exact hashes to change.
+- Copy identical fixture bytes and relative paths between hosts and compare file/directory hashes, not entire reports containing host-specific absolute paths. Single-host checks do not establish cross-host agreement; ADR-0009 P1 remains pending until another target platform is exercised. Separately convert LF to CRLF and expect exact hashes to change.
 - Exercise scanner paths containing spaces, bounded output, cancellation and descendant cleanup. Run the optional real scanner only if safely available, otherwise keep it unverified.
 
 Do not add CI, install virtual machines, or download platform scanner binaries merely to satisfy this plan. Those can follow when a test environment is available.
 
 The directory-sync decision was checked against the installed Go 1.23.5 Windows implementation (`os/file_windows.go`, `internal/poll/fd_fsync_windows.go`, `syscall/syscall_windows.go`) and [Microsoft FlushFileBuffers documentation](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers), which requires a handle with write access. This source review is not a native runtime test.
 
-ADR-0001 alignment gives security findings exit priority over coverage and save warnings. Report/v2 independently records persistence status; state/v3 derives complete-package anchors from the first observation despite unrelated gaps. Stored observations omit the final recording outcome, which is only known after the write; CLI reports carry it. Historical state/v1 and state/v2 remain comparison-readable and append-read-only. Case-alias overlap is now checked against filesystem identity and exercised on the macOS fixture volume. The distinct-case-directory test skips on this case-insensitive volume; Linux/case-sensitive-volume and native Windows runtime validation remain pending. Root identity checks do not promise Unicode normalization or arbitrary mount deduplication.
+[ADR-0004](docs/adr/0004-observations-and-baselines.md)/[0005](docs/adr/0005-outcomes-and-exit-codes.md) alignment gives security findings exit priority over coverage and save warnings. Report/v2 independently records persistence status; state/v3 derives complete-package anchors from the first observation despite unrelated gaps. Stored observations omit the final recording outcome, which is only known after the write; CLI reports carry it. Historical state/v1 and state/v2 remain comparison-readable and append-read-only. Case-alias overlap is now checked against filesystem identity and exercised on the macOS fixture volume. The distinct-case-directory test skips on this case-insensitive volume; Linux/case-sensitive-volume and native Windows runtime validation remain pending. Root identity checks do not promise Unicode normalization or arbitrary mount deduplication.

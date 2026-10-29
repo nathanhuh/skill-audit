@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by docs/adr 0002, 0004, 0005, 0007 (2026-10-29)
 date: 2026-10-29
 ---
 
@@ -8,6 +8,8 @@ date: 2026-10-29
 Repeated review fixes changed the meaning of coverage, baselines, scope and exit codes. We choose baselines of fully measured observed skills and independent analysis, coverage and recording outcomes, with findings taking exit priority. This preserves useful evidence without claiming exhaustive discovery, and prevents one failure dimension from silently redefining another.
 
 Accepted by the user on 2026-10-29. **This freezes intended behavior; it does not claim the current code implements every decision.** This ADR takes precedence over conflicting historical review plans in DESIGN.md. Terminology is defined in [CONTEXT.md](../../CONTEXT.md).
+
+> **Superseded layout (2026-10-29).** The accepted rules below were split, unchanged and with the same scenario IDs, into [0002](../adr/0002-local-identity-and-installation-ownership.md) (S1–S2), [0004](../adr/0004-observations-and-baselines.md) (B1–B9), [0005](../adr/0005-outcomes-and-exit-codes.md) (E1–E8) and [0007](../adr/0007-reference-acquisition.md) (C1–C2). This file is kept for history.
 
 ## Baseline contract
 

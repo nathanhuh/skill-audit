@@ -7,7 +7,7 @@
 - Keep global and project identities separate. Report incomplete coverage, skipped symlinks, and errors explicitly. Ordinary scans must not mutate lineage state.
 - Pin upstream catalog content and external interfaces. Preserve licenses and original scanner attribution. Do not enable scanner cloud/LLM modes or install external scanners automatically.
 - Prefer standard Go libraries and small, justified dependencies. Avoid a service, database, UI, plugin framework, and unnecessary concurrency.
-- Keep versioned JSON and traversal deterministic. Store state outside scanned roots, preserve observations, and write atomically.
+- Keep versioned JSON and traversal deterministic. Store state outside skill packages in a designated location explicitly excluded from discovery with reported exclusion evidence (ADR-0004), preserve observations, and write atomically.
 - Run gofmt, go vet ./..., go test ./..., a build, and fixture-only CLI smoke/demo checks. Document exact verification and limitations.
 - Keep Linux and native Windows adaptation in scope for future changes. Read PORTABILITY.md for OS boundaries and pending runtime checks; cross-compilation is not runtime validation. Preserve catalog bytes across Git checkouts, keep filesystem/process differences isolated, and never treat WSL testing as native Windows testing.
 
@@ -16,4 +16,4 @@
 
 - The original project checkout on `main` is the canonical codebase. Before a review, confirm `pwd`, `git branch --show-current`, and `git status --short`; include the reviewed revision and any local changes in the review context. The former detached V2 checkout is not a second active implementation. Unless the user explicitly selects another checkout, resolve the primary path with `git worktree list` and run edits, tests and reviews there even if this chat remains attached to a detached worktree.
 
-- Frozen behavior contracts are in docs/adr/0001-observation-and-outcome-contracts.md; read it and CONTEXT.md before behavior changes. It supersedes conflicting historical review plans. Baseline eligibility, exit priority, installation ownership and cache/import semantics must follow the accepted matrix; do not redefine them as incidental review fixes. The ADR lists implementation gaps and does not imply those behaviors are shipped.
+- Binding decisions are the ADRs in docs/adr (start at docs/adr/README.md); read the relevant ADR and CONTEXT.md before behavior changes. Accepted rules change only through a new explicit decision. Every review finding must cite the ADR scenario or rule it violates, or be labelled a policy gap; a policy gap gets an ADR decision before any fix. ADR gap tables describe code at a named revision and do not imply behavior is shipped. docs/history holds superseded plans and is not policy.

@@ -59,7 +59,7 @@ func TestCommittedWriteWarningIsNotFailedRecording(t *testing.T) {
 	}
 }
 
-// ADR-0001 E1–E8: persistence and analysis stay independent.
+// ADR-0005 E1–E8: persistence and analysis stay independent.
 func TestADROutcomesE1ToE8(t *testing.T) {
 	for _, tc := range []struct {
 		id            string
