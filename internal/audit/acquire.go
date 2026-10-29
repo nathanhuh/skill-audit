@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha1"
 	"encoding/base64"
@@ -16,7 +17,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode/utf8"
 )
 
 type Hit struct {
@@ -24,14 +24,6 @@ type Hit struct {
 	Path       string `json:"path,omitempty"`
 	Slug       string `json:"hint,omitempty"`
 	URL        string `json:"url,omitempty"`
-}
-type Search struct {
-	Source      string       `json:"source"`
-	Schema      string       `json:"schema"`
-	Queries     []string     `json:"queries"`
-	Hits        []Hit        `json:"hits"`
-	Complete    bool         `json:"complete"`
-	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`
 }
 
 func Queries(query, inventory string, names bool) ([]string, error) {
@@ -76,7 +68,8 @@ type Acquirer struct {
 	Token, RegistryToken              string
 	AllowHTTP                         bool
 	failures                          map[string]error
-	resolutions                       map[string]*repository
+	// Pins survive transient tree-fetch failures before an active repository exists.
+	resolutions map[string]*repository
 }
 
 func NewAcquirer(ctx context.Context) *Acquirer {
@@ -255,10 +248,7 @@ func (a *Acquirer) Search(queries []string, registry string, limit int) Search {
 			s.Hits = append(s.Hits, Hit{Repository: r.Repository.FullName, Path: r.Path, URL: r.HTMLURL})
 		}
 	}
-	sort.Slice(s.Hits, func(i, j int) bool {
-		return s.Hits[i].Repository+s.Hits[i].Path+s.Hits[i].Slug < s.Hits[j].Repository+s.Hits[j].Path+s.Hits[j].Slug
-	})
-	return s
+	return MergeSearch(s)
 }
 
 type treeEntry struct {
@@ -369,7 +359,7 @@ func (a *Acquirer) blob(r *repository, t treeEntry) ([]byte, error) {
 	}
 	return b, nil
 }
-func (a *Acquirer) importPackage(r *repository, dir string) (Reference, []Attribution, error) {
+func (a *Acquirer) importPackage(r *repository, dir string, retained map[string]bool) (Reference, []Attribution, error) {
 	out := Reference{ID: r.repo + ":" + dir + "@" + r.commit, Repository: "https://github.com/" + r.repo, Commit: r.commit, UpstreamPath: dir, Data: map[string][]byte{}}
 	total, count := 0, 0
 	for _, entry := range r.entries {
@@ -415,6 +405,9 @@ func (a *Acquirer) importPackage(r *repository, dir string) (Reference, []Attrib
 		}
 		upper := strings.ToUpper(entry.Path)
 		if !strings.HasPrefix(upper, "LICENSE") && !strings.HasPrefix(upper, "NOTICE") && !strings.HasPrefix(upper, "COPYING") {
+			continue
+		}
+		if retained[out.Repository+"\x00"+r.commit+"\x00"+entry.Path] {
 			continue
 		}
 		b, e := a.blob(r, entry)
@@ -472,12 +465,7 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 		c.Complete = false
 		d := diag(code, p, msg)
 		if len(d.Message) > 240 {
-			b := []byte(d.Message)
-			b = b[:220]
-			for !utf8.Valid(b) {
-				b = b[:len(b)-1]
-			}
-			d.Message = string(b) + "… [truncated]"
+			d.Message = string(utf8Prefix([]byte(d.Message), 220)) + "… [truncated]"
 		}
 		delta, err := sizes.diagnostic(d)
 		if err == nil && sizes.bytes+delta+reserve <= a.OutputLimit {
@@ -497,7 +485,8 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 			if targets[i].full != targets[j].full {
 				return targets[i].full
 			}
-			return targets[i].dir+targets[i].slug < targets[j].dir+targets[j].slug
+			a, b := targets[i], targets[j]
+			return cmp.Or(cmp.Compare(a.dir, b.dir), cmp.Compare(a.slug, b.slug)) < 0
 		})
 		for _, target := range targets {
 			if budget {
@@ -541,7 +530,7 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 				if seen[key] {
 					continue
 				}
-				r, at, e := a.importPackage(active, dir)
+				r, at, e := a.importPackage(active, dir, attrs)
 				if e != nil {
 					diagnostic("import_failed", repo+"/"+dir, e.Error())
 					continue

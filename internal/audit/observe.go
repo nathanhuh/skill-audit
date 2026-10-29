@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"sort"
@@ -182,7 +183,13 @@ func Compare(r *Report, base Report) {
 			r.Diagnostics = append(r.Diagnostics, diag("tracked_missing", b.Path, "tracked package missing or undiscovered; no deletion or finding-resolution claim"))
 		}
 	}
-	sort.SliceStable(r.Diagnostics, func(i, j int) bool { a, b := r.Diagnostics[i], r.Diagnostics[j]; return a.Path+a.Code < b.Path+b.Code })
+	sort.Slice(r.Diagnostics, func(i, j int) bool {
+		a, b := r.Diagnostics[i], r.Diagnostics[j]
+		if n := cmp.Or(cmp.Compare(a.Path, b.Path), cmp.Compare(a.Code, b.Code), cmp.Compare(a.Scope, b.Scope), cmp.Compare(a.Message, b.Message)); n != 0 {
+			return n < 0
+		}
+		return !a.Incomplete && b.Incomplete
+	})
 }
 func findingKey(f Finding) string {
 	return fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s", f.Scanner, f.RuleID, f.RuleVersion, f.File, f.Evidence)

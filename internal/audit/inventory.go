@@ -98,7 +98,7 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 	}
 	exclusions := map[string]*Exclusion{}
 	stopped := ""
-	gap := func(code, path, msg string) { budget.gap(diag(code, path, msg)) }
+	gap := func(code, path, msg string) { budget.diagnostic(diag(code, path, msg)) }
 	exclude := func(rule, path string) {
 		old := exclusions[rule]
 		next := Exclusion{Rule: rule, Examples: []string{}}
@@ -152,6 +152,7 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 			return
 		}
 		if !root && selected[path] {
+			budget.diagnostic(info("root_delegated", path, "covered by its separately selected root: "+path))
 			return
 		}
 		if path == inv.StatePath {
@@ -164,8 +165,10 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 			return
 		}
 		if !root && info.IsDir() {
-			for selectedPath, si := range selectedInfo {
-				if selectedPath != path && os.SameFile(info, si) {
+			for _, selectedPath := range roots {
+				si := selectedInfo[selectedPath]
+				if selectedPath != path && si != nil && os.SameFile(info, si) {
+					budget.diagnostic(Diagnostic{Code: "root_delegated", Path: path, Message: "filesystem alias covered by separately selected root: " + selectedPath})
 					return
 				}
 			}

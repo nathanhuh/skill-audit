@@ -329,3 +329,14 @@ func fingerprintMetadataPath(path string) bool {
 	}
 	return false
 }
+
+// utf8Prefix returns at most limit bytes without splitting a UTF-8 encoding.
+func utf8Prefix(b []byte, limit int) []byte {
+	if len(b) > limit {
+		b = b[:limit]
+	}
+	for !utf8.Valid(b) {
+		b = b[:len(b)-1]
+	}
+	return b
+}

@@ -27,3 +27,7 @@ Accepted explicitly by the user in this review thread on 2026-10-29.
 ## Second-review implementation evidence (2026-10-29)
 
 Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. R1–R3 pass: grouped supported flags qualify, excluded command/parse/value modes do not, and v2 evaluations cannot establish new v3 findings. See [second-review record](../review-2-fixes.md).
+
+## Accepted amendment: lone-dash option termination (2026-10-29)
+
+The user explicitly approved this amendment in the third review thread. Before options have ended, a lone `-` ends receiver options just like `--`; it does not select a script. Thus `sh -`, `bash -e -` and `bash -s - argument` qualify. A subsequent filename without an earlier `-s` does not qualify; `sh -- -` is also a filename form and remains outside this subset. This adds R4: test both stdin and filename forms. SA001 v3/evaluation remains unpublished, so it changes in place under ADR-0008 rule 1. Published v2 remains unchanged.

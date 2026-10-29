@@ -6,7 +6,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -117,7 +116,7 @@ func interpreter(a []string) bool {
 		if terminated {
 			return stdin
 		}
-		if v == "--" {
+		if v == "--" || v == "-" {
 			terminated = true
 			continue
 		}
@@ -264,10 +263,7 @@ func LocalScan(p Package) (Evaluation, []Finding) {
 			}
 			ev := b[offset:end]
 			if len(ev) > 240 {
-				ev = ev[:240]
-				for !utf8.Valid(ev) {
-					ev = ev[:len(ev)-1]
-				}
+				ev = utf8Prefix(ev, 240)
 				ev = append(append([]byte(nil), ev...), []byte("…")...)
 			}
 			findings = append(findings, Finding{Scanner: "skill-audit", ScannerVersion: EvaluationVersion, Kind: "security", RuleID: "SA001", RuleVersion: LocalRuleVersion, Severity: "high", File: f.Path, Line: int(left.Pos().Line()), Evidence: string(ev), Message: "Literal HTTP(S) download piped to a shell", Limitations: "Static syntax only; no execution, expansion, command resolution or general dataflow", Change: "not_compared"})

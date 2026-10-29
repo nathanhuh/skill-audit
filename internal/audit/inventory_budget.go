@@ -69,13 +69,15 @@ func (s *inventoryBudget) omit(code string) {
 	}
 	s.inv.OmittedDiagnostics[code] = old + 1
 }
-func (s *inventoryBudget) gap(d Diagnostic) {
+func (s *inventoryBudget) diagnostic(d Diagnostic) {
 	if d.Code == "inventory_output_budget" && s.inv.BudgetStop == "" {
 		s.inv.BudgetStop = d.Path
 		b, _ := json.Marshal(d.Path)
 		s.used += fieldPrefix("budget_stop") + len(b)
 	}
-	s.partial()
+	if d.Incomplete {
+		s.partial()
+	}
 	n, e := arrayGrowth(d, len(s.inv.Diagnostics), 2)
 	field := 0
 	if len(s.inv.Diagnostics) == 0 {

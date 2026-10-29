@@ -226,13 +226,20 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 		evaluation.Message = e.Error()
 		return evaluation, nil
 	}
-	if !p.Complete || code != 0 || err != nil {
+	if code != 0 || err != nil {
+		evaluation.Message = fmt.Sprintf("scanner exit %d", code)
+		if err != nil {
+			evaluation.Message += "; " + safeProcessError(err)
+		}
+	}
+	// An ordinary non-zero exit does not override SARIF coverage (ADR-0006).
+	// Signals, log loss and other process I/O errors remain local coverage gaps.
+	if !p.Complete || code < 0 || err != nil && !errors.As(err, &exited) {
 		if Completed(evaluation) {
 			evaluation.Status = "partial"
 		}
-		evaluation.Message = fmt.Sprintf("incomplete measurement or scanner exit %d", code)
-		if err != nil {
-			evaluation.Message = safeProcessError(err)
+		if !p.Complete {
+			evaluation.Message = "incomplete measurement; " + evaluation.Message
 		}
 	}
 	return evaluation, findings

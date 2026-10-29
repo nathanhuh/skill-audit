@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -184,7 +185,8 @@ func ReadState(path string) (State, error) {
 	if len(s.Observations) == 0 {
 		return s, fmt.Errorf("state has no baseline")
 	}
-	for _, r := range s.Observations {
+	for ri := range s.Observations {
+		r := &s.Observations[ri]
 		if s.Schema == StateSchema && r.Recording != nil {
 			return s, fmt.Errorf("stored current observations cannot include recording outcomes")
 		}
@@ -195,19 +197,23 @@ func ReadState(path string) (State, error) {
 			return s, fmt.Errorf("unsupported observation schema")
 		}
 		seen := map[string]bool{}
-		for _, x := range r.Skills {
+		for xi := range r.Skills {
+			x := &r.Skills[xi]
 			if !filepath.IsAbs(x.Path) || (x.Scope != "global" && x.Scope != "project" && x.Scope != "machine") || seen[Identity(x.Package)] {
 				return s, fmt.Errorf("invalid state identity")
 			}
 			seen[Identity(x.Package)] = true
 			files := map[string]bool{}
-			for _, f := range x.Files {
+			for fi := range x.Files {
+				f := &x.Files[fi]
 				h, e := hex.DecodeString(f.SHA256)
 				if !SafeRelative(f.Path) || files[f.Path] || f.Size < 0 || e != nil || len(h) != 32 {
 					return s, fmt.Errorf("invalid state file manifest")
 				}
+				f.SHA256 = hex.EncodeToString(h)
 				files[f.Path] = true
 			}
+			x.Digest = strings.ToLower(x.Digest)
 			if x.Complete && (x.Digest != Digest(x.Files) || !files["SKILL.md"]) {
 				return s, fmt.Errorf("invalid baseline fingerprint")
 			}

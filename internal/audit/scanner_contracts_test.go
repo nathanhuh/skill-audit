@@ -219,10 +219,15 @@ func TestMain(m *testing.M) {
 			fmt.Print(strings.Repeat("x", 70<<10))
 			fmt.Fprint(os.Stderr, strings.Repeat("y", 70<<10))
 		}
-		if e := os.WriteFile(os.Args[3], []byte(cleanSARIF), 0600); e != nil {
+		report, code := cleanSARIF, 0
+		if strings.Contains(filepath.Base(exe), "scan-findings-exit1") {
+			report = review3FindingSARIF
+			code = 1
+		}
+		if e := os.WriteFile(os.Args[3], []byte(report), 0600); e != nil {
 			os.Exit(93)
 		}
-		os.Exit(0)
+		os.Exit(code)
 	}
 	os.Exit(m.Run())
 }

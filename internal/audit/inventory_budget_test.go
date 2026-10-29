@@ -105,7 +105,7 @@ func TestInventoryAccountingMatchesActualFormattedBytes(t *testing.T) {
 		}
 		check()
 	}
-	s.gap(diag("error", "path", "message\n<&"))
+	s.diagnostic(diag("error", "path", "message\n<&"))
 	check()
 	s.omit("error")
 	check()

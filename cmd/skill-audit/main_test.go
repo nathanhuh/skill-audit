@@ -219,8 +219,21 @@ func TestSearchSyncSavedAndExplicitScopesCLI(t *testing.T) {
 	})
 	saved := filepath.Join(root, "search.json")
 	writeFixture(t, saved, `{"schema":"skill-audit/search/v2","source":"github-code-search","query":"prior","hits":[{"repository":"b/y","path":"p/SKILL.md"}],"incomplete":false,"diagnostics":[]}`)
+	before, _ := os.ReadFile(saved)
+	merged := filepath.Join(root, "merged-search.json")
+	if c, o, e := invoke("search", "--search", saved, "--query", "fixture", "--out", merged, "--json"); c != 0 {
+		t.Fatal(c, o, e)
+	}
+	var search audit.Search
+	if e := audit.Decode(merged, audit.StoreLimit, &search); e != nil || search.Schema != audit.SearchSchema || len(search.Inputs) != 2 || search.Inputs[0].Queries[0] != "prior" || search.Inputs[1].Queries[0] != "fixture" || len(search.Inputs[0].Hits) != 1 || len(search.Inputs[1].Hits) != 1 {
+		t.Fatal(search, e)
+	}
+	after, _ := os.ReadFile(saved)
+	if !bytes.Equal(before, after) {
+		t.Fatal("saved search rewritten")
+	}
 	catalog := filepath.Join(root, "catalog.json")
-	if c, o, e := invoke("sync", "--repo", "a/x", "--search", saved, "--query", "fixture", "--out", catalog); c != 0 {
+	if c, o, e := invoke("sync", "--repo", "a/x", "--search", merged, "--out", catalog); c != 0 {
 		t.Fatal(c, o, e)
 	}
 	store, e := audit.ReadCatalog(catalog)

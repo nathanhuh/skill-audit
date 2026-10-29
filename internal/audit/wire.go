@@ -3,6 +3,7 @@ package audit
 // These boundary representations preserve the published formats independently
 // of the measurement and orchestration model. Older evidence is not migrated.
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -40,6 +41,8 @@ type WireLineage struct {
 	Changes []WireChange `json:"changes"`
 }
 type wireReport struct {
+	Complete    *bool          `json:"complete,omitempty"`
+	CreatedAt   *time.Time     `json:"created_at,omitempty"`
 	Discovery   *wireDiscovery `json:"discovery,omitempty"`
 	Recording   *Recording     `json:"recording,omitempty"`
 	Schema      string         `json:"schema"`
@@ -51,7 +54,11 @@ type wireReport struct {
 }
 
 func (r Report) MarshalJSON() ([]byte, error) {
-	w := wireReport{Discovery: &wireDiscovery{Roots: r.Roots, Home: r.Home, Policy: r.Policy, Limits: r.Limits, Exclusions: nonNil(r.Exclusions), Complete: &r.DiscoveryComplete, StatePath: r.StatePath, BudgetStop: r.BudgetStop, DiagnosticsTruncated: r.DiagnosticsTruncated, OmittedDiagnostics: r.OmittedDiagnostics}, Recording: r.Recording, Schema: r.Schema, CatalogID: r.CatalogID, Roots: []wireRoot{}, Skills: nonNil(r.Skills), Lineage: append([]WireLineage{}, r.Missing...), Diagnostics: nonNil(r.Diagnostics)}
+	w := wireReport{Complete: &r.Complete, Discovery: &wireDiscovery{Roots: r.Roots, Home: r.Home, Policy: r.Policy, Limits: r.Limits, Exclusions: nonNil(r.Exclusions), Complete: &r.DiscoveryComplete, StatePath: r.StatePath, BudgetStop: r.BudgetStop, DiagnosticsTruncated: r.DiagnosticsTruncated, OmittedDiagnostics: r.OmittedDiagnostics}, Recording: r.Recording, Schema: r.Schema, CatalogID: r.CatalogID, Roots: []wireRoot{}, Skills: nonNil(r.Skills), Lineage: append([]WireLineage{}, r.Missing...), Diagnostics: nonNil(r.Diagnostics)}
+	if !r.CreatedAt.IsZero() {
+		at := r.CreatedAt.UTC()
+		w.CreatedAt = &at
+	}
 	for _, s := range r.Skills {
 		w.Roots = append(w.Roots, wireRoot{s.Scope, s.Path, true, "inventoried"})
 		if s.Lineage.Status == "" || s.Lineage.Status == "not_compared" {
@@ -74,7 +81,8 @@ func (r Report) MarshalJSON() ([]byte, error) {
 		w.Lineage = append(w.Lineage, l)
 	}
 	sort.Slice(w.Lineage, func(i, j int) bool {
-		return w.Lineage[i].Scope+w.Lineage[i].Path < w.Lineage[j].Scope+w.Lineage[j].Path
+		a, b := w.Lineage[i], w.Lineage[j]
+		return cmp.Or(cmp.Compare(a.Scope, b.Scope), cmp.Compare(a.Path, b.Path), cmp.Compare(a.Status, b.Status)) < 0
 	})
 	return json.Marshal(w)
 }
@@ -84,6 +92,12 @@ func (r *Report) UnmarshalJSON(b []byte) error {
 		return e
 	}
 	*r = Report{Schema: w.Schema, CatalogID: w.CatalogID, Skills: w.Skills, Diagnostics: w.Diagnostics, Recording: w.Recording, Complete: true, DiscoveryComplete: true}
+	if w.CreatedAt != nil {
+		r.CreatedAt = *w.CreatedAt
+	}
+	if w.Complete != nil && !*w.Complete {
+		r.Complete = false
+	}
 	if w.Discovery != nil {
 		r.Roots = w.Discovery.Roots
 		r.Home = w.Discovery.Home
@@ -281,30 +295,6 @@ func (c *Catalog) UnmarshalJSON(b []byte) error {
 			c.Complete = false
 		}
 	}
-	return nil
-}
-func (s Search) MarshalJSON() ([]byte, error) {
-	w := struct {
-		Schema      string       `json:"schema"`
-		Source      string       `json:"source"`
-		Query       string       `json:"query"`
-		Hits        []Hit        `json:"hits"`
-		Incomplete  bool         `json:"incomplete"`
-		Diagnostics []Diagnostic `json:"diagnostics"`
-	}{s.Schema, s.Source, strings.Join(s.Queries, "; "), nonNil(s.Hits), !s.Complete, nonNil(s.Diagnostics)}
-	return json.Marshal(w)
-}
-func (s *Search) UnmarshalJSON(b []byte) error {
-	var w struct {
-		Schema, Source, Query string
-		Hits                  []Hit
-		Incomplete            bool
-		Diagnostics           []Diagnostic
-	}
-	if e := json.Unmarshal(b, &w); e != nil {
-		return e
-	}
-	*s = Search{Schema: w.Schema, Source: w.Source, Queries: []string{w.Query}, Hits: w.Hits, Complete: !w.Incomplete, Diagnostics: w.Diagnostics}
 	return nil
 }
 func (s Skill) MarshalJSON() ([]byte, error) {

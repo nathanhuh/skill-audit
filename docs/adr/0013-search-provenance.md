@@ -1,0 +1,25 @@
+---
+status: accepted
+date: 2026-10-29
+source: third review of main 573eed6, item 6; explicitly approved provenance batches in v3 by the user
+---
+
+# 0013. Search provenance across merged inputs
+
+## Decision
+
+Search/v3 stores a flat ordered list of input batches. Each retains its source, query list, hits, completeness and diagnostics. Both `search --search saved.json --query q` and `sync --search saved.json --query q` accept this combination. Combining saved search and fresh queries preserves every input, including failed or empty inputs, without assigning old hits to the newest source/query. Nested merges flatten the input lists in supplied order. Hit membership remains per input; acquisition may deduplicate identical targets and imported references without deleting provenance.
+
+Writers emit search/v3. Readers continue to accept published search/v2, treating its source and opaque query string as one batch; the old semicolon-joined query string is not split speculatively. Reading never rewrites a file. Query transmission still requires explicit --query or --search-names. No content-derived URL is fetched.
+
+This changes the search data contract, so search/v2 is frozen and search/v3 is the new identifier under ADR-0008. The API pin, catalog store, repository grouping, shared budgets and search-partial evidence from ADR-0007 remain unchanged. Catalogs describe pinned imports; this decision does not add persistent search history to catalog/state files.
+
+Rejected alternative: disallow saved/live combinations. That is simpler but removes a useful workflow rather than retaining its evidence.
+
+## Acceptance scenarios
+
+| ID | Scenario | Required result |
+| --- | --- | --- |
+| Q1 | Published v2 saved hit plus a fresh query from another source | Each input keeps its source, query, hit membership and diagnostics in v3. |
+| Q2 | Merge an already merged search, with overlapping hits and a failed/empty input | Inputs stay flat; all evidence survives; sync imports each deduplicated reference once. |
+| Q3 | Read v2 or v3, then ordinary sync | Both are accepted; source files stay byte-for-byte unchanged; unknown schemas are rejected. |

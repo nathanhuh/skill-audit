@@ -66,6 +66,7 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		f.DurationVar(&scanTimeout, "scan-timeout", 30*time.Second, "version probe and each scan phase budget")
 	case "search", "sync":
 		f.StringVar(&query, "query", "", "explicit public query")
+		f.StringVar(&searchPath, "search", "", "saved search to combine with explicit queries")
 		f.StringVar(&inventory, "inventory", "", "inventory for opt-in name search")
 		f.BoolVar(&names, "search-names", false, "allow transmission of inventory names (max 10)")
 		f.StringVar(&registry, "registry-url", "", "Skills.sh v1 endpoint")
@@ -73,7 +74,6 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		if command == "sync" {
 			f.Var(&repos, "repo", "explicit owner/repo (repeatable)")
 			f.StringVar(&ref, "ref", "HEAD", "reference resolved to immutable commit")
-			f.StringVar(&searchPath, "search", "", "saved search")
 		}
 	default:
 		fmt.Fprintln(errOut, "unknown command")
@@ -228,18 +228,13 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 			if e = audit.Decode(searchPath, audit.StoreLimit, &search); e != nil {
 				return bad(e)
 			}
-			if search.Schema != audit.SearchSchema {
+			if search.Schema != audit.SearchSchema && search.Schema != audit.LegacySearchSchema {
 				return bad(fmt.Errorf("unsupported search schema"))
 			}
 		}
 		if len(queries) > 0 {
 			next := client.Search(queries, registry, limit)
-			if search.Schema != "" {
-				next.Hits = append(search.Hits, next.Hits...)
-				next.Diagnostics = append(search.Diagnostics, next.Diagnostics...)
-				next.Complete = next.Complete && search.Complete
-			}
-			search = next
+			search = audit.MergeSearch(search, next)
 		}
 		if command == "search" {
 			if len(queries) == 0 {

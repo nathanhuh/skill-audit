@@ -7,20 +7,21 @@ import (
 )
 
 const (
-	InventorySchema   = "skill-audit/inventory/v3"
-	ReportSchema      = "skill-audit/report/v2"
-	StateSchema       = "skill-audit/state/v3"
-	DiscoveryPolicy   = "skill-audit/discovery/v3"
-	CatalogSchema     = "skill-audit/catalog/v1"
-	StoreSchema       = "skill-audit/catalog-store/v2"
-	SearchSchema      = "skill-audit/search/v2"
-	LocalRuleVersion  = "3"
-	EvaluationVersion = "SA001/v3;sh/v3.10.0;scope/v2"
-	FileLimit         = 1 << 20
-	PackageLimit      = 16 << 20
-	PackageEntries    = 1000
-	StoreLimit        = 64 << 20
-	StateLimit        = 32 << 20
+	InventorySchema    = "skill-audit/inventory/v3"
+	ReportSchema       = "skill-audit/report/v2"
+	StateSchema        = "skill-audit/state/v3"
+	DiscoveryPolicy    = "skill-audit/discovery/v3"
+	CatalogSchema      = "skill-audit/catalog/v1"
+	StoreSchema        = "skill-audit/catalog-store/v2"
+	SearchSchema       = "skill-audit/search/v3"
+	LegacySearchSchema = "skill-audit/search/v2"
+	LocalRuleVersion   = "3"
+	EvaluationVersion  = "SA001/v3;sh/v3.10.0;scope/v2"
+	FileLimit          = 1 << 20
+	PackageLimit       = 16 << 20
+	PackageEntries     = 1000
+	StoreLimit         = 64 << 20
+	StateLimit         = 32 << 20
 )
 
 type Diagnostic struct {
