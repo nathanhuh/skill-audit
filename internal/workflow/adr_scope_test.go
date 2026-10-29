@@ -3,9 +3,10 @@ package workflow
 import (
 	"context"
 	"path/filepath"
-	"skill-audit/internal/audit"
 	"testing"
 	"time"
+
+	"skill-audit/internal/audit"
 )
 
 func TestADRInstallationOwnershipS1S2(t *testing.T) {

@@ -2,7 +2,7 @@
 
 ## Accepted contracts — 2026-10-29
 
-[ADR-0001](docs/adr/0001-observation-and-outcome-contracts.md) freezes baseline eligibility, independent outcomes and exit priority, installation ownership, and cache/import semantics. [CONTEXT.md](CONTEXT.md) defines the vocabulary. The ADR supersedes conflicting policies in the historical review notes below; its acceptance matrix is the implementation target. Acceptance is a documentation change only. Current-code gaps are listed explicitly in the ADR.
+[ADR-0001](docs/adr/0001-observation-and-outcome-contracts.md) freezes baseline eligibility, independent outcomes and exit priority, installation ownership, and cache/import semantics. [CONTEXT.md](CONTEXT.md) defines the vocabulary. The ADR supersedes conflicting policies in the historical review notes below; its acceptance matrix is the implementation target. Acceptance in cb4be34 was documentation-only. The runtime alignment sections below and VERIFICATION.md describe the implemented scenarios; the ADR retains its historical gap table.
 
 ## Historical design and review notes
 
@@ -125,7 +125,7 @@ Use direct exec argument arrays, context timeout/cancellation, bounded stdout/st
 
 ## Output, dependencies, and acceptance
 
-Report schema `skill-audit/report/v1`; state and catalog have separate version markers. Readable escaped terminal strings and deterministic JSON ordering (observation timestamps intentionally vary for explicit snapshots). Exit 0: no findings or operational gaps in selected scope; 1: findings; 2: operational failure/incomplete coverage, taking precedence. Disabled optional scanner is not an operational failure. Fatal CLI errors go to stderr.
+Report/v2, inventory/v3 and state/v2 have separate version markers. Readable escaped terminal strings and deterministic JSON ordering (observation timestamps intentionally vary for explicit snapshots). Priority: security findings 1, then failed pre-commit recording 3, then incomplete/operational or durability uncertainty 2, otherwise 0. Recording is independent structured output, always printed on stderr. Disabled optional scanning is not a gap. Historical state/v1 remains readable and is never silently migrated.
 
 Use standard libraries except pinned `gopkg.in/yaml.v3 v3.0.1` for correct frontmatter and `mvdan.cc/sh/v3 v3.10.0` for shell syntax. Vendor dependencies for offline builds/tests. Avoid concurrency, database, service, UI, generic plugins, and fuzzy/LLM matching.
 
@@ -149,3 +149,9 @@ CLI review: register flags only for the command that consumes them, so audit fla
 State/v2 records explicit baseline anchors (scope, path, digest) referencing complete measurements in its first observation. That observation retains all packages, including unusable measurements, scanner evaluations, selected roots, home hint, traversal limits, exclusion policy/version and listed exclusions. Thus later complete bytes cannot silently replace an incomplete first measurement. Content completeness selects anchors; report-wide coverage affects outcomes separately. Empty completed scopes are permitted; partial baselines need at least one complete measurement. Cancellation/deadline evidence prevents recording, and snapshots preserve anchors. Missing identities stay missing/undiscovered, without deletion claims.
 
 Inventory/v3 adds explicit discovery policy metadata; report/v2 carries this evidence and the independent operation result. Legacy inventory/v2 policy is unknown, with its original diagnostics retained. State/v1 remains readable for comparisons but append is refused: explicitly create a new baseline elsewhere, preserving prior history. No automatic migration or scope rewrite. Known macOS aliases /etc, /tmp, /var and the alternate Data tree are listed exclusions; arbitrary manager links remain gaps.
+
+## ADR runtime alignment: ownership and bounded evidence
+
+Home-global agent installations own bundled packages across nested markers. Worktrees/projects containers explicitly delegate project ownership; .github remains project scoped. Scope corrections do not migrate historical identities. Routine discovery exclusions are grouped by rule with counts, three examples and explicit omitted-example counts. Actionable link/read/limit gaps retain locations. Explicit system-excluded roots remain errors rather than pretending a requested root was searched.
+
+Root deduplication stores only selected root identities. Whole-root aliases use os.SameFile; case-spelled overlapping subtrees delegate only after matching lexical spelling or verifying filesystem identity. Different case-sensitive directories must not merge. Home case aliases likewise require identity confirmation. Symlinks remain rejected before alias handling. No arbitrary mount-alias or filesystem-race guarantee is added. The obsolete policy_symlink input rewrite is removed; fresh discovery owns its coverage classification. Cache/import behavior is unchanged by this alignment.

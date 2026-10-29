@@ -34,7 +34,7 @@ If exact matching fails, `Matcher.Correlate` uses path-qualified, trimmed text l
 
 Read `internal/audit/state.go`.
 
-`SaveObservation` creates an immutable first observation or explicitly appends another observation. A normal audit never saves state. `Compare` compares the current complete file manifests against the first observation, reporting added, removed and modified paths independently of current upstream correlation.
+`SaveObservation` creates an immutable first observation or explicitly appends another observation. A normal audit never saves state. State/v2 selects explicit anchors for complete measurements in the first observation. Other packages remain unanchored even if later complete. `Compare` reports added, removed and modified paths against those anchors, independently of upstream correlation. A partial discovery or failed scanner can coexist with usable content anchors; canceled runs cannot be recorded. Selected roots, policy/version, exclusions and coverage evidence remain in each observation.
 
 The relationship basis matters: an initial exact match establishes what bytes were observed at that time; an initially modified candidate supports only inferred ancestry. Neither establishes who copied the skill. A missing package remains missing-or-undiscovered, with no automatic rename/move inference or fabricated file deletions.
 
@@ -66,7 +66,7 @@ Command-specific flags reject misleading combinations instead of silently ignori
 
 Untrusted candidate reference IDs are quoted in terminal output; control characters must remain evidence, not terminal instructions.
 
-Exit codes separate useful outcomes: 0 means no findings or operational gaps within selected coverage, 1 means findings, and 2 means an operational/incomplete result, possibly also containing findings. Zero is not a universal safety verdict.
+Exit priority is 1 (security findings) > 3 (actual pre-commit recording failure) > 2 (operational/coverage/durability gap) > 0. Recording is its own report/v2 field and always appears on stderr, so callers can check persistence even when findings win. Zero is not a universal safety verdict.
 
 ## 6. Keep optional acquisition and scanning separate
 
@@ -99,7 +99,7 @@ Cancellation and deadline diagnostics now identify both the interrupted root and
 
 Mandatory command inputs are checked before network transmission. Cancellation prevents state recording, with a second check before atomic replacement. A complete audit can establish a baseline even when findings exist; incomplete first observations are refused so an immutable baseline does not permanently start with unusable coverage. Partial reports remain inspectable, and non-interrupted partial snapshots remain possible.
 
-Scope now follows the nearest agent marker and recognized home installation trees. A `.claude` project nested in `.codex/worktrees` therefore stays project scoped. `.github` is always project scoped. Scope corrections do not rewrite earlier identities, so old inventories should be refreshed and existing baseline identity changes reviewed explicitly.
+Scope follows the owning home-global installation, including nested plugin markers; nearest markers only supply project fallback hints. A `.claude` project nested in `.codex/worktrees` therefore stays project scoped. `.github` is always project scoped. Scope corrections do not rewrite earlier identities, so old inventories should be refreshed and existing baseline identity changes reviewed explicitly.
 
 Explicit roots run deepest first; marking only admitted directories avoids silently losing a root that a broader walk excluded or cut by depth. Root-local depth and dependency exclusions can be overridden by a narrower explicit root; symlinks and protected OS trees remain excluded.
 
@@ -109,9 +109,9 @@ One sync client pins a repository/ref once and shares bounded blob content acros
 
 ## Coverage and resource policy refinement
 
-`HasCoverageGaps` checks report diagnostics, package completeness and scanner status in one place. Inventory policy notes remain visible without blocking baselines; skipped package content still blocks them. Persistence failures have explicit stderr plus exit 3, preserving automation's distinction from a coverage-only exit 2. Previous exit contracts should be updated when integrating scripts.
+`HasCoverageGaps` checks report diagnostics, package completeness and scanner status in one place. Routine exclusions are rule/count summaries with three examples and an explicit omitted count. Skipped content cannot anchor that package but does not block another complete measurement. Recording has explicit JSON/stderr outcomes, with exit 1 taking priority over failure exit 3 and coverage exit 2. Previous exit contracts should be updated when integrating scripts.
 
-Root priority precedes component depth, and explicit subtrees are delegated to their own traversal. This preserves independent root scope without a depth-first race against the home directory or a per-entry visited map. Global scope covers community installation paths inside home agent trees; known project containers and nested agent markers remain project scoped.
+Root priority precedes component depth, and explicit subtrees are delegated to their own traversal. This preserves independent root scope without a depth-first race against the home directory or a per-entry visited map. Global scope covers community installations and nested plugin markers inside home agent trees; known worktree/project containers delegate project scope.
 
 Repository failures and compact pinned references last for the invocation. A single active content cache limits retained tree/blob data; returning to an evicted repository can spend requests and byte budget again. Catalog output still retains imported content. Scanner startup has a separate bounded budget and a single probe-process retry, followed by fresh package scan budgets. Read/write boundaries enforce no-follow checks; state additionally checks before creating parents/locks. `OutputOutside` only determines placement and uses neutral error text.
 
@@ -119,8 +119,12 @@ Repository failures and compact pinned references last for the invocation. A sin
 
 Cache capacity and import eligibility are different limits: the active blob cache retains at most 16 MiB, while each package has its own 16 MiB content bound. Cache saturation bypasses admission, and eviction cannot shrink import coverage. Only permanent lookup failures are memoized; transient HTTP/transport errors remain retryable on later targets under the existing request budget.
 
-Skipped links remain real coverage gaps, including skill-manager installations. Routine directory exclusions still allow a policy-scoped baseline. Legacy link notes are conservatively upgraded during fresh audits. A baseline cannot claim that an unseen link target was inspected.
+Skipped links remain real coverage gaps, including skill-manager installations. Routine directory exclusions still allow a policy-scoped baseline. The unreleased legacy diagnostic rewrite has been removed; fresh inventory marks links incomplete. A baseline cannot claim that an unseen link target was inspected.
 
-Atomic rename is the commit point. `CommittedWriteError` signals that data was replaced but durability is uncertain; the CLI reports recorded/unconfirmed with exit 2. Pre-commit state failures select exit 3 using local control state. Report diagnostic data cannot select a persistence exit, and readable output receives the actual exit explicitly. The final-sync fault is tested through an injected filesystem boundary, not a claimed native disk failure.
+Atomic rename is the commit point. `CommittedWriteError` signals that data was replaced but durability is uncertain; the CLI reports committed/unconfirmed, yielding exit 2 if there are no security findings. Pre-commit state failures yield 3 unless findings take priority. Report diagnostic data cannot select a persistence exit, and readable output receives the actual exit explicitly. The final-sync fault is tested through an injected filesystem boundary, not a claimed native disk failure.
 
 Probe and package-process budgets use the configured timeout under the operation context. A private process boundary permits deterministic deadline/cancellation assertions; fake executable tests still exercise real argument passing and subprocess handling. The production one-package scanner wrapper was removed. Inventory output passes its observed roots to the shared writer, preserving placement protection through one implementation even if SKILL.md disappears.
+
+## ADR scenario regression map
+
+`cmd/skill-audit/outcome_test.go` covers E1–E8 and real finding-plus-save failures. `internal/audit/adr_baseline_test.go` covers B1–B9, anchor validation and read-only legacy history; CLI baseline tests add actual B2/B3/B4/E5 workflow checks. `internal/workflow/adr_scope_test.go` covers S1/S2 and historical identity preservation. `adr_exclusions_test.go` covers bounded metadata noise, actionable links, case-alias overlap and distinct case-sensitive roots (filesystem-dependent skips are explicit). The current macOS fixture filesystem exercises case aliases; native Linux and Windows runtime checks remain future work.

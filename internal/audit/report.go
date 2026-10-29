@@ -11,6 +11,9 @@ func Print(w io.Writer, r Report, exitCode int) {
 		fmt.Fprintf(w, "recording=%s path=%q message=%q\n", r.Recording.Status, r.Recording.Path, r.Recording.Message)
 	}
 	fmt.Fprintln(w, "Inventory is not evidence that an agent loads a skill. Findings are risky patterns, not malicious-intent verdicts.")
+	if r.Discovery != nil {
+		fmt.Fprintf(w, "discovery policy=%q selected_roots=%q\n", r.Discovery.Policy, r.Discovery.Roots)
+	}
 	for _, root := range r.Roots {
 		fmt.Fprintf(w, "root %s %q: %s\n", root.Scope, root.Path, root.Status)
 	}

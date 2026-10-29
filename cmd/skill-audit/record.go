@@ -9,8 +9,9 @@ import (
 )
 
 // The outcome comes from the write operation, never from input diagnostics.
+// Recording diagnostics do not change discovery or detection completeness.
 func recordingDiagnostic(path string, err error) (audit.Diagnostic, bool) {
-	d := audit.Diagnostic{Path: path, Code: "state_not_recorded", Message: err.Error(), Incomplete: true}
+	d := audit.Diagnostic{Path: path, Code: "state_not_recorded", Message: err.Error(), Incomplete: false}
 	var committed *audit.CommittedWriteError
 	if errors.As(err, &committed) {
 		d.Code = "state_recorded_durability_unconfirmed"

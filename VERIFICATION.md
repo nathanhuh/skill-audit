@@ -1,3 +1,34 @@
+# Verification — ADR step 4 and final alignment, 2026-10-29
+
+Based on canonical main 64d3524, following outcome commit 71e3cee and anchor commit 4b5a86a. Routine exclusions now aggregate by rule/count, three examples and an explicit omitted count. A 1,000-.DS_Store fixture produces three total summaries (.DS_Store, .git, node_modules), not 1,002 per-entry diagnostics; the evidence survives state round-trip. Actionable skipped links retain paths and incomplete coverage. Explicit system-excluded roots remain reported. The obsolete policy_symlink rewrite is removed.
+
+Filesystem-identity-confirmed case-alias root/overlap tests **ran and passed** on this case-insensitive macOS fixture volume; audits receive one package identity and traversal entry counts stay unduplicated. The separate distinct-case-directory test **skipped explicitly** because this volume cannot create that fixture. This is not Linux or native Windows runtime evidence. A first suite run caught a relative-home-hint regression in the new identity helper; resolving both paths absolutely fixed it, and its existing regression now passes.
+
+Additional CLI regressions exercise actual E1/E2 save success/failure with findings, B3 scanner unavailability with a recorded content anchor, and failed report delivery after commitment. Recording diagnostics do not alter analysis coverage; their independent outcome controls persistence exits. Delivery failure cannot override a higher-priority finding or rewrite saved state as unsaved. Documentation now describes the implemented contracts and labels the ADR acceptance-time gap table as historical. Existing C1/C2 cache regressions still pass; acquisition policy was not changed.
+
+Environment: macOS arm64, Go 1.23.5. All Go commands used GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off. Only loopback fixture servers were allowed; no public service calls, installed skill modifications or skill-script execution occurred.
+
+- gofmt -l cmd internal: no output; git diff --check: exit 0.
+- go vet ./...: exit 0.
+- go test -count=1 ./...: exit 0, final results:
+
+```text
+ok  skill-audit/cmd/skill-audit    0.919s
+ok  skill-audit/internal/audit    6.280s
+ok  skill-audit/internal/workflow 2.169s
+```
+
+- Native build: go build -o /private/tmp/skill-audit-adr-final ./cmd/skill-audit, exit 0.
+- CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-adr-final-linux ./cmd/skill-audit: exit 0.
+- CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-adr-final-windows.exe ./cmd/skill-audit: exit 0.
+- sh scripts/demo.sh: exit 0 against final source; exact upstream baseline, bundled modification, possible-modified upstream candidate, comparable new SA001, appended snapshot and expected finding exit 1.
+- Separate compiled CLI smoke with temporary duplicate-name global-plugin/project packages, 50 metadata exclusions and a linked package: partial inventory exit 2; baseline recorded with two anchors and exit 2; changed bundled shell yields new SA001 and snapshot exit 1; repeat baseline retains exit 1 but reports not_recorded and preserves bytes; ordinary audit reports not_requested and leaves state unchanged; case-alias overlapping roots return one package. All assertions passed; fixtures cleaned. The initial smoke harness incorrectly supplied --json to inventory (already JSON by default); correcting that harness call passed, without a CLI change.
+- git diff cb4be34 --exit-code -- go.mod go.sum vendor internal/audit/catalog: no differences. Pinned dependencies, upstream catalog bytes, hashes and licenses remain unchanged.
+
+Current wire contracts: report/v2, inventory/v3, state/v2. Legacy inventory/v2 is readable with unknown policy metadata; historical state/v1 is readable for comparison but cannot be appended silently. Use a new explicit baseline path to adopt v2. Native Linux/Windows runtime (including distinct-case filesystem behavior), real Skill X-Ray and whole-device scans remain unverified. No publishing, pushing, submission or scanner installation occurred.
+
+## Prior verification
+
 # Verification — ADR step 3: installation ownership, 2026-10-29
 
 Based on 4b5a86a. S1/S2 tests discover real temporary packages in global plugins (including nested .claude markers), global community layouts, direct global installs, managed worktrees and projects, plus .github project ownership. Duplicate names retain separate identities. Round-trip baseline comparison stays unchanged; an intentionally different historical scope remains missing alongside the current not_in_baseline identity, without rewriting history.

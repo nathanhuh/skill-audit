@@ -58,6 +58,20 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 	issue := func(p, code, msg string) {
 		out.Diagnostics = append(out.Diagnostics, audit.Diagnostic{Path: p, Code: code, Message: msg, Incomplete: code != "excluded_subtree"})
 	}
+	exclusions := map[string]*audit.Exclusion{}
+	noteExclusion := func(p, rule string) {
+		e := exclusions[rule]
+		if e == nil {
+			e = &audit.Exclusion{Rule: rule, Examples: []string{}}
+			exclusions[rule] = e
+		}
+		e.Count++
+		if len(e.Examples) < 3 {
+			e.Examples = append(e.Examples, p)
+		} else {
+			e.OmittedExamples++
+		}
+	}
 	stopped := ""
 	rootset := map[string]bool{}
 	for _, root := range roots {
@@ -91,10 +105,16 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 			issue(root, code, "root not started: "+reason)
 		}
 	}
+	walkedRoots := []fs.FileInfo{}
 	for index, root := range walkRoots {
 		if ctx.Err() != nil {
 			pending(walkRoots[index:], interrupted(), ctx.Err().Error())
 			break
+		}
+		if excluded(root, filepath.Base(root), root) {
+			noteExclusion(root, exclusionRule(root, filepath.Base(root)))
+			issue(root, "excluded_root", "selected root excluded by discovery policy; not inspected")
+			continue
 		}
 		if e := audit.NoSymlinks(root); e != nil {
 			issue(root, "symlink", e.Error())
@@ -105,6 +125,18 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 			issue(root, "root_error", "root unavailable or not a directory")
 			continue
 		}
+		duplicate := false
+		for _, previous := range walkedRoots {
+			if os.SameFile(previous, info) {
+				duplicate = true
+				break
+			}
+		}
+		if duplicate {
+			noteExclusion(root, "duplicate_root")
+			continue
+		}
+		walkedRoots = append(walkedRoots, info)
 		e := walkInventory(root, fs.FileInfoToDirEntry(info), home, func(p string, d fs.DirEntry, e error) error {
 			if ctx.Err() != nil {
 				return ctx.Err()
@@ -115,7 +147,7 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 			}
 			// A selected descendant gets its own traversal, regardless of which
 			// ancestor has priority. Pending-root diagnostics cover interruptions.
-			if d.IsDir() && p != root && rootset[p] {
+			if d.IsDir() && p != root && selectedDirectory(p, d, rootset) {
 				return fs.SkipDir
 			}
 
@@ -131,12 +163,7 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 				return fs.SkipDir
 			}
 			if excluded(p, d.Name(), root) {
-				code := "excluded_subtree"
-				if p == root {
-					code = "excluded_root"
-				}
-				out.Exclusions = append(out.Exclusions, audit.Exclusion{Rule: exclusionRule(p, d.Name()), Count: 1, Examples: []string{p}})
-				issue(p, code, "outside device-search policy; entry not inspected")
+				noteExclusion(p, exclusionRule(p, d.Name()))
 				if d.IsDir() {
 					return fs.SkipDir
 				}
@@ -182,6 +209,23 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 			break
 		}
 	}
+	for rule, e := range exclusions {
+		sort.Strings(e.Examples)
+		out.Exclusions = append(out.Exclusions, *e)
+		issue("policy:"+rule, "excluded_subtree", fmt.Sprintf("rule=%s count=%d examples=%q omitted_examples=%d", rule, e.Count, e.Examples, e.OmittedExamples))
+	}
+	sort.Slice(out.Exclusions, func(i, j int) bool { return out.Exclusions[i].Rule < out.Exclusions[j].Rule })
+	// Map iteration must not change diagnostic ordering.
+	sort.SliceStable(out.Diagnostics, func(i, j int) bool {
+		a, b := out.Diagnostics[i], out.Diagnostics[j]
+		if a.Path != b.Path {
+			return a.Path < b.Path
+		}
+		if a.Code != b.Code {
+			return a.Code < b.Code
+		}
+		return a.Message < b.Message
+	})
 	sort.Slice(out.Packages, func(i, j int) bool { return out.Packages[i].Path < out.Packages[j].Path })
 	return out
 }
@@ -235,7 +279,7 @@ func classify(p, home string) (string, string) {
 				nearest = agent
 			}
 			parent := filepath.Dir(dir)
-			atHome := (home != "" && audit.Within(parent, home) && audit.Within(home, parent)) || conventionalHome(parent)
+			atHome := sameDirectoryPath(parent, home) || conventionalHome(parent)
 			if atHome && agent != ".github" {
 				rel, _ := filepath.Rel(dir, p)
 				first := strings.Split(filepath.ToSlash(rel), "/")[0]

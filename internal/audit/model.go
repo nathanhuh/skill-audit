@@ -119,9 +119,10 @@ const (
 
 // Exclusions are intentional policy omissions, separate from uninspected links.
 type Exclusion struct {
-	Rule     string   `json:"rule"`
-	Count    int      `json:"count"`
-	Examples []string `json:"examples"`
+	OmittedExamples int      `json:"omitted_examples"`
+	Rule            string   `json:"rule"`
+	Count           int      `json:"count"`
+	Examples        []string `json:"examples"`
 }
 type TraversalLimits struct {
 	Entries  int `json:"entries"`

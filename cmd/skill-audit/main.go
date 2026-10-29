@@ -334,7 +334,11 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 
 		if output != "" || asJSON {
 			if e = emit(r); e != nil {
-				return fail(e)
+				fail(e)
+				if exitCode == 1 || exitCode == 3 {
+					return exitCode
+				}
+				return 2
 			}
 		} else {
 			audit.Print(out, r, exitCode)

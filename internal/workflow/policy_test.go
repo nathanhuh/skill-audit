@@ -139,7 +139,7 @@ func TestOutputPlacementErrorUsesNeutralRoleAndRejectsLinks(t *testing.T) {
 	}
 }
 
-func TestManagedSkillLinkAndLegacyNoteRemainIncomplete(t *testing.T) {
+func TestManagedSkillLinkRemainsIncomplete(t *testing.T) {
 	root := temp(t)
 	actual := filepath.Join(root, "home", ".agents", "skills", "actual")
 	put(t, filepath.Join(actual, "SKILL.md"), "fixture")
@@ -154,8 +154,6 @@ func TestManagedSkillLinkAndLegacyNoteRemainIncomplete(t *testing.T) {
 	if len(inv.Packages) != 0 || len(inv.Diagnostics) != 1 || !inv.Diagnostics[0].Incomplete {
 		t.Fatal("managed skill link reported complete", inv)
 	}
-	// Previously written informational link notes cannot justify a clean re-audit.
-	inv.Diagnostics[0].Incomplete = false
 	store, err := LoadStore("")
 	if err != nil {
 		t.Fatal(err)
