@@ -117,6 +117,20 @@ def exercise(binary, destination, scanner_helper=None):
         dep = run("explicit_dependency", ["inventory", "--root", dependency, "--out", dep_inv],
                   0)
         outcomes["explicit_dependency_packages"] = len(json.loads(dep_inv.read_text())["packages"])
+        # Explicit home-global roots must precede shallow external roots under budget.
+        priority_home=root / "priority/home"
+        priority_global=priority_home / ".claude/skills"
+        (priority_global / "p").mkdir(parents=True)
+        (priority_global / "p/SKILL.md").write_text("# fixture")
+        external=root / "external"
+        external.mkdir()
+        for i in range(20):
+            (external / ("f%02d" % i)).write_text("data")
+        priority_inv=root / "priority.json"
+        run("home_root_priority",["inventory","--root",external,"--root",priority_global,"--home",priority_home,"--max-entries","8","--out",priority_inv],2)
+        priority=json.loads(priority_inv.read_text())
+        assert len(priority["packages"])==1 and priority["packages"][0]["scope"]=="global"
+        outcomes["home_global_root_priority"]=True
         # Rejected output aliases never replace evidence.
         before = sha(inv)
         run("output_alias", ["audit", "--inventory", inv, "--out", inv], 2)
@@ -190,7 +204,7 @@ def main():
     result = {"host": platform.platform(), "baseline": exercise(baseline, out / "baseline",helper),
               "rewrite": exercise(rewrite, out / "rewrite",helper)}
     for key in ("catalog_version", "initial_packages", "legacy_readonly", "edit_findings",
-                "immutable_observation", "partial_complete_anchor", "incomplete_anchor_refused", "rule_corpus", "external_catalog_statuses"):
+                "immutable_observation", "partial_complete_anchor", "incomplete_anchor_refused", "rule_corpus", "external_catalog_statuses", "home_global_root_priority"):
         assert result["baseline"][key] == result["rewrite"][key], key
     result["ADR_comparisons"] = {"D10": [result["baseline"]["explicit_dependency_packages"],
                                                    result["rewrite"]["explicit_dependency_packages"]],

@@ -53,8 +53,18 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 		}
 		return 3
 	}
+	rootPriority := func(p string) int {
+		if o.Home != "" && Within(o.Home, p) {
+			scope, _ := Classify(p, o.Home)
+			if scope == "global" {
+				return 0
+			}
+			return 1
+		}
+		return priority(p)
+	}
 	sort.Slice(roots, func(i, j int) bool {
-		a, b := priority(roots[i]), priority(roots[j])
+		a, b := rootPriority(roots[i]), rootPriority(roots[j])
 		if a != b {
 			return a < b
 		}

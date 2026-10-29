@@ -284,3 +284,25 @@ func TestPinnedSearchBoundaries(t *testing.T) {
 		t.Fatal("insecure registry contacted")
 	}
 }
+func TestC1CachedBlobStillValidatesEntryMetadata(t *testing.T) {
+	g := newGitFixture()
+	g.add("a/SKILL.md", "# fixture")
+	a := g.client(t)
+	repo, e := a.resolve("a/x", "HEAD")
+	if e != nil {
+		t.Fatal(e)
+	}
+	entry := repo.entries[0]
+	if _, e = a.blob(repo, entry); e != nil {
+		t.Fatal(e)
+	}
+	entry.Size++
+	if _, e = a.blob(repo, entry); e == nil {
+		t.Fatal("cached blob bypassed declared-size validation")
+	}
+	entry = repo.entries[0]
+	entry.Mode = "120000"
+	if _, e = a.blob(repo, entry); e == nil {
+		t.Fatal("cached blob bypassed mode validation")
+	}
+}

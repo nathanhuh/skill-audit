@@ -444,3 +444,21 @@ func TestE1ThroughE8PriorityTable(t *testing.T) {
 		})
 	}
 }
+func TestD5GlobalRootBeforeExternalBudget(t *testing.T) {
+	root := tempDir(t)
+	home := filepath.Join(root, "home")
+	global := filepath.Join(home, ".claude/skills")
+	fixture(t, global, "p/SKILL.md", "# fixture")
+	external := filepath.Join(root, "external")
+	for i := 0; i < 20; i++ {
+		fixture(t, external, fmt.Sprintf("f%02d", i), "data")
+	}
+	o := fixtureOptions(external)
+	o.Roots = append(o.Roots, global)
+	o.Home = home
+	o.MaxEntries = 8
+	inv := InventoryRun(context.Background(), o)
+	if len(inv.Packages) != 1 || inv.Packages[0].Scope != "global" || !inv.Packages[0].Complete || inv.Complete || !hasCode(inv.Diagnostics, "entry_limit") {
+		t.Fatal(inv)
+	}
+}

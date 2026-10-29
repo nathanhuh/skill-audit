@@ -338,6 +338,9 @@ func (a *Acquirer) blob(r *repository, t treeEntry) ([]byte, error) {
 		return nil, fmt.Errorf("unsupported or oversized Git blob")
 	}
 	if b, ok := r.blobs[t.SHA]; ok {
+		if len(b) != t.Size {
+			return nil, fmt.Errorf("cached Git blob size disagrees with tree entry")
+		}
 		return b, nil
 	}
 	var response struct {
