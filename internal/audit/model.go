@@ -9,7 +9,7 @@ import (
 	"sort"
 )
 
-const ReportSchema = "skill-audit/report/v1"
+const ReportSchema = "skill-audit/report/v2"
 const LocalRuleVersion = "2"
 const LocalVersion = "SA001/v" + LocalRuleVersion + ";sh/v3.10.0;scope/v2"
 
@@ -101,7 +101,24 @@ type Lineage struct {
 	Origin  []Candidate `json:"origin"`
 	Changes []Change    `json:"changes"`
 }
+
+// Recording is set by the operation, never inferred from imported diagnostics.
+// A nil value is reserved for historical reports that did not record this field.
+type Recording struct {
+	Status  string `json:"status"`
+	Path    string `json:"path,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+const (
+	RecordingNotRequested = "not_requested"
+	RecordingRecorded     = "recorded"
+	RecordingFailed       = "not_recorded"
+	RecordingUncertain    = "committed_durability_unconfirmed"
+)
+
 type Report struct {
+	Recording      *Recording   `json:"recording,omitempty"`
 	Schema         string       `json:"schema"`
 	CatalogVersion string       `json:"catalog_version"`
 	Roots          []Root       `json:"roots"`
@@ -141,7 +158,7 @@ func finishStatus(findings int, partial bool) string {
 	return "completed_without_findings"
 }
 
-// HasCoverageGaps is the single completeness policy for reports and baselines.
+// HasCoverageGaps reports discovery, measurement and detection gaps.
 // Diagnostic.Incomplete records whether an observation is an operational gap;
 // explicit policy exclusions remain visible without becoming failures.
 func (r Report) HasCoverageGaps() bool {
@@ -170,15 +187,15 @@ func (r Report) HasCoverageGaps() bool {
 
 // ExitCode describes analysis only; the CLI owns persistence-operation status.
 func (r Report) ExitCode() int {
-	if r.HasCoverageGaps() {
-		return 2
-	}
 	for _, s := range r.Skills {
 		for _, f := range s.Findings {
 			if f.Kind == "security" {
 				return 1
 			}
 		}
+	}
+	if r.HasCoverageGaps() {
+		return 2
 	}
 	return 0
 }

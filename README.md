@@ -108,9 +108,9 @@ HTTP acquisition uses the [GitHub REST 2022-11-28 contract](https://docs.github.
 ## Exit codes and evidence
 
 - `0`: no findings or operational gaps in the selected scope.
-- `1`: findings, with no operational gaps.
-- `2`: an operational/preflight failure or incomplete coverage, even if findings also exist.
-- `3`: the actual requested state-recording phase failed before commit; stderr and the report identify `state_not_recorded`. Input diagnostic names cannot select this exit.
+- `1`: security findings, taking priority over coverage or recording failures.
+- `2`: no security findings, but an operational/preflight failure, incomplete coverage or uncertain durability.
+- `3`: no security findings and the actual requested recording failed before commit. Input diagnostic names cannot select this exit.
 
 A missing default home directory is not automatically scanned: choose roots explicitly or use device mode. Unavailable selected roots are coverage errors. Unknown correlation means no qualifying match in the selected reference catalog; it is not evidence of maliciousness. Exact matches also are not safety verdicts. Ordinary audit never writes lineage unless `--record` is explicit.
 
@@ -142,3 +142,7 @@ The evaluation version changed to SA001/v2. An older SA001/v1 baseline cannot es
 Shebang eligibility recognizes sh/bash interpreter tokens, optional whitespace/CRLF, flag-only arguments such as `-e`/`-eux`, `env sh/bash`, and unquoted `env -S sh/bash` forms. Unknown flags, command/option values, environment assignments and quoted split strings remain unsupported with partial coverage. The pinned parser handles CRLF while hashes and evidence refer to raw bytes; evidence is capped at 240 bytes on a UTF-8 boundary, plus an ellipsis. This is static pattern analysis, not a prediction that an OS will execute a particular shebang.
 
 The current evaluation identity is `SA001/v2;sh/v3.10.0;scope/v2`: the rule is still v2, but expanded file eligibility and corrected evidence changed the evaluation scope. Older scope/v1 baselines cannot justify `new` labels. Windows state writes skip unsupported directory syncing; file flushing still precedes replacement, but crash durability/atomic replacement remain unverified on native Windows. See PORTABILITY.md.
+
+### ADR runtime alignment: independent outcomes
+
+Reports now use `skill-audit/report/v2`. The `recording` object carries `status`, optional `path` and `message`: `not_requested`, `recorded`, `not_recorded`, or `committed_durability_unconfirmed`. Every completed audit prints its recording outcome to stderr, including successful recording and no request. Priority is **1 > 3 > 2 > 0**; automation needing persistence must inspect this object. A post-replacement directory-sync warning means the state is saved: inspect before retrying. Historical report/v1 observations remain readable, with no fabricated recording field. Baseline and discovery alignment follow in the next changes; older conflicting descriptions above are historical until updated.

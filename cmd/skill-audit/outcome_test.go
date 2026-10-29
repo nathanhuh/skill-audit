@@ -57,3 +57,42 @@ func TestCommittedWriteWarningIsNotFailedRecording(t *testing.T) {
 		t.Fatal("pre-commit error treated as committed")
 	}
 }
+
+// ADR-0001 E1–E8: persistence and analysis stay independent.
+func TestADROutcomesE1ToE8(t *testing.T) {
+	for _, tc := range []struct {
+		id            string
+		findings, gap bool
+		err           error
+		requested     bool
+		want          int
+		status        string
+	}{
+		{"E1", true, false, nil, true, 1, audit.RecordingRecorded},
+		{"E2", true, false, fmt.Errorf("locked"), true, 1, audit.RecordingFailed},
+		{"E3", true, true, nil, false, 1, audit.RecordingNotRequested},
+		{"E4", false, false, fmt.Errorf("locked"), true, 3, audit.RecordingFailed},
+		{"E5", false, true, nil, true, 2, audit.RecordingRecorded},
+		{"E6", false, false, &audit.CommittedWriteError{Path: "state", Err: fmt.Errorf("sync")}, true, 2, audit.RecordingUncertain},
+		{"E7", true, false, &audit.CommittedWriteError{Path: "state", Err: fmt.Errorf("sync")}, true, 1, audit.RecordingUncertain},
+		{"E8", false, false, nil, false, 0, audit.RecordingNotRequested},
+	} {
+		t.Run(tc.id, func(t *testing.T) {
+			r := audit.Report{Schema: audit.ReportSchema, Diagnostics: []audit.Diagnostic{{Code: "state_not_recorded", Incomplete: tc.gap}}}
+			if tc.findings {
+				r.Skills = []audit.Skill{{Complete: true, Findings: []audit.Finding{{Kind: "security"}}}}
+			}
+			if tc.requested {
+				r.Recording = recordingOutcome("state", tc.err)
+			}
+			stderr := new(bytes.Buffer)
+			if got := reportOutcome(stderr, &r); got != tc.want || r.Recording.Status != tc.status || stderr.Len() == 0 {
+				t.Fatal(got, r.Recording, stderr)
+			}
+			data, err := json.Marshal(r)
+			if err != nil || !bytes.Contains(data, []byte(`"recording":`)) || !bytes.Contains(data, []byte(tc.status)) {
+				t.Fatal(string(data), err)
+			}
+		})
+	}
+}

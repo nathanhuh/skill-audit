@@ -6,7 +6,10 @@ import (
 )
 
 func Print(w io.Writer, r Report, exitCode int) {
-	fmt.Fprintf(w, "skill-audit report/v1 | %d packages | catalog %s\n", len(r.Skills), r.CatalogVersion)
+	fmt.Fprintf(w, "skill-audit report/v2 | %d packages | catalog %s\n", len(r.Skills), r.CatalogVersion)
+	if r.Recording != nil {
+		fmt.Fprintf(w, "recording=%s path=%q message=%q\n", r.Recording.Status, r.Recording.Path, r.Recording.Message)
+	}
 	fmt.Fprintln(w, "Inventory is not evidence that an agent loads a skill. Findings are risky patterns, not malicious-intent verdicts.")
 	for _, root := range r.Roots {
 		fmt.Fprintf(w, "root %s %q: %s\n", root.Scope, root.Path, root.Status)

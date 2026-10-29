@@ -46,7 +46,7 @@ func LoadState(path string) (State, error) {
 		if _, err = time.Parse(time.RFC3339Nano, o.ObservedAt); err != nil {
 			return st, fmt.Errorf("corrupt observation time")
 		}
-		if o.Report.Schema != ReportSchema || o.Report.CatalogVersion == "" {
+		if (o.Report.Schema != ReportSchema && o.Report.Schema != "skill-audit/report/v1") || o.Report.CatalogVersion == "" {
 			return st, fmt.Errorf("corrupt observation schema/catalog")
 		}
 		ids := map[string]bool{}

@@ -292,7 +292,7 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 			return fail(e)
 		}
 		outputRoots = r.Roots
-		recordFailed := false
+		r.Recording = &audit.Recording{Status: audit.RecordingNotRequested}
 		if state != "" {
 			stateErr := func() error {
 				absolute, err := filepath.Abs(state)
@@ -314,6 +314,7 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 					if err = checkPaths(); err != nil {
 						return err
 					}
+					r.Recording = &audit.Recording{Status: audit.RecordingRecorded, Path: state}
 					return audit.SaveObservation(ctx, state, r, record == "baseline")
 				}
 				return nil
@@ -322,20 +323,15 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 				if record == "" {
 					return fail(stateErr)
 				}
-				diagnostic, failed := recordingDiagnostic(state, stateErr)
-				recordFailed = failed
-				label := "state not recorded"
-				if !failed {
-					label = "state recorded; durability unconfirmed"
-				}
-				fmt.Fprintf(errout, "skill-audit: %s: %q\n", label, stateErr.Error())
+				diagnostic, _ := recordingDiagnostic(state, stateErr)
 				r.Diagnostics = append(r.Diagnostics, diagnostic)
 			}
+			if record != "" {
+				r.Recording = recordingOutcome(state, stateErr)
+			}
 		}
-		exitCode := r.ExitCode()
-		if recordFailed {
-			exitCode = 3
-		}
+		exitCode := reportOutcome(errout, &r)
+
 		if output != "" || asJSON {
 			if e = emit(r); e != nil {
 				return fail(e)

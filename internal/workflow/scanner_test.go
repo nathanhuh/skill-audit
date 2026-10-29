@@ -57,7 +57,7 @@ func TestAuditProbesXRayOnceAndIsolatesReports(t *testing.T) {
 	if _, err = os.Stat(dir); !os.IsNotExist(err) {
 		t.Fatal("session not cleaned", err)
 	}
-	if len(r.Skills[0].Findings) != 1 || r.Skills[0].Findings[0].Scanner != "skill-audit" || r.Skills[0].Evaluations[1].Status != "completed_without_findings" || r.Skills[1].Evaluations[1].Status != "failed" || r.ExitCode() != 2 {
+	if len(r.Skills[0].Findings) != 1 || r.Skills[0].Findings[0].Scanner != "skill-audit" || r.Skills[0].Evaluations[1].Status != "completed_without_findings" || r.Skills[1].Evaluations[1].Status != "failed" || r.ExitCode() != 1 || !r.HasCoverageGaps() {
 		t.Fatal("stale scanner output or local evidence lost", r)
 	}
 }

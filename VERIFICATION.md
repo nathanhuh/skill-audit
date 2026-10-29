@@ -1,3 +1,11 @@
+# Verification — ADR step 1: outcomes, 2026-10-29
+
+Canonical main started at cb4be34. Implemented E1–E8 with a table-driven operation-outcome test, real CLI baseline/snapshot/failure tests, and an injected post-rename directory-sync failure test. Findings take priority over recording and coverage; recording is independently structured in report/v2 and printed on stderr for every analyzed audit. Historical report/v1 observations remain readable without fabricated outcome metadata. Old coverage-first assertions were changed to require both exit 1 and retained gaps.
+
+macOS arm64, Go 1.23.5; GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off. gofmt applied; go vet ./... exit 0; go test -count=1 ./... exit 0 (cmd 0.477s, audit 3.360s, workflow 1.274s); native build /private/tmp/skill-audit-adr-exits exit 0; sh scripts/demo.sh exit 0 (audit finding exit 1). Tests use fixtures and loopback HTTP only; no live service calls. Initial suite exposed three old coverage-first assertions; all now match E3. Native Linux/Windows and real Skill X-Ray remain unverified. Baseline/ownership/exclusion changes are still pending in subsequent steps.
+
+## Prior verification
+
 # Verification — accepted contract freeze, 2026-10-29
 
 This change records user-approved design in ADR-0001, domain language in CONTEXT.md, and pointers in AGENTS/DESIGN/README. It changes documentation only. All previously tracked non-documentation files were checked by SHA-256 against the clean `ed4c74f03cda5f916ce6ae5799160bef1c95ad63` checkout and remain identical, including Go source/tests, scripts, dependency/catalog bytes and licenses.
