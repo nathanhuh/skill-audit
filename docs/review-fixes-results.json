@@ -1,0 +1,236 @@
+{
+  "reviewed_revision": "7a84ccc0a4d2c910606e73239c3b343db96ed98c",
+  "implementation_revision": "f9200ee07f9a0f071c788a11de7467903ea44930",
+  "tests_and_subtests_passed": 103,
+  "skipped_tests": [
+    "TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity"
+  ],
+  "failures": [],
+  "review_smoke": {
+    "reviewed_revision": "7a84ccc0a4d2c910606e73239c3b343db96ed98c",
+    "commands": [
+      {
+        "name": "initial",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<output>/initial.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "imported_interruption",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/initial.json",
+          "--catalog",
+          "<output>/input-catalog.json",
+          "--state",
+          "<fixture>/recorded-state.json",
+          "--record",
+          "baseline",
+          "--out",
+          "<output>/e8-report.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "explicit_metadata",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/metadata/.git",
+          "--out",
+          "<output>/metadata.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "rejected_alias",
+        "args": [
+          "inventory",
+          "--root",
+          "/tmp/skill-audit-review-gw3xvsl4/actual/x",
+          "--root",
+          "<fixture>/actual",
+          "--out",
+          "<output>/aliases.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "both",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected",
+          "--out",
+          "<output>/both.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "console_limit",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--xray",
+          "<output>/scan-flood.exe",
+          "--out",
+          "<output>/flood.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "state_mismatch",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--state",
+          "<fixture>/selected/state.json",
+          "--record",
+          "baseline",
+          "--out",
+          "<output>/state-mismatch.json"
+        ],
+        "exit": 3
+      },
+      {
+        "name": "unsafe_temp",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--xray",
+          "<output>/scan-flood.exe",
+          "--out",
+          "<output>/temp.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "gap_budget",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/gaps",
+          "--out",
+          "<output>/gaps.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "production_output_budget",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/large",
+          "--out",
+          "<output>/large.json"
+        ],
+        "exit": 2
+      }
+    ],
+    "production_inventory_budget": {
+      "bytes": 66010508,
+      "retained_whole_packages": 937,
+      "candidate_packages": 1000
+    },
+    "status": "passed"
+  },
+  "published_compatibility": {
+    "published_revision": "3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0",
+    "actual_inventory_v2": true,
+    "actual_report_v1": true,
+    "actual_state_v1": true,
+    "content_comparison": true,
+    "legacy_append_refused": true,
+    "findings_exit_priority": true,
+    "no_state_migration": true,
+    "commands": [
+      {
+        "binary": "skill-audit-published",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-published",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "baseline",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review-fixes",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review-fixes",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "snapshot",
+          "--json"
+        ],
+        "exit": 3
+      },
+      {
+        "binary": "skill-audit-review-fixes",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review-fixes",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "snapshot",
+          "--json"
+        ],
+        "exit": 1
+      }
+    ]
+  },
+  "benchmark_output": "goos: darwin\ngoarch: arm64\npkg: skill-audit/internal/audit\ncpu: Apple M1 Pro\nBenchmarkStoreAdmission/8-8 \t     291\t    709690 ns/op\t  600840 B/op\t      72 allocs/op\nBenchmarkStoreAdmission/16-8         \t     171\t   1389931 ns/op\t 1197930 B/op\t     144 allocs/op\nBenchmarkStoreAdmission/32-8         \t      88\t   2781249 ns/op\t 2398791 B/op\t     293 allocs/op\nPASS\nok  \tskill-audit/internal/audit\t1.089s\n",
+  "pinned_assets_unchanged": true
+}

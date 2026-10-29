@@ -58,3 +58,9 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 B1–B11 have scenario-oriented fixture coverage for complete per-package anchors under unrelated gaps, empty and unusable observations, scanner failure, immutable observations, lock/recording refusal, missing/unanchored identities, designated state exclusion and placement. Final-sync uncertainty is injected at the persistence boundary; it is not a crash-durability experiment. Ordinary audit remains read-only.
 
 See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+
+## Review follow-up evidence (2026-10-29)
+
+Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #5: an in-scope state path different from the inventory designation is reported as state_exclusion_unconfirmed and cannot be recorded without refreshing inventory --state. No retroactive exclusion is claimed. Truncation evidence survives audit and stored observations under ADR-0010.
+
+See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).

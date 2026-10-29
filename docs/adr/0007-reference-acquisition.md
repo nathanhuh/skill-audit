@@ -63,3 +63,9 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 C1–C8 use in-memory fake HTTP transports: cache misses, transient/permanent errors, pinned retry, repository grouping, complete admission with attribution and actual formatted-output headroom. Exhaustion tests inject smaller budgets while production 40 MiB raw / 64 MiB store constants stay pinned. No authenticated or live provider call was made. Earlier complete entries and required attribution survive budget exhaustion.
 
 See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+
+## Review follow-up evidence (2026-10-29)
+
+Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #7/#10: repository grouping uses canonical case-insensitive GitHub keys; refs/paths keep their case. Incremental formatted-size accounting encodes only new records/attribution/diagnostics, matches actual bytes in mixed-addition tests, and preserves C7/C8 admission plus final write cap. The 8/16/32-entry benchmark scales approximately linearly.
+
+See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).

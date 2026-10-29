@@ -73,3 +73,9 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 Fixture tests cover D1/D2/D3/D5/D6/D8–D12, including injected device defaults, explicit dependency-root selection, case-alias identity confirmation, bounded examples and separate package completeness. D8 exercises eight exclusions, not a 50,000-entry workload. D4 OS-alias keys are source checked. The Windows reparse-attribute gate compiles; D7 still needs native junction execution. Exact state-file exclusion uses inventory --state PATH, rejects directories and does not exclude a parent subtree.
 
 See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+
+## Review follow-up evidence (2026-10-29)
+
+Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #2/#3: explicit metadata roots now produce rejected-root gaps; only admitted no-follow-valid roots participate in delegation. Compiled /tmp versus /private/tmp fixture and root regressions pass. ADR-0010 separately governs evidence/output budgets.
+
+See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).

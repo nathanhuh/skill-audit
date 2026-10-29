@@ -1,3 +1,41 @@
+# Verification — ten-item rewrite review fixes, 2026-10-29
+
+Reviewed starting revision: `7a84ccc0a4d2c910606e73239c3b343db96ed98c`, clean worktree on `codex/adr-rewrite`. Fixed implementation: **f9200ee07f9a0f071c788a11de7467903ea44930**. The accompanying documentation commit changes no production Go. Canonical main remains `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and is preserved.
+
+All ten items are addressed, with [per-item changes and ADR citations](docs/review-fixes.md) and [machine evidence](docs/review-fixes-results.json). #1–#3 first failed new regressions. The user explicitly accepted ADR-0010 and ADR-0011 before #8–#9 behavior changed. No published schema/fingerprint/rule/scanner pin changed; new optional coverage fields use the still-unpublished inventory/v3/report/v2 contracts. Pinned assets/dependencies/licenses and .gitattributes have no diff.
+
+Native macOS arm64 / Go 1.23.5: **103 passing tests/subtests, no failures, one skip** (`TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity`, requires a case-sensitive volume). Hardlink and planned case-alias state protection pass here. Native Linux/Windows runtime is still pending; their builds and Windows test compilation pass. Cross-compilation is not native runtime or WSL evidence.
+
+These exact checks passed offline with temporary fixtures, fake HTTP transports and a copied Go test executable. No installed skills, skill-script execution, live credentials/services, scanner installation or content-derived URL fetches were involved. gofmt is scoped to project Go code; pinned vendor is untouched.
+
+```sh
+export GOCACHE=/private/tmp/skill-audit-rewrite-gocache GOPROXY=off GOSUMDB=off
+gofmt -l cmd internal
+go vet ./...
+go test -json -count=1 ./... > /private/tmp/skill-audit-review-tests.jsonl
+go build -o /private/tmp/skill-audit-review-fixes ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-review-linux ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-review-windows.exe ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review-windows-audit.test.exe ./internal/audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review-windows-cli.test.exe ./cmd/skill-audit
+go test -c -o /private/tmp/skill-audit-review-helper.exe ./internal/audit
+sh scripts/demo.sh
+python3 scripts/review-smoke.py /private/tmp/skill-audit-review-fixes /private/tmp/skill-audit-review-helper.exe /private/tmp/skill-audit-review-smoke --large
+python3 scripts/acceptance.py /private/tmp/skill-audit-frozen /private/tmp/skill-audit-review-fixes /private/tmp/skill-audit-review-shared /private/tmp/skill-audit-review-helper.exe
+python3 scripts/verify-published.py /private/tmp/skill-audit-published /private/tmp/skill-audit-review-fixes /private/tmp/skill-audit-review-published.json
+go test ./internal/audit -run '^$' -bench '^BenchmarkStoreAdmission$' -benchtime=200ms -count=1
+git diff --check
+git diff --exit-code 7a84ccc -- go.mod go.sum vendor internal/audit/catalog .gitattributes
+```
+
+Frozen/published binaries use the temporary export commands in the preserved verification record below. New smoke checks passed 10 compiled CLI invocations, including actual macOS /tmp aliases, fake input interruption, per-package console overflow, unsafe TMPDIR, undeclared in-scope state, 3,000 skipped links and the actual 64 MiB output bound. The large fixture saved **66,010,508 bytes with 937 whole measurements from 1,000 candidates**, explicitly partial. The original shared harness still passes 17 commands per binary and 14 syntax samples; six real published-format CLI checks still pass without migration.
+
+New incremental admission measurements for 8/16/32 entries: 0.710/1.390/2.781 ms, allocated bytes 600,840/1,197,930/2,398,791. The measured size-accounting path is approximately linear; it is not a before/after full-command performance claim. Every mixed-addition test matches actual formatted JSON size, and final writing retains the hard cap.
+
+Remaining limits: native case-sensitive O1 runtime, Linux/Windows full suites/demo, Windows junctions/descendants/NTFS durability, real Skill X-Ray/OpenGrep, live acquisition and exhaustive device discovery remain unverified. Scope/coverage envelope overflow is explicitly unsavable under ADR-0010; ordinary useful inventories retain whole earlier measurements. State remains capped at 32 MiB independently. Filesystem races and OS calls remain best effort; no cloud integration, runtime monitoring, policy enforcement, move tracking, migration, publication or main promotion was added.
+
+---
+
 # Verification — isolated document-driven rewrite, 2026-10-29
 
 Reviewed implementation: **b7257a55c479501179e9a936f0d7cfffea11e751**, local branch `codex/adr-rewrite`, `/Users/nathanhuh/.codex/worktrees/2376/skill-audit`. The following documentation/verification commit changes no production Go bytes. Preserved reference/canonical main: **8c6f3b83d725c716246bdbdecc8495bb9cedbccb**. The worktree began clean at that revision; canonical main was not promoted, edited, switched or rewritten.

@@ -20,7 +20,7 @@ Build success proves compilation only. Native Windows is not yet a supported run
 - Parser dependencies are vendored and test catalogs are pinned locally; cross-builds need no scanner installation, CGO or network. Runtime audit defaults to the embedded pinned catalog; an explicitly selected external catalog is optional.
 - Shell files are parsed in Go, not executed. SA001 does not need a local Bash executable, even on Windows. PowerShell and batch analysis would be separate rules with separate coverage claims.
 - Raw-byte SHA-256 deliberately distinguishes LF from CRLF. `.gitattributes` disables text conversion for the pinned catalog so Windows Git settings cannot silently invalidate its hashes. Do not normalize scanned bytes to make an exact match pass. Similarity may still recognize line-ending edits.
-- Process setup already has a small OS-specific boundary in `process_unix.go` and `process_other.go`.
+- Process setup already has a small OS-specific boundary in `process_unix.go` and `process_windows.go`.
 
 ## Work before claiming native Windows support
 

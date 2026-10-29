@@ -15,11 +15,11 @@ Retain a useful partial inventory under the existing 64 MiB formatted JSON write
 3. Scope metadata, exclusion summaries and package metadata count toward the same 64 MiB total. Never drop selected roots silently. If even the mandatory scope envelope cannot fit, report an explicit configuration/output failure; do not claim a saved inventory.
 4. The same serialization representation is used for admission and final writing. Tests inject smaller budgets, compare accounting against actual formatted bytes, and prove that a saved partial inventory remains readable. Inventory/v3 is unpublished and can gain explicit truncation evidence in place under ADR-0008.
 
-Alternative: preserve the existing final-write refusal when inventory exceeds 64 MiB. This keeps all in-memory evidence but can leave no saved inventory.
+Rejected alternative: preserve the existing final-write refusal when inventory exceeds 64 MiB. This keeps all in-memory evidence but can leave no saved inventory.
 
 ## Acceptance scenarios
 
-| ID | Scenario | Required result  |
+| ID | Scenario | Required result |
 | --- | --- | --- |
 | I1 | Gap evidence exceeds its diagnostic budget | Save readable partial inventory with explicit omitted counts; no clean coverage claim. |
 | I2 | Next package manifest or metadata exceeds remaining output capacity | Keep earlier whole measurements; stop visibly before admitting it. |
@@ -27,3 +27,9 @@ Alternative: preserve the existing final-write refusal when inventory exceeds 64
 | I4 | Final formatted output | At most 64 MiB, including summaries and budget diagnostics. |
 
 Accepted by the user on 2026-10-29 in this review thread.
+
+## Review follow-up evidence (2026-10-29)
+
+Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. I1–I4 pass with smaller injected limits and production 64 MiB CLI evidence: 937 of 1,000 whole measurements retained in a 66,010,508-byte saved partial inventory. A 3,000-link fixture records bounded detail and omitted counts; mandatory-envelope failure cannot save output.
+
+See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).

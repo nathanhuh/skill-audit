@@ -15,14 +15,20 @@ Reject aliases by exact cleaned absolute path or confirmed filesystem identity (
 - A nonexistent output with a distinct lexical spelling is permitted. Revalidate all roles before every write; if an earlier state write creates an alias on a case-insensitive filesystem, reject the subsequent report write rather than replace state. Preserve and report the actual committed recording outcome.
 - This is best-effort ordinary-filesystem protection, not a guarantee against hostile concurrent mutation. Native Windows behavior remains subject to ADR-0009 runtime validation.
 
-Alternative: retain unconditional case-folded rejection, including distinct files on case-sensitive filesystems. Document it as a conservative cross-platform restriction.
+Rejected alternative: retain unconditional case-folded rejection, including distinct files on case-sensitive filesystems. Document it as a conservative cross-platform restriction.
 
 ## Acceptance scenarios
 
-| ID | Scenario | Required result  |
+| ID | Scenario | Required result |
 | --- | --- | --- |
 | O1 | Two distinct case-only files on a case-sensitive filesystem | Allow; neither role is silently overwritten. |
 | O2 | Case aliases or hardlinks to the same existing file | Refuse before replacement. |
 | O3 | Planned destinations become aliases after a committed state write | Refuse report replacement; preserve committed state and its outcome. |
 
 Accepted by the user on 2026-10-29 in this review thread. This supersedes README's unconditional case-only-alias refusal statement.
+
+## Review follow-up evidence (2026-10-29)
+
+Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. O2/O3 hardlink/planned-alias tests pass on this macOS volume, preserving committed state. O1 is implemented but its native distinct-case-files test is explicitly skipped on this case-insensitive filesystem; native case-sensitive validation remains pending.
+
+See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).

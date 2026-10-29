@@ -1,5 +1,7 @@
 # Document-driven rewrite comparison
 
+**Later review:** this is the dated original comparison. The ten-item review of 7a84ccc and subsequent fixes/accepted policy decisions are recorded in [review-fixes.md](review-fixes.md).
+
 ## Revisions and scope
 
 - Preserved reference: **8c6f3b83d725c716246bdbdecc8495bb9cedbccb**, canonical `main` at `/Users/nathanhuh/Documents/Documents - Nathan’s MacBook Pro/Interview_Repos/skill-audit`.

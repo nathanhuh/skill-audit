@@ -65,3 +65,9 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 E1–E8 have a priority table plus actual CLI finding/recording/delivery checks. E9 now prints the actual requested recording outcome once on text stdout and once on stderr. JSON recording remains independent from stored observations; output-file delivery failure does not erase a committed recording or suppress an available stdout summary.
 
 See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+
+## Review follow-up evidence (2026-10-29)
+
+Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #1/E8: imported diagnostic names no longer control recording. The current operation context and private runtime interruption fact enforce B6. Complete anchors record alongside fake inventory/catalog interruption diagnostics; genuine cancellation still refuses recording.
+
+See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
