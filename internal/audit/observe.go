@@ -200,6 +200,22 @@ func diffFiles(base, current []File) (added, removed, modified []string) {
 	return added, removed, modified
 }
 
+// upstreamChanges lists local differences from a pinned reference (ADR-0014).
+func upstreamChanges(ref, local []File) []WireChange {
+	added, removed, modified := diffFiles(ref, local)
+	out := []WireChange{}
+	for _, p := range added {
+		out = append(out, WireChange{p, "added"})
+	}
+	for _, p := range removed {
+		out = append(out, WireChange{p, "removed"})
+	}
+	for _, p := range modified {
+		out = append(out, WireChange{p, "modified"})
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out
+}
 func findingKey(f Finding) string {
 	return fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s", f.Scanner, f.RuleID, f.RuleVersion, f.File, f.Evidence)
 }

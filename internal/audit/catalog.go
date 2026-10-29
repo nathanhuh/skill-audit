@@ -155,6 +155,13 @@ func (m Matcher) Match(p Package) Correlation {
 			modified = append(modified, Candidate{Reference: r, Basis: "inferred_candidate", Score: float64(shared) / float64(union), Shared: shared, Union: union})
 		}
 	}
+	for i := range modified {
+		modified[i].UpstreamComparison = "unavailable"
+		if p.Complete {
+			modified[i].UpstreamComparison = "compared"
+			modified[i].UpstreamChanges = upstreamChanges(modified[i].Reference.Files, p.Files)
+		}
+	}
 	if len(exact) > 0 {
 		c.Status = "exact"
 		c.Candidates = exact

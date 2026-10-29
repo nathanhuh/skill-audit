@@ -225,6 +225,18 @@
     "T5": [
       "internal/audit:TestT5NameOptInBeforeRequests"
     ],
+    "U1": [
+      "internal/audit:TestU1UpstreamChangesWithoutBaseline"
+    ],
+    "U2": [
+      "internal/audit:TestU2ExactCopyHasNoUpstreamComparison"
+    ],
+    "U3": [
+      "internal/audit:TestU3IncompleteMeasurementMakesNoUpstreamClaim"
+    ],
+    "U4": [
+      "internal/audit:TestU4UpstreamComparisonIndependentOfBaseline"
+    ],
     "V1": [
       "cmd/skill-audit:TestV1V2V3V4CLI"
     ],

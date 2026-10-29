@@ -105,6 +105,9 @@ type Candidate struct {
 	Score     float64   `json:"score"`
 	Shared    int       `json:"shared_lines"`
 	Union     int       `json:"union_lines"`
+	// Upstream comparison (ADR-0014) is set only for inferred candidates.
+	UpstreamComparison string       `json:"upstream_comparison,omitempty"`
+	UpstreamChanges    []WireChange `json:"upstream_changes,omitempty"`
 }
 type Correlation struct {
 	Status     string      `json:"status"`

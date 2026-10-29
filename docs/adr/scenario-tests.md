@@ -93,5 +93,9 @@ This table records executed fixture assertions, not a blanket support claim. D7/
 | X8 | [TestX6SharedProbeDeadlineAndX8NoScanRetry](../../internal/audit/scanner_contracts_test.go#L98) | Mapped assertions pass. |
 | X9 | [TestX7LaunchOnceAndX9Reserve](../../internal/audit/scanner_contracts_test.go#L127) | Mapped assertions pass. |
 | X10 | [TestX10OperationTimeoutRefusesRecording](../../internal/audit/scanner_contracts_test.go#L156) | Mapped assertions pass. |
+| U1 | [TestU1UpstreamChangesWithoutBaseline](../../internal/audit/upstream_test.go#L54) | Mapped assertions pass. |
+| U2 | [TestU2ExactCopyHasNoUpstreamComparison](../../internal/audit/upstream_test.go#L72) | Mapped assertions pass. |
+| U3 | [TestU3IncompleteMeasurementMakesNoUpstreamClaim](../../internal/audit/upstream_test.go#L90) | Mapped assertions pass. |
+| U4 | [TestU4UpstreamComparisonIndependentOfBaseline](../../internal/audit/upstream_test.go#L110) | Mapped assertions pass. |
 
 The 50,000-entry fixture is opt-in for ordinary development: `SKILL_AUDIT_LARGE_FIXTURES=1 go test ./internal/audit -run ^TestD8FiftyThousandMetadataExclusions$ -count=1`. It was run separately here and passed. All packages/files used by tests are disposable fixtures. Source links and runtime results are dated evidence; the JSON map and guard are the maintained contract.

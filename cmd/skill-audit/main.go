@@ -281,6 +281,12 @@ func printReport(w io.Writer, r audit.Report) {
 		fmt.Fprintf(w, "%s %q correlation=%s lineage=%s\n", s.Scope, s.Path, s.Correlation.Status, s.Lineage.Status)
 		for _, c := range s.Correlation.Candidates {
 			fmt.Fprintf(w, "candidate=%q repository=%q commit=%q upstream_path=%q basis=%q score=%.3f shared=%d union=%d\n", c.Reference.ID, c.Reference.Repository, c.Reference.Commit, c.Reference.UpstreamPath, c.Basis, c.Score, c.Shared, c.Union)
+			if c.UpstreamComparison == "unavailable" {
+				fmt.Fprintln(w, "upstream_comparison=unavailable")
+			}
+			for _, x := range c.UpstreamChanges {
+				fmt.Fprintf(w, "upstream_%s=%q\n", x.Kind, x.Path)
+			}
 		}
 		for _, p := range s.Lineage.Added {
 			fmt.Fprintf(w, "added=%q\n", p)

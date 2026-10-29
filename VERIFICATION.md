@@ -1,3 +1,14 @@
+# Verification — behavior-preserving cleanup and upstream file comparison, 2026-10-29
+
+Started on clean canonical `main` at `cc795d6`. Two changes, both uncommitted:
+
+1. **Behavior-preserving cleanup.** One `anyIncomplete` helper replaces five repeated diagnostic loops. `Compare` computes skill-audit comparability once per skill instead of once per finding, and looks prior findings up in a set. One shared `diffFiles` helper produces baseline lineage lists (sorted, nil when empty, the same as before). An unreachable search-schema recheck in `cmd/skill-audit` was removed, since `Search.UnmarshalJSON` already refuses other schemas. Before the cleanup the suite had 192 passing tests and 3 skips; after it, the same 192 passed with no test changes.
+2. **ADR-0014 upstream file comparison** (accepted, U1–U4). Inferred candidates carry `upstream_comparison` and `upstream_changes` (added/removed/modified relative to the pinned reference). Incomplete measurements report `unavailable`. Exact candidates, correlation, lineage, completeness and exit codes are unchanged. The new fields are additive and optional on report/v2 (ADR-0008 rule 2).
+
+Checks (offline, `GOPROXY=off`, vendored): `gofmt -l cmd internal` prints nothing; `go vet ./...` exits 0; `go test -count=1 ./...` gives **196 passing, 3 skipped** (the same three skips as before); `scripts/verify-scenarios.py` maps 91 accepted scenarios (87 + U1–U4), with D7/P3/P4 still native-Windows-only; `sh scripts/demo.sh` exits 0. A compiled-CLI fixture copied `brand-guidelines` as `my-brand`, edited SKILL.md and audited with no baseline. Result: `correlation=possible_modified`, `lineage=not_compared`, `upstream_modified="SKILL.md"`, exit 0; JSON `upstream_comparison=compared`.
+
+Not verified: native Linux and Windows, and the real Skill X-Ray, as before.
+
 # Verification — host filenames and accepted scenario tests, 2026-10-29
 
 Focused user request: fix the unreadable-baseline filename bug and ensure every accepted scenario ID has a test. Started on clean canonical main at **70316378c3407b62839d9c13c2146ef3818662dd**. Verified implementation: **ce92175af520df9c8fb80e82195aadc81e5df5ce**. The following documentation commit changes no production Go bytes. ADR-0009 P5 records the chosen host-local path rule; other fifth-review behavior changes were not made.
