@@ -109,11 +109,9 @@ func (r *Report) UnmarshalJSON(b []byte) error {
 		r.DiagnosticsTruncated = w.Discovery.DiagnosticsTruncated
 		r.OmittedDiagnostics = w.Discovery.OmittedDiagnostics
 	}
-	for _, d := range r.Diagnostics {
-		if d.Incomplete {
-			r.Complete = false
-			r.DiscoveryComplete = false
-		}
+	if anyIncomplete(r.Diagnostics) {
+		r.Complete = false
+		r.DiscoveryComplete = false
 	}
 	if w.Discovery != nil && w.Discovery.Complete != nil {
 		r.DiscoveryComplete = *w.Discovery.Complete
@@ -123,12 +121,7 @@ func (r *Report) UnmarshalJSON(b []byte) error {
 		r.Complete = false
 	}
 	for _, s := range r.Skills {
-		for _, d := range s.Diagnostics {
-			if d.Incomplete {
-				r.Complete = false
-			}
-		}
-		if !s.Complete {
+		if !s.Complete || anyIncomplete(s.Diagnostics) {
 			r.Complete = false
 		}
 		for _, e := range s.Evaluations {
@@ -158,10 +151,8 @@ func (i *Inventory) UnmarshalJSON(b []byte) error {
 	if _, ok := present["complete"]; ok {
 		i.Complete = p.Complete
 	}
-	for _, d := range i.Diagnostics {
-		if d.Incomplete {
-			i.Complete = false
-		}
+	if anyIncomplete(i.Diagnostics) {
+		i.Complete = false
 	}
 	return nil
 }
@@ -295,10 +286,8 @@ func (c *Catalog) UnmarshalJSON(b []byte) error {
 		}
 		c.Attribution = append(c.Attribution, Attribution{"https://github.com/" + parts[0], tail[0], tail[1], w.Attribution[k]})
 	}
-	for _, d := range c.Diagnostics {
-		if d.Incomplete {
-			c.Complete = false
-		}
+	if anyIncomplete(c.Diagnostics) {
+		c.Complete = false
 	}
 	return nil
 }

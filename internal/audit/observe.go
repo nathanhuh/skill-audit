@@ -17,10 +17,8 @@ type AuditOptions struct {
 func AuditRun(ctx context.Context, inv Inventory, c Catalog, o AuditOptions) Report {
 	r := Report{BudgetStop: inv.BudgetStop, DiagnosticsTruncated: inv.DiagnosticsTruncated, OmittedDiagnostics: inv.OmittedDiagnostics, Schema: ReportSchema, StatePath: inv.StatePath, Home: inv.Home, Limits: inv.Limits, CreatedAt: time.Now().UTC(), CatalogID: CatalogID(c), Roots: inv.Roots, Policy: inv.Policy, DiscoveryComplete: inv.Complete, Complete: inv.Complete, Exclusions: inv.Exclusions, Diagnostics: append([]Diagnostic(nil), inv.Diagnostics...), Skills: []Skill{}, Recording: &Recording{Status: "not_requested"}}
 	r.Diagnostics = append(r.Diagnostics, c.Diagnostics...)
-	for _, d := range c.Diagnostics {
-		if d.Incomplete {
-			r.Complete = false
-		}
+	if anyIncomplete(c.Diagnostics) {
+		r.Complete = false
 	}
 	if o.StatePath != "" {
 		if e := stateExclusionError(o.StatePath, r.Roots, r.StatePath); e != nil {
@@ -123,26 +121,23 @@ func Compare(r *Report, base Report) {
 		origin := b.Correlation
 		origin.Candidates = b.Origins
 		s.Lineage.BaselineOrigin = &origin
-		bf, cf := map[string]string{}, map[string]string{}
-		for _, f := range b.Files {
-			bf[f.Path] = f.SHA256
-		}
-		for _, f := range s.Files {
-			cf[f.Path] = f.SHA256
-			if v, ok := bf[f.Path]; !ok {
-				s.Lineage.Added = append(s.Lineage.Added, f.Path)
-			} else if v != f.SHA256 {
-				s.Lineage.Modified = append(s.Lineage.Modified, f.Path)
-			}
-		}
-		for p := range bf {
-			if _, ok := cf[p]; !ok {
-				s.Lineage.Removed = append(s.Lineage.Removed, p)
-			}
-		}
-		sort.Strings(s.Lineage.Removed)
+		s.Lineage.Added, s.Lineage.Removed, s.Lineage.Modified = diffFiles(b.Files, s.Files)
+		bf, cf := fileHashes(b.Files), fileHashes(s.Files)
 		if s.Digest != b.Digest {
 			s.Lineage.Status = "changed"
+		}
+		// Only skill-audit evaluations are pinned well enough to label new findings.
+		comparable := false
+		for _, a := range b.Evaluations {
+			for _, c := range s.Evaluations {
+				if a.Scanner == "skill-audit" && c.Scanner == a.Scanner && a.Version == c.Version && Completed(a) && Completed(c) {
+					comparable = true
+				}
+			}
+		}
+		prior := map[string]bool{}
+		for _, f := range b.Findings {
+			prior[findingKey(f)] = true
 		}
 		for j := range s.Findings {
 			f := &s.Findings[j]
@@ -151,29 +146,12 @@ func Compare(r *Report, base Report) {
 			if changed {
 				f.Change = "present_in_changed_file"
 			}
-			if f.Scanner != "skill-audit" {
+			if f.Scanner != "skill-audit" || !comparable {
 				continue
 			}
-			comparable := false
-			for _, a := range b.Evaluations {
-				for _, c := range s.Evaluations {
-					if a.Scanner == f.Scanner && c.Scanner == a.Scanner && a.Version == c.Version && Completed(a) && Completed(c) {
-						comparable = true
-					}
-				}
-			}
-			if comparable {
-				found := false
-				for _, prior := range b.Findings {
-					if findingKey(prior) == findingKey(*f) {
-						found = true
-					}
-				}
-				if !found {
-					f.Change = "new"
-				} else {
-					f.Change = "existing"
-				}
+			f.Change = "new"
+			if prior[findingKey(*f)] {
+				f.Change = "existing"
 			}
 		}
 	}
@@ -192,6 +170,36 @@ func Compare(r *Report, base Report) {
 		return !a.Incomplete && b.Incomplete
 	})
 }
+func fileHashes(fs []File) map[string]string {
+	m := map[string]string{}
+	for _, f := range fs {
+		m[f.Path] = strings.ToLower(f.SHA256)
+	}
+	return m
+}
+
+// diffFiles compares two manifests by relative path and SHA-256. Each result is
+// sorted and nil when empty.
+func diffFiles(base, current []File) (added, removed, modified []string) {
+	bf, cf := fileHashes(base), fileHashes(current)
+	for p, h := range cf {
+		if v, ok := bf[p]; !ok {
+			added = append(added, p)
+		} else if v != h {
+			modified = append(modified, p)
+		}
+	}
+	for p := range bf {
+		if _, ok := cf[p]; !ok {
+			removed = append(removed, p)
+		}
+	}
+	sort.Strings(added)
+	sort.Strings(removed)
+	sort.Strings(modified)
+	return added, removed, modified
+}
+
 func findingKey(f Finding) string {
 	return fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s", f.Scanner, f.RuleID, f.RuleVersion, f.File, f.Evidence)
 }

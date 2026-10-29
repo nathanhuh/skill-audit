@@ -185,6 +185,16 @@ type State struct {
 func diag(code, path, message string) Diagnostic {
 	return Diagnostic{Code: code, Path: path, Message: message, Incomplete: true}
 }
+
+// anyIncomplete reports whether a diagnostic marks a coverage gap.
+func anyIncomplete(ds []Diagnostic) bool {
+	for _, d := range ds {
+		if d.Incomplete {
+			return true
+		}
+	}
+	return false
+}
 func Identity(p Package) string { return p.Scope + "\x00" + p.Path }
 func Completed(e Evaluation) bool {
 	return e.Status == "completed_without_findings" || e.Status == "completed_with_findings"

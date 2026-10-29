@@ -228,9 +228,6 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 			if e = audit.Decode(searchPath, audit.StoreLimit, &search); e != nil {
 				return bad(e)
 			}
-			if search.Schema != audit.SearchSchema && search.Schema != audit.LegacySearchSchema {
-				return bad(fmt.Errorf("unsupported search schema"))
-			}
 		}
 		if len(queries) > 0 {
 			next := client.Search(queries, registry, limit)
