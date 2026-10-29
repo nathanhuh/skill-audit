@@ -135,7 +135,7 @@ func TestReviewScannerTempCannotBeInsideAnyPackage(t *testing.T) {
 func TestReviewC5GitHubCaseVariantsShareRepository(t *testing.T) {
 	g := newGitFixture()
 	g.add("a/SKILL.md", "# fixture")
-	c := g.client(t).Sync([]string{"Anthropics/Skills"}, "HEAD", Search{Schema: SearchSchema, Complete: true, Hits: []Hit{{Repository: "anthropics/skills", Path: "a/SKILL.md"}}}, 20)
+	c := g.client(t).Sync([]string{"Anthropics/Skills"}, "HEAD", Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: true, Hits: []Hit{{Repository: "anthropics/skills", Path: "a/SKILL.md"}}}}}, 20)
 	if len(c.Skills) != 1 || !c.Complete || g.calls["/repos/anthropics/skills/git/trees/"+strings.Repeat("b", 40)] != 1 || g.calls["/repos/Anthropics/Skills"] != 0 {
 		t.Fatal(c, g.calls)
 	}

@@ -59,3 +59,7 @@ _Avoid_: Exit code as proof that recording succeeded
 **Correlation evidence**:
 Content evidence connecting a local skill package to a public reference. It does not prove authorship, who copied it, or publisher approval.
 _Avoid_: Proven origin from a name or similarity score
+
+**Search provenance batch**:
+Public-reference leads from one newly requested query, with its selected provider, hit membership and coverage evidence. Older grouped evidence retains its original query context when individual membership is unknown.
+_Avoid_: Origin proof, reconstructed query attribution

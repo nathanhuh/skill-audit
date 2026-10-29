@@ -3,13 +3,11 @@ package audit
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -45,11 +43,15 @@ func ReadInventory(path string) (Inventory, error) {
 		i.Policy = "unknown"
 	}
 	seen := map[string]bool{}
-	for _, p := range i.Packages {
-		if !filepath.IsAbs(p.Path) || filepath.Clean(p.Path) != p.Path || (p.Scope != "global" && p.Scope != "project" && p.Scope != "machine") || seen[Identity(p)] {
+	for n := range i.Packages {
+		p := &i.Packages[n]
+		if e := normalizeHashes(p.Files, &p.Digest); e != nil {
+			return i, fmt.Errorf("invalid inventory hashes: %w", e)
+		}
+		if !filepath.IsAbs(p.Path) || filepath.Clean(p.Path) != p.Path || (p.Scope != "global" && p.Scope != "project" && p.Scope != "machine") || seen[Identity(*p)] {
 			return i, fmt.Errorf("invalid inventory identity")
 		}
-		seen[Identity(p)] = true
+		seen[Identity(*p)] = true
 	}
 	return i, nil
 }
@@ -57,6 +59,12 @@ func ReadCatalog(path string) (Catalog, error) {
 	var c Catalog
 	e := Decode(path, StoreLimit, &c)
 	if e == nil {
+		for n := range c.Skills {
+			r := &c.Skills[n]
+			if e = normalizeHashes(r.Files, &r.Digest); e != nil {
+				return c, fmt.Errorf("invalid reference hashes: %w", e)
+			}
+		}
 		e = ValidateCatalog(c)
 	}
 	return c, e
@@ -203,17 +211,17 @@ func ReadState(path string) (State, error) {
 				return s, fmt.Errorf("invalid state identity")
 			}
 			seen[Identity(x.Package)] = true
+			if e := normalizeHashes(x.Files, &x.Digest); e != nil {
+				return s, fmt.Errorf("invalid state hashes: %w", e)
+			}
 			files := map[string]bool{}
 			for fi := range x.Files {
 				f := &x.Files[fi]
-				h, e := hex.DecodeString(f.SHA256)
-				if !SafeRelative(f.Path) || files[f.Path] || f.Size < 0 || e != nil || len(h) != 32 {
+				if !SafeRelative(f.Path) || files[f.Path] || f.Size < 0 {
 					return s, fmt.Errorf("invalid state file manifest")
 				}
-				f.SHA256 = hex.EncodeToString(h)
 				files[f.Path] = true
 			}
-			x.Digest = strings.ToLower(x.Digest)
 			if x.Complete && (x.Digest != Digest(x.Files) || !files["SKILL.md"]) {
 				return s, fmt.Errorf("invalid baseline fingerprint")
 			}

@@ -157,98 +157,106 @@ func validRepo(repo string) bool {
 	return true
 }
 func (a *Acquirer) Search(queries []string, registry string, limit int) Search {
-	s := Search{Schema: SearchSchema, Source: "github-code-search", Queries: queries, Hits: []Hit{}, Complete: true}
+	s := Search{Schema: SearchSchema, Inputs: []SearchInput{}}
+	for _, q := range queries {
+		s.Inputs = append(s.Inputs, a.searchQuery(q, registry, limit))
+	}
+	return MergeSearch(s)
+}
+func (a *Acquirer) searchQuery(q, registry string, limit int) SearchInput {
+	source := "github-code-search"
+	if registry != "" {
+		source = "skills-sh-v1"
+	}
+	s := SearchInput{Source: source, Queries: []string{q}, Hits: []Hit{}, Complete: true}
 	fail := func(e error) {
 		s.Complete = false
-		s.Diagnostics = append(s.Diagnostics, diag("search_failed", "", e.Error()))
+		s.Diagnostics = append(s.Diagnostics, diag("search_failed", q, e.Error()))
 	}
-	for _, q := range queries {
-		if strings.TrimSpace(q) == "" || len(q) > 180 || limit < 1 || limit > 100 {
-			fail(fmt.Errorf("query must be 1–180 bytes and limit 1–100"))
-			continue
+	if strings.TrimSpace(q) == "" || len(q) > 180 || limit < 1 || limit > 100 {
+		fail(fmt.Errorf("query must be 1–180 bytes and limit 1–100"))
+		return s
+	}
+	if registry != "" {
+		u, e := url.Parse(registry)
+		if e != nil || u.Host == "" || u.User != nil || u.Fragment != "" || (u.Scheme != "https" && !(a.AllowHTTP && u.Scheme == "http")) {
+			fail(fmt.Errorf("invalid registry endpoint"))
+			return s
 		}
-		if registry != "" {
-			s.Source = "skills-sh-v1"
-			u, e := url.Parse(registry)
-			if e != nil || u.Host == "" || u.User != nil || u.Fragment != "" || (u.Scheme != "https" && !(a.AllowHTTP && u.Scheme == "http")) {
-				fail(fmt.Errorf("invalid registry endpoint"))
-				continue
-			}
-			params := u.Query()
-			params.Set("q", q)
-			params.Set("limit", fmt.Sprint(limit))
-			u.RawQuery = params.Encode()
-			var response struct {
-				Data  []struct{ Source, SourceType, Slug, URL string }
-				Count *int
-			}
-			if e = a.get(u.String(), a.RegistryToken, &response); e != nil {
-				fail(e)
-				continue
-			}
-			if response.Data == nil || response.Count == nil || *response.Count < 0 {
-				fail(fmt.Errorf("unsupported registry data/count response"))
-				continue
-			}
-			for i, r := range response.Data {
-				if i >= limit {
-					s.Complete = false
-					break
-				}
-				repo := r.Source
-				if r.SourceType != "github" || !validRepo(repo) {
-					s.Complete = false
-					s.Diagnostics = append(s.Diagnostics, diag("registry_source", "", "unsupported registry source"))
-					continue
-				}
-				s.Hits = append(s.Hits, Hit{Repository: repo, Slug: r.Slug, URL: r.URL})
-			}
-			if *response.Count > len(response.Data) || len(response.Data) >= limit {
-				s.Complete = false
-			}
-			continue
-		}
-		if a.Token == "" {
-			fail(fmt.Errorf("GitHub code search requires GH_TOKEN or GITHUB_TOKEN"))
-			continue
-		}
+		params := u.Query()
+		params.Set("q", q)
+		params.Set("limit", fmt.Sprint(limit))
+		u.RawQuery = params.Encode()
 		var response struct {
-			Incomplete *bool `json:"incomplete_results"`
-			Total      *int  `json:"total_count"`
-			Items      []struct {
-				Path       string
-				HTMLURL    string `json:"html_url"`
-				Repository struct {
-					FullName string `json:"full_name"`
-					Private  *bool
-				}
-			}
+			Data  []struct{ Source, SourceType, Slug, URL string }
+			Count *int
 		}
-		endpoint := a.Base + "/search/code?q=" + url.QueryEscape(q+" filename:SKILL.md") + "&per_page=" + fmt.Sprint(min(limit, 100))
-		if e := a.get(endpoint, a.Token, &response); e != nil {
+		if e = a.get(u.String(), a.RegistryToken, &response); e != nil {
 			fail(e)
-			continue
+			return s
 		}
-		if response.Incomplete == nil || response.Total == nil || response.Items == nil || *response.Total < 0 {
-			fail(fmt.Errorf("malformed GitHub search response"))
-			continue
+		if response.Data == nil || response.Count == nil || *response.Count < 0 {
+			fail(fmt.Errorf("unsupported registry data/count response"))
+			return s
 		}
-		if *response.Incomplete || *response.Total > len(response.Items) {
-			s.Complete = false
-		}
-		for i, r := range response.Items {
+		for i, r := range response.Data {
 			if i >= limit {
 				s.Complete = false
 				break
 			}
-			if r.Repository.Private == nil || *r.Repository.Private || !validRepo(r.Repository.FullName) || !SafeRelative(r.Path) || path.Base(r.Path) != "SKILL.md" {
+			repo := r.Source
+			if r.SourceType != "github" || !validRepo(repo) {
 				s.Complete = false
+				s.Diagnostics = append(s.Diagnostics, diag("registry_source", q, "unsupported registry source"))
 				continue
 			}
-			s.Hits = append(s.Hits, Hit{Repository: r.Repository.FullName, Path: r.Path, URL: r.HTMLURL})
+			s.Hits = append(s.Hits, Hit{Repository: repo, Slug: r.Slug, URL: r.URL})
+		}
+		if *response.Count > len(response.Data) || len(response.Data) >= limit {
+			s.Complete = false
+		}
+		return s
+	}
+	if a.Token == "" {
+		fail(fmt.Errorf("GitHub code search requires GH_TOKEN or GITHUB_TOKEN"))
+		return s
+	}
+	var response struct {
+		Incomplete *bool `json:"incomplete_results"`
+		Total      *int  `json:"total_count"`
+		Items      []struct {
+			Path       string
+			HTMLURL    string `json:"html_url"`
+			Repository struct {
+				FullName string `json:"full_name"`
+				Private  *bool
+			}
 		}
 	}
-	return MergeSearch(s)
+	endpoint := a.Base + "/search/code?q=" + url.QueryEscape(q+" filename:SKILL.md") + "&per_page=" + fmt.Sprint(min(limit, 100))
+	if e := a.get(endpoint, a.Token, &response); e != nil {
+		fail(e)
+		return s
+	}
+	if response.Incomplete == nil || response.Total == nil || response.Items == nil || *response.Total < 0 {
+		fail(fmt.Errorf("malformed GitHub search response"))
+		return s
+	}
+	if *response.Incomplete || *response.Total > len(response.Items) {
+		s.Complete = false
+	}
+	for i, r := range response.Items {
+		if i >= limit {
+			s.Complete = false
+			break
+		}
+		if r.Repository.Private == nil || *r.Repository.Private || !validRepo(r.Repository.FullName) || !SafeRelative(r.Path) || path.Base(r.Path) != "SKILL.md" {
+			s.Complete = false
+			continue
+		}
+		s.Hits = append(s.Hits, Hit{Repository: r.Repository.FullName, Path: r.Path, URL: r.HTMLURL})
+	}
+	return s
 }
 
 type treeEntry struct {
@@ -431,16 +439,27 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 	}
 	groups := map[string][]importTarget{}
 	explicitSet := map[string]bool{}
+	targetSet := map[importTarget]bool{}
+	addTarget := func(target importTarget) {
+		target.repo = strings.ToLower(target.repo)
+		if SafeRelative(target.dir) && path.Base(target.dir) == "SKILL.md" {
+			target.dir = path.Dir(target.dir)
+		}
+		if !targetSet[target] {
+			targetSet[target] = true
+			groups[target.repo] = append(groups[target.repo], target)
+		}
+	}
+
 	for _, r := range explicit {
 		r = strings.ToLower(r)
 		if !explicitSet[r] {
-			groups[r] = append(groups[r], importTarget{repo: r, full: true})
+			addTarget(importTarget{repo: r, full: true})
 			explicitSet[r] = true
 		}
 	}
-	for _, h := range search.Hits {
-		h.Repository = strings.ToLower(h.Repository)
-		groups[h.Repository] = append(groups[h.Repository], importTarget{h.Repository, h.Path, h.Slug, false})
+	for _, h := range search.Hits() {
+		addTarget(importTarget{h.Repository, h.Path, h.Slug, false})
 	}
 	order := []string{}
 	for r := range groups {
@@ -461,9 +480,14 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 	budget := false
 	budgetReason := "import admission"
 	sizes := newStoreSize(c)
+	reported := map[Diagnostic]bool{}
 	diagnostic := func(code, p, msg string) {
 		c.Complete = false
 		d := diag(code, p, msg)
+		if reported[d] {
+			return
+		}
+		reported[d] = true
 		if len(d.Message) > 240 {
 			d.Message = string(utf8Prefix([]byte(d.Message), 220)) + "… [truncated]"
 		}
@@ -518,7 +542,7 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 				}
 			}
 			if len(dirs) == 0 {
-				diagnostic("target_missing", repo, "requested package target missing")
+				diagnostic("target_missing", repo, fmt.Sprintf("requested package target missing: path=%q hint=%q", target.dir, target.slug))
 				continue
 			}
 			if len(dirs) > limit {
@@ -575,7 +599,7 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 			}
 		}
 	}
-	if !search.Complete && search.Schema != "" && !budget {
+	if !search.Complete() && search.Schema != "" && !budget {
 		diagnostic("search_partial", "", "search coverage incomplete")
 	}
 	if budget {

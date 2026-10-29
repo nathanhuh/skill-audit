@@ -16,7 +16,7 @@ Each ADR records one decision: its rule, consequences, acceptance scenarios with
 | [0010](0010-inventory-output-budget.md) | Inventory output and gap-detail budgets | accepted | I1–I4 |
 | [0011](0011-output-path-identity.md) | Output/input filesystem identity | accepted | O1–O3 |
 | [0012](0012-sa001-interpreter-options.md) | SA001 interpreter flag subset and v3 | accepted | R1–R4 |
-| [0013](0013-search-provenance.md) | Search provenance across merged inputs | accepted | Q1–Q3 |
+| [0013](0013-search-provenance.md) | Search provenance across merged inputs | accepted | Q1–Q4 |
 
 ## Status
 

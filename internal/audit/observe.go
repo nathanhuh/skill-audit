@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -55,7 +56,7 @@ func AuditRun(ctx context.Context, inv Inventory, c Catalog, o AuditOptions) Rep
 		}
 		p := Measure(ctx, prior.Path, inv.Home)
 		p.Scope, p.Agent = prior.Scope, prior.Agent
-		if p.Digest != prior.Digest || !prior.Complete {
+		if !strings.EqualFold(p.Digest, prior.Digest) || !prior.Complete {
 			p.Diagnostics = append(p.Diagnostics, diag("inventory_drift", p.Path, "package differs from inventory or prior measurement was incomplete"))
 			r.Complete = false
 		}

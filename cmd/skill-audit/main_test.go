@@ -240,6 +240,18 @@ func TestSearchSyncSavedAndExplicitScopesCLI(t *testing.T) {
 	if e != nil || len(store.Skills) != 3 || len(store.Attribution) != 3 {
 		t.Fatal(store, e)
 	}
+	direct := filepath.Join(root, "direct-sync.json")
+	if c, o, e := invoke("sync", "--repo", "a/x", "--search", saved, "--query", "fixture", "--out", direct); c != 0 {
+		t.Fatal(c, o, e)
+	}
+	directStore, e := audit.ReadCatalog(direct)
+	if e != nil || len(directStore.Skills) != 3 || len(directStore.Attribution) != 3 {
+		t.Fatal(directStore, e)
+	}
+	after, _ = os.ReadFile(saved)
+	if !bytes.Equal(before, after) {
+		t.Fatal("combined sync rewrote saved search")
+	}
 	b, _ := os.ReadFile(catalog)
 	if bytes.Contains(b, []byte("fixture-only-token")) {
 		t.Fatal("token serialized")

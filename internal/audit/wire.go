@@ -183,10 +183,12 @@ func (s State) MarshalJSON() ([]byte, error) {
 		for j := range r.Skills {
 			r.Skills[j].Lineage = Lineage{}
 		}
+		observedAt := r.CreatedAt.UTC().Format(time.RFC3339Nano)
+		r.CreatedAt = time.Time{}
 		b, e := json.Marshal(struct {
 			ObservedAt string `json:"observed_at"`
 			Report     Report `json:"report"`
-		}{r.CreatedAt.UTC().Format(time.RFC3339Nano), r})
+		}{observedAt, r})
 		if e != nil {
 			return nil, e
 		}
@@ -220,6 +222,9 @@ func (s *State) UnmarshalJSON(b []byte) error {
 		at, e := time.Parse(time.RFC3339Nano, o.ObservedAt)
 		if e != nil {
 			return fmt.Errorf("invalid observation time")
+		}
+		if !o.Report.CreatedAt.IsZero() && !o.Report.CreatedAt.Equal(at) {
+			return fmt.Errorf("conflicting observation times")
 		}
 		o.Report.CreatedAt = at
 		s.Observations = append(s.Observations, o.Report)

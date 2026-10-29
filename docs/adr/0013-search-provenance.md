@@ -27,3 +27,7 @@ Rejected alternative: disallow saved/live combinations. That is simpler but remo
 ## Third-review evidence (2026-10-29)
 
 Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Q1–Q3 pass with different-source batches, an opaque published-v2 query, failed/empty inputs, nested flat merges and deduplicated sync imports. CLI tests save merged v3, consume it in sync and preserve the v2 source file. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Accepted amendment: one batch per new query (2026-10-29)
+
+Explicitly approved by the user during the fourth review. Newly requested queries each produce one provenance batch, retaining the selected provider, that query's hits, completeness and diagnostics. Invalid, failed and empty-result queries keep their batch; selecting a provider is not proof of an HTTP request. Diagnostics identify their query. A multi-name invocation therefore preserves hit membership and independent failures for every requested name. This supersedes per-invocation grouping only for newly collected evidence. Published v2 and previously grouped unpublished v3 inputs remain intact; their query/hit membership cannot be recovered and must not be guessed. Merges preserve those groups while flattening the list. Unpublished search/v3 changes in place under ADR-0008. Q4 covers two successful queries plus failed/invalid/empty queries and legacy grouped-input readback.

@@ -74,11 +74,11 @@ func ValidateCatalog(c Catalog) error {
 			seen[f.Path] = true
 			b, ok := r.Data[f.Path]
 			total += int64(len(b))
-			if !ok || Sum(b) != f.SHA256 || int64(len(b)) != f.Size || len(b) > FileLimit || total > PackageLimit {
+			if !ok || !strings.EqualFold(Sum(b), f.SHA256) || int64(len(b)) != f.Size || len(b) > FileLimit || total > PackageLimit {
 				return fmt.Errorf("reference bytes do not match manifest")
 			}
 		}
-		if !seen["SKILL.md"] || Digest(r.Files) != r.Digest {
+		if !seen["SKILL.md"] || !strings.EqualFold(Digest(r.Files), r.Digest) {
 			return fmt.Errorf("reference digest mismatch for %s", r.ID)
 		}
 	}
@@ -140,7 +140,7 @@ func (m Matcher) Match(p Package) Correlation {
 	var exact, modified []Candidate
 	for i, r := range m.refs {
 		r.Data = nil
-		if p.Complete && p.Digest == r.Digest {
+		if p.Complete && strings.EqualFold(p.Digest, r.Digest) {
 			exact = append(exact, Candidate{Reference: r, Basis: "observed_exact_match", Score: 1})
 			continue
 		}

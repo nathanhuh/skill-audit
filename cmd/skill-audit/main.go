@@ -241,15 +241,15 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 				return bad(fmt.Errorf("search requires --query or --inventory --search-names"))
 			}
 			ok := emit(search, func() {
-				fmt.Fprintf(out, "search hits=%d complete=%t\n", len(search.Hits), search.Complete)
-				printDiagnostics(out, search.Diagnostics)
+				fmt.Fprintf(out, "search hits=%d complete=%t\n", len(search.Hits()), search.Complete())
+				printDiagnostics(out, search.Diagnostics())
 			})
-			if !ok || !search.Complete {
+			if !ok || !search.Complete() {
 				return 2
 			}
 			return 0
 		}
-		if len(repos) == 0 && len(search.Hits) == 0 {
+		if len(repos) == 0 && len(search.Hits()) == 0 {
 			return bad(fmt.Errorf("sync requires repositories or search targets"))
 		}
 		c := client.Sync(repos, ref, search, limit)

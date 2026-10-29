@@ -222,7 +222,7 @@ func TestReview3ResolutionCachePinsTransientTreeRetry(t *testing.T) {
 	g.add("p/SKILL.md", "# fixture")
 	tree := "/repos/a/x/git/trees/" + strings.Repeat("b", 40)
 	g.status[tree] = []int{502, 200}
-	c := g.client(t).Sync(nil, "HEAD", Search{Schema: SearchSchema, Complete: true, Hits: []Hit{{Repository: "a/x", Path: "p/SKILL.md"}, {Repository: "a/x", Slug: "p"}}}, 20)
+	c := g.client(t).Sync(nil, "HEAD", Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: true, Hits: []Hit{{Repository: "a/x", Path: "p/SKILL.md"}, {Repository: "a/x", Slug: "p"}}}}}, 20)
 	if len(c.Skills) != 1 || g.calls[tree] != 2 || g.calls["/repos/a/x"] != 1 || g.calls["/repos/a/x/commits/HEAD"] != 1 {
 		t.Fatal(c, g.calls)
 	}
@@ -251,8 +251,8 @@ func TestQ1Q2Q3SearchProvenanceRoundtrip(t *testing.T) {
 	if e := json.Unmarshal([]byte(legacy), &saved); e != nil {
 		t.Fatal(e)
 	}
-	next := Search{Schema: SearchSchema, Source: "github-code-search", Queries: []string{"fresh"}, Complete: true, Hits: []Hit{{Repository: "a/x", Path: "p/SKILL.md"}}}
-	empty := Search{Schema: SearchSchema, Source: "skills-sh-v1", Queries: []string{"empty"}, Complete: false, Diagnostics: []Diagnostic{diag("search_failed", "", "fixture")}}
+	next := Search{Schema: SearchSchema, Inputs: []SearchInput{{Source: "github-code-search", Queries: []string{"fresh"}, Complete: true, Hits: []Hit{{Repository: "a/x", Path: "p/SKILL.md"}}}}}
+	empty := Search{Schema: SearchSchema, Inputs: []SearchInput{{Source: "skills-sh-v1", Queries: []string{"empty"}, Complete: false, Diagnostics: []Diagnostic{diag("search_failed", "", "fixture")}}}}
 	merged := MergeSearch(MergeSearch(saved, next), empty)
 	b, e := Encode(merged)
 	if e != nil {
@@ -262,7 +262,7 @@ func TestQ1Q2Q3SearchProvenanceRoundtrip(t *testing.T) {
 	if e = json.Unmarshal(b, &read); e != nil {
 		t.Fatal(e)
 	}
-	if read.Schema != SearchSchema || len(read.Inputs) != 3 || len(read.Hits) != 2 || read.Complete || len(read.Diagnostics) != 2 {
+	if read.Schema != SearchSchema || len(read.Inputs) != 3 || len(read.Hits()) != 2 || read.Complete() || len(read.Diagnostics()) != 2 {
 		t.Fatal(read, string(b))
 	}
 	if read.Inputs[0].Source != "skills-sh-v1" || len(read.Inputs[0].Queries) != 1 || read.Inputs[0].Queries[0] != "prior; opaque query" || len(read.Inputs[0].Hits) != 1 || read.Inputs[1].Source != "github-code-search" || read.Inputs[1].Queries[0] != "fresh" || len(read.Inputs[2].Hits) != 0 {
@@ -289,9 +289,9 @@ func TestReview3SearchTupleOrdering(t *testing.T) {
 				hits[i], hits[j] = hits[j], hits[i]
 			}
 		}
-		s := MergeSearch(Search{Schema: SearchSchema, Complete: true, Hits: hits})
-		if s.Hits[0].URL != "first" || s.Hits[1].URL != "second" || s.Hits[2].Repository != "a/bc" {
-			t.Fatal(s.Hits)
+		s := MergeSearch(Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: true, Hits: hits}}})
+		if s.Hits()[0].URL != "first" || s.Hits()[1].URL != "second" || s.Hits()[2].Repository != "a/bc" {
+			t.Fatal(s.Hits())
 		}
 		b, _ := Encode(s)
 		if want == nil {
@@ -335,7 +335,7 @@ func TestReview3ImportTargetTupleOrderingUnderBudget(t *testing.T) {
 	g.add("a2/SKILL.md", "# a2")
 	a := g.client(t)
 	a.RawLimit = len("# a")
-	c := a.Sync(nil, "HEAD", Search{Schema: SearchSchema, Complete: true, Hits: []Hit{{Repository: "a/x", Path: "a", Slug: "z"}, {Repository: "a/x", Path: "a2"}}}, 20)
+	c := a.Sync(nil, "HEAD", Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: true, Hits: []Hit{{Repository: "a/x", Path: "a", Slug: "z"}, {Repository: "a/x", Path: "a2"}}}}}, 20)
 	if len(c.Skills) != 1 || c.Skills[0].UpstreamPath != "a" || !hasCode(c.Diagnostics, "sync_budget") {
 		t.Fatal(c)
 	}

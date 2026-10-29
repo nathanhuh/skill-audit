@@ -226,10 +226,16 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 		evaluation.Message = e.Error()
 		return evaluation, nil
 	}
+	message := func(cause string) {
+		if evaluation.Message != "" {
+			evaluation.Message += "; "
+		}
+		evaluation.Message += cause
+	}
 	if code != 0 || err != nil {
-		evaluation.Message = fmt.Sprintf("scanner exit %d", code)
+		message(fmt.Sprintf("scanner exit %d", code))
 		if err != nil {
-			evaluation.Message += "; " + safeProcessError(err)
+			message(safeProcessError(err))
 		}
 	}
 	// An ordinary non-zero exit does not override SARIF coverage (ADR-0006).
@@ -239,7 +245,7 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 			evaluation.Status = "partial"
 		}
 		if !p.Complete {
-			evaluation.Message = "incomplete measurement; " + evaluation.Message
+			message("incomplete measurement")
 		}
 	}
 	return evaluation, findings

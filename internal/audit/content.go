@@ -340,3 +340,30 @@ func utf8Prefix(b []byte, limit int) []byte {
 	}
 	return b
 }
+
+// normalizeHashes canonicalizes valid SHA-256 text in an in-memory manifest.
+// The directory hash still consumes decoded hash bytes, as directory/v1 requires.
+func normalizeHashes(files []File, digest *string) error {
+	normalize := func(value string) (string, error) {
+		b, e := hex.DecodeString(value)
+		if e != nil || len(b) != sha256.Size {
+			return "", fmt.Errorf("invalid SHA-256 hash")
+		}
+		return hex.EncodeToString(b), nil
+	}
+	for i := range files {
+		hash, e := normalize(files[i].SHA256)
+		if e != nil {
+			return e
+		}
+		files[i].SHA256 = hash
+	}
+	if *digest != "" {
+		hash, e := normalize(*digest)
+		if e != nil {
+			return e
+		}
+		*digest = hash
+	}
+	return nil
+}

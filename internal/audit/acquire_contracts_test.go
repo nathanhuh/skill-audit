@@ -92,7 +92,7 @@ func TestC1C2C5GroupingCacheAdmissionAndReload(t *testing.T) {
 		a := g.client(t)
 		a.CacheLimit = cache
 		a.RawLimit = 2*len("# shared manifest") + len("license bytes")
-		s := Search{Schema: SearchSchema, Complete: true, Hits: []Hit{{Repository: "a/x", Path: "skills/a/SKILL.md"}, {Repository: "b/y", Path: "skills/a/SKILL.md"}, {Repository: "a/x", Path: "skills/b/SKILL.md"}}}
+		s := Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: true, Hits: []Hit{{Repository: "a/x", Path: "skills/a/SKILL.md"}, {Repository: "b/y", Path: "skills/a/SKILL.md"}, {Repository: "a/x", Path: "skills/b/SKILL.md"}}}}}
 		c := a.Sync([]string{"a/x"}, "HEAD", s, 10)
 		if len(c.Skills) != 2 || c.Complete || !hasCode(c.Diagnostics, "sync_budget") {
 			t.Fatal(len(c.Skills), c.Diagnostics)
@@ -116,7 +116,7 @@ func TestC3C4ErrorClasses(t *testing.T) {
 			g.add("a/SKILL.md", "# a")
 			g.status["/repos/a/x"] = []int{status}
 			a := g.client(t)
-			s := Search{Schema: SearchSchema, Complete: true, Hits: []Hit{{Repository: "a/x", Path: "a/SKILL.md"}, {Repository: "a/x", Slug: "a"}}}
+			s := Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: true, Hits: []Hit{{Repository: "a/x", Path: "a/SKILL.md"}, {Repository: "a/x", Slug: "a"}}}}}
 			c := a.Sync(nil, "HEAD", s, 10)
 			want := 1
 			calls := 2
@@ -142,7 +142,7 @@ func TestC6C7C8CompleteAdmissionAndSharedAttribution(t *testing.T) {
 			case "raw":
 				a.RawLimit = 600
 			case "serialized":
-				one := g.client(t).Sync(nil, "HEAD", Search{Schema: SearchSchema, Complete: true, Hits: []Hit{{Repository: "a/x", Path: "a/SKILL.md"}}}, 10)
+				one := g.client(t).Sync(nil, "HEAD", Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: true, Hits: []Hit{{Repository: "a/x", Path: "a/SKILL.md"}}}}}, 10)
 				b, _ := Encode(one)
 				a.OutputLimit = len(b) + 2048 + 10
 			case "shared":
@@ -235,7 +235,7 @@ func TestAcquisitionRequestLimitsAndPinnedRetry(t *testing.T) {
 	treePath := "/repos/a/x/git/trees/" + strings.Repeat("b", 40)
 	g.status[treePath] = []int{502}
 	a := g.client(t)
-	search := Search{Schema: SearchSchema, Complete: true, Hits: []Hit{{Repository: "a/x", Path: "a/SKILL.md"}, {Repository: "a/x", Slug: "a"}}}
+	search := Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: true, Hits: []Hit{{Repository: "a/x", Path: "a/SKILL.md"}, {Repository: "a/x", Slug: "a"}}}}}
 	c := a.Sync(nil, "HEAD", search, 10)
 	if len(c.Skills) != 1 || g.calls["/repos/a/x/commits/HEAD"] != 1 || g.calls[treePath] != 2 {
 		t.Fatal(c, g.calls)
@@ -271,16 +271,16 @@ func TestPinnedSearchBoundaries(t *testing.T) {
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Header: http.Header{}}, nil
 	})}
 	s := a.Search([]string{"fixture"}, "", 20)
-	if !s.Complete || len(s.Hits) != 1 || s.Hits[0].Path != "skills/a/SKILL.md" {
+	if !s.Complete() || len(s.Hits()) != 1 || s.Hits()[0].Path != "skills/a/SKILL.md" {
 		t.Fatal(s)
 	}
 	s = a.Search([]string{"fixture"}, "https://registry.invalid/v1", 20)
-	if !s.Complete || s.Hits[0].Slug != "a" || requests != 2 {
+	if !s.Complete() || s.Hits()[0].Slug != "a" || requests != 2 {
 		t.Fatal(s)
 	}
 	before := requests
 	s = a.Search([]string{"fixture"}, "http://registry.invalid/v1", 20)
-	if s.Complete || requests != before {
+	if s.Complete() || requests != before {
 		t.Fatal("insecure registry contacted")
 	}
 }

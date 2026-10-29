@@ -110,7 +110,7 @@ func TestReview2FinalSearchDiagnosticCanExhaustSyncBudget(t *testing.T) {
 	b, _ := Encode(first)
 	a := g.client(t)
 	a.OutputLimit = len(b) + 2048 + 1
-	c := a.Sync([]string{"a/x"}, "HEAD", Search{Schema: SearchSchema, Complete: false}, 20)
+	c := a.Sync([]string{"a/x"}, "HEAD", Search{Schema: SearchSchema, Inputs: []SearchInput{{Complete: false}}}, 20)
 	if len(c.Skills) != 1 || c.Complete || !hasCode(c.Diagnostics, "sync_budget") {
 		t.Fatal(c)
 	}

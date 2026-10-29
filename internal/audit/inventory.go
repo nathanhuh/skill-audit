@@ -144,7 +144,10 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 			selectedInfo[r] = i
 		}
 	}
-	var seenRoots []os.FileInfo
+	var seenRoots []struct {
+		path string
+		info os.FileInfo
+	}
 	var walk func(string, int, bool)
 	walk = func(path string, depth int, root bool) {
 		if check() {
@@ -260,7 +263,8 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 		}
 		duplicate := false
 		for _, s := range seenRoots {
-			if os.SameFile(i, s) {
+			if os.SameFile(i, s.info) {
+				budget.diagnostic(info("root_delegated", root, "filesystem alias of separately selected root: "+s.path))
 				duplicate = true
 				break
 			}
@@ -268,7 +272,10 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 		if duplicate {
 			continue
 		}
-		seenRoots = append(seenRoots, i)
+		seenRoots = append(seenRoots, struct {
+			path string
+			info os.FileInfo
+		}{root, i})
 		walk(root, 0, true)
 	}
 	for _, x := range exclusions {

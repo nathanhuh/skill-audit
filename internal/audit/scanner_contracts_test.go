@@ -224,6 +224,10 @@ func TestMain(m *testing.M) {
 			report = review3FindingSARIF
 			code = 1
 		}
+		if strings.Contains(filepath.Base(exe), "scan-partial-exit2") {
+			report = strings.Replace(cleanSARIF, "no-reported-gap", "incomplete", 1)
+			code = 2
+		}
 		if e := os.WriteFile(os.Args[3], []byte(report), 0600); e != nil {
 			os.Exit(93)
 		}
