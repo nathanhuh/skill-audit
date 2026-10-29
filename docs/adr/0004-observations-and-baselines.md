@@ -64,3 +64,7 @@ See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERI
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #5: an in-scope state path different from the inventory designation is reported as state_exclusion_unconfirmed and cannot be recorded without refreshing inventory --state. No retroactive exclusion is claimed. Truncation evidence survives audit and stored observations under ADR-0010.
 
 See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Second-review implementation evidence (2026-10-29)
+
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-skill incomplete diagnostics and explicit partial discovery survive report/state readback. Final output-budget refusal cannot claim complete coverage. Manual stale-lock policy is unchanged, with actionable error guidance. See [second-review record](../review-2-fixes.md).

@@ -1,0 +1,238 @@
+{
+  "reviewed_revision": "d2242e0d4f0078a84213053add0921b621cb0c2c",
+  "fixed_implementation_revision": "a59cddbc4c6b17940a249579131e71c31db95e5c",
+  "passed_tests_and_subtests": 127,
+  "skipped_tests": [
+    "TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity"
+  ],
+  "failures": [],
+  "sa001_rule_version": "3",
+  "evaluation_version": "SA001/v3;sh/v3.10.0;scope/v2",
+  "original_baseline": "8c6f3b83d725c716246bdbdecc8495bb9cedbccb",
+  "published_compatibility": {
+    "published_revision": "3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0",
+    "actual_inventory_v2": true,
+    "actual_report_v1": true,
+    "actual_state_v1": true,
+    "content_comparison": true,
+    "legacy_append_refused": true,
+    "findings_exit_priority": true,
+    "v2_evaluation_not_comparable_with_v3": true,
+    "no_state_migration": true,
+    "commands": [
+      {
+        "binary": "skill-audit-published",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-published",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "baseline",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review2",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review2",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "snapshot",
+          "--json"
+        ],
+        "exit": 3
+      },
+      {
+        "binary": "skill-audit-review2",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review2",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "snapshot",
+          "--json"
+        ],
+        "exit": 1
+      }
+    ]
+  },
+  "review_smoke": {
+    "reviewed_revision": "7a84ccc0a4d2c910606e73239c3b343db96ed98c",
+    "commands": [
+      {
+        "name": "initial",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<output>/initial.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "imported_interruption",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/initial.json",
+          "--catalog",
+          "<output>/input-catalog.json",
+          "--state",
+          "<fixture>/recorded-state.json",
+          "--record",
+          "baseline",
+          "--out",
+          "<output>/e8-report.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "explicit_metadata",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/metadata/.git",
+          "--out",
+          "<output>/metadata.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "rejected_alias",
+        "args": [
+          "inventory",
+          "--root",
+          "/tmp/skill-audit-review-i6_8klui/actual/x",
+          "--root",
+          "<fixture>/actual",
+          "--out",
+          "<output>/aliases.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "both",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected",
+          "--out",
+          "<output>/both.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "console_limit",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--xray",
+          "<output>/scan-flood.exe",
+          "--out",
+          "<output>/flood.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "state_mismatch",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--state",
+          "<fixture>/selected/state.json",
+          "--record",
+          "baseline",
+          "--out",
+          "<output>/state-mismatch.json"
+        ],
+        "exit": 3
+      },
+      {
+        "name": "unsafe_temp",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--xray",
+          "<output>/scan-flood.exe",
+          "--out",
+          "<output>/temp.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "gap_budget",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/gaps",
+          "--out",
+          "<output>/gaps.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "production_output_budget",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/large",
+          "--out",
+          "<output>/large.json"
+        ],
+        "exit": 2
+      }
+    ],
+    "production_inventory_budget": {
+      "bytes": 66010508,
+      "retained_whole_packages": 937,
+      "candidate_packages": 1000
+    },
+    "status": "passed"
+  }
+}

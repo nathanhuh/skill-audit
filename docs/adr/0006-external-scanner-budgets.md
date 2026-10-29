@@ -68,3 +68,7 @@ See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERI
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #4/#6: capped logs retain their actual process exit and a per-package console cause. Exited processes are distinct from launch failure. The non-embedding buffer prevents io.Copy ReadFrom bypass. Real fake-process tests launch later packages after log overflow. Temp bases are checked against every audited package and package ancestors before probe/staging writes; unsafe TMPDIR is refused without mutation.
 
 See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Second-review implementation evidence (2026-10-29)
+
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-package hash/staging filesystem errors no longer set terminal scanner state; hash mismatch and overlong staging-name tests allow the next package scan. Initial package protection is prepared once. See [second-review record](../review-2-fixes.md).

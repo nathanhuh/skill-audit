@@ -1,3 +1,41 @@
+# Verification — second review and authorized main promotion, 2026-10-29
+
+Review started on clean `codex/adr-rewrite` at `d2242e0d4f0078a84213053add0921b621cb0c2c`. Verified implementation: **a59cddbc4c6b17940a249579131e71c31db95e5c**. The user explicitly approved ADR-0003 D13 (explicit roots before device roots), ADR-0012 (expanded receiver flags and SA001 v3) and promotion to canonical main. The documentation commit contains no further production Go changes. Canonical main is fast-forwarded from the preserved reference **8c6f3b83d725c716246bdbdecc8495bb9cedbccb** to the commit containing this record. No history is rewritten and nothing is pushed/published.
+
+[Second-review results](docs/review-2-fixes.md) map every item to its rule and evidence. [Machine summary](docs/review-2-results.json) preserves checks. Tests first reproduced items 1–5 and the missing lock guidance. Item 8 was reachable, not dead: a late search diagnostic can exhaust headroom. A regression proves this, and the finalizer is now one block. Metadata filtering applies to newly imported references; existing catalogs/state are not migrated. Dependency omissions still prevent exact local claims under D11.
+
+Native macOS arm64, Go 1.23.5: **127 passing tests/subtests, no failures**, one skip (`TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity`, case-sensitive volume required). Scoped gofmt has no output; vendor remains untouched. Vet, offline tests, native build, demo and all existing fixture CLI harnesses pass. Linux/Windows builds and Windows test compilation pass; native runtime remains unverified.
+
+```sh
+export GOCACHE=/private/tmp/skill-audit-rewrite-gocache GOPROXY=off GOSUMDB=off
+gofmt -l cmd internal
+go vet ./...
+go test -json -count=1 ./... > /private/tmp/skill-audit-review2-tests.jsonl
+go test -count=1 ./...
+go build -o /private/tmp/skill-audit-review2 ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-review2-linux ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-review2-windows.exe ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review2-windows.test.exe ./internal/audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review2-windows-cli.test.exe ./cmd/skill-audit
+go test -c -o /private/tmp/skill-audit-review2-helper.exe ./internal/audit
+sh scripts/demo.sh
+python3 scripts/review-smoke.py /private/tmp/skill-audit-review2 /private/tmp/skill-audit-review2-helper.exe /private/tmp/skill-audit-review2-smoke --large
+python3 scripts/acceptance.py /private/tmp/skill-audit-frozen /private/tmp/skill-audit-review2 /private/tmp/skill-audit-review2-shared /private/tmp/skill-audit-review2-helper.exe
+python3 scripts/verify-published.py /private/tmp/skill-audit-published /private/tmp/skill-audit-review2 /private/tmp/skill-audit-review2-published.json
+git diff --check
+git diff --exit-code d2242e0 -- go.mod go.sum vendor internal/audit/catalog .gitattributes
+```
+
+The 10-command prior-review smoke still passes, including 66,010,508 bytes saved with 937 whole measurements under the production 64 MiB limit. The shared 17-command-per-binary / 14-syntax-sample harness passes. Six real published-format checks pass; a finding compared against the published v2 evaluation receives present_in_changed_file rather than new under v3. V2 observations and content comparisons stay readable and unchanged.
+
+Promotion uses the original checkout at `/Users/nathanhuh/Documents/Documents - Nathan’s MacBook Pro/Interview_Repos/skill-audit`, after verifying its branch, revision and clean status. `git -c core.hooksPath=/dev/null merge --ff-only codex/adr-rewrite` updates local main without merge rewriting or hooks. Final checks confirm clean main and matching branch heads; a native offline build/test check is run from canonical main. No setup scripts, installed skills, network service or real Skill X-Ray are involved.
+
+SA001 rule/evaluation deliberately changes to **v3 / SA001/v3;sh/v3.10.0;scope/v2** under the accepted decision. No published fingerprint domain encoding, catalog/search shape or external scanner pin changes. Vendored dependencies, pinned catalog bytes, licenses/notices and .gitattributes remain unchanged. Local main promotion is not origin publication.
+
+Remaining limits: native case-sensitive O1, Linux/Windows runtime suites/demo, Windows junction/descendant/NTFS durability, real Skill X-Ray, live acquisition and exhaustive device discovery remain pending. Filesystem races and blocking OS calls retain their documented best-effort limits. No roadmap monitoring, policy enforcement, cloud integration, move tracking or linked-skill following was added.
+
+---
+
 # Verification — ten-item rewrite review fixes, 2026-10-29
 
 Reviewed starting revision: `7a84ccc0a4d2c910606e73239c3b343db96ed98c`, clean worktree on `codex/adr-rewrite`. Fixed implementation: **f9200ee07f9a0f071c788a11de7467903ea44930**. The accompanying documentation commit changes no production Go. Canonical main remains `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and is preserved.

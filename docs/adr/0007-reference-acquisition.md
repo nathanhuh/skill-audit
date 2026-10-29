@@ -69,3 +69,7 @@ See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERI
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #7/#10: repository grouping uses canonical case-insensitive GitHub keys; refs/paths keep their case. Incremental formatted-size accounting encodes only new records/attribution/diagnostics, matches actual bytes in mixed-addition tests, and preserves C7/C8 admission plus final write cap. The 8/16/32-entry benchmark scales approximately linearly.
 
 See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Second-review implementation evidence (2026-10-29)
+
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. New imports omit declared fingerprint metadata consistently with local collection. Existing stores remain unchanged. The reachable late search-diagnostic budget path has a regression, one finalizer and shared attribution-key formatting. See [second-review record](../review-2-fixes.md).

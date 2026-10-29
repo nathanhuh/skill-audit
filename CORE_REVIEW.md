@@ -41,3 +41,7 @@ Filesystem checks are best effort against ordinary changes, not protection from 
 ## Review follow-up
 
 The ten-item review at 7a84ccc is handled in docs/review-fixes.md. Read inventory_budget.go and json_size.go for bounded inventory evidence and incremental formatted-byte admission. Runtime cancellation cannot be forged by diagnostic names. State-location mismatches remain visible instead of retroactively changing saved discovery policy. Rejected roots cannot hide packages reached through an admitted root. The non-embedding scanner console buffer prevents io.Copy from bypassing its Write cap; console overflow is a per-package coverage cause, distinct from launch failure. All staging is checked before mutation. Accepted decisions for new policy are ADR-0010 and ADR-0011.
+
+## Second review and promotion
+
+The latest record is docs/review-2-fixes.md. SA001 v3 and explicit-before-device ordering were approved explicitly. Canonical main is promoted by fast-forward after verification. Historical comparison/verification sections retain their named revisions.

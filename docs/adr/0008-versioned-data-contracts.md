@@ -21,7 +21,7 @@ Reviews raised two opposite complaints: schemas bumped where the change could ha
 | Catalog / catalog store | `catalog/v1`, `catalog-store/v2` | yes |
 | Search | `search/v2` | yes |
 | Fingerprint domains | `directory/v1`, `reference-catalog/v1` | yes |
-| Local rule | SA001 v2 | yes |
+| Local rule | SA001 v3 | no (v2 published; still comparison-readable) |
 
 ## Decision *(accepted)*
 
@@ -70,3 +70,7 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 V1–V7 are covered by published state/report/inventory/catalog/search representations, state/v2 refusal, read-only legacy append behavior and independently comparable discovery/content/scanner/catalog evidence. The embedded directory and reference-catalog fingerprints match the frozen binary. No published identifier was bumped or intentionally redefined; the publication freeze checklist is in VERIFICATION.md. Nothing was published.
 
 See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+
+## Accepted SA001 update (2026-10-29)
+
+ADR-0012 explicitly changes receiver coverage and bumps SA001/evaluation to v3. V2 observations remain readable; their evaluations do not establish comparable new v3 findings. Directory/reference-catalog fingerprint encodings and published catalog/search shapes remain unchanged.

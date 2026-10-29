@@ -33,3 +33,7 @@ Accepted by the user on 2026-10-29 in this review thread.
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. I1–I4 pass with smaller injected limits and production 64 MiB CLI evidence: 937 of 1,000 whole measurements retained in a 66,010,508-byte saved partial inventory. A 3,000-link fixture records bounded detail and omitted counts; mandatory-envelope failure cannot save output.
 
 See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Second-review implementation evidence (2026-10-29)
+
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. The injected final-accounting overflow backstop marks coverage incomplete, records an explicit diagnostic and is checked before stdout delivery as well as file output. See [second-review record](../review-2-fixes.md).

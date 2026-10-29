@@ -1,0 +1,28 @@
+# Second review fixes and canonical-main promotion
+
+Starting review: `d2242e0d4f0078a84213053add0921b621cb0c2c`, clean `codex/adr-rewrite`. Tested implementation: **a59cddbc4c6b17940a249579131e71c31db95e5c**. The user explicitly accepted explicit-root precedence and SA001 v3, then authorized promotion to canonical main. Canonical main is updated by fast-forward, preserving the frozen reference `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` in history. Nothing is pushed or published.
+
+| Item | Rule / decision | Result |
+| --- | --- | --- |
+| 1. Explicit root starved by device root | Accepted ADR-0003 amendment / D13 | Explicit roots sort before device-added roots; per-group priority/depth/lexical ordering stays deterministic. An injected device-root fixture first failed with zero packages, then passes with the explicit package reached before budget exhaustion. No real device sweep was run. |
+| 2. Reference/local metadata mismatch | DESIGN directory/v1 collection / ADR-0008 | New imports omit .git/.hg/.svn/.DS_Store path components using the local metadata predicate. The identical-copy exact-match regression now passes; root license attribution remains separate. Existing catalogs are not rewritten: explicitly re-sync prior metadata-containing imports. Dependency content is a different case: references retain it, while local omission means an incomplete measurement under D11 and still cannot establish exact matching. |
+| 3. Package staging fault disables later packages | ADR-0006 rule 3 | Hash mismatch, bad staged paths and staging filesystem errors produce only that package's failed evaluation. Later packages continue. Both hash-mismatch and real overlong-filename regressions pass. Probe, launch, timeout and reserve terminal causes remain cached. |
+| 4. Final over-budget inventory claims complete | ADR-0010 / ADR-0004 bounded evidence | The final backstop marks the inventory incomplete and adds an explicit budget diagnostic. CLI checks the runtime output error before either stdout or file delivery, so this cannot report successful stdout inventory. The backstop branch is tested with an injected final-accounting overflow; no claim is made that the original normal-limit CLI case was reproduced. |
+| 5. Report readback promotes coverage | ADR-0004 | Readers account for each skill's incomplete diagnostics, explicit partial discovery and truncation evidence. Inventory-drift roundtrip and actual stored-observation readback stay incomplete, while independent discovery completeness is preserved where valid. |
+| 6. Shell receiver options | Accepted ADR-0012 / ADR-0008 V7 | SA001 v3 accepts -e/-u/-x/-v/-s and grouped forms. -n/-c, value-taking/unknown options and filenames without -s remain excluded. V2 evaluations cannot establish comparable new v3 findings; complete content comparison remains available. |
+| 7. Stale lock message | Existing ADR-0004 / DESIGN manual-lock policy | Error now says to inspect the lock and active writer, and remove only a stale lock manually. No automatic lock deletion or new recovery policy was introduced. |
+| 8. Allegedly dead sync_budget block | ADR-0007 C7/C8 | The claim was incorrect: the last search_partial diagnostic can exhaust headroom after imports finish, reaching that block. A regression proves this path. Finalization is consolidated into one budget block after the last diagnostic attempt. Earlier imports and attribution remain intact. |
+| 9. Repeated attribution key | ADR-0007 actual serialized-size guarantee | Writer and size accountant now share attributionKey(). Mixed-addition exact-byte tests still pass. |
+| 10. Unused append and repeated sort work | Maintainability; ADR-0003 deterministic ordering preserved | Package protection paths are added only during initial scanner preparation. Root ranks/depths and sibling priorities are precomputed before sorting. The diagnostic lookup helper is now test-only. |
+
+## Verification
+
+127 passing tests/subtests, no failures; one skip: `TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity` needs a case-sensitive filesystem. Tests first failed for items 1–5 and the old lock guidance. Scoped gofmt, vet, offline tests, build and temporary-fixture demo pass. Linux/Windows builds and Windows test compilation pass; native runtime remains pending. No installed skill, credential, live service, external scanner installation, skill-script execution or content-derived URL retrieval was used.
+
+The prior 10-command review smoke passes, including the real 64 MiB bound (66,010,508 bytes saved; 937 whole measurements retained). The shared baseline harness still passes 17 commands per binary and 14 syntax samples. Six real published-format CLI checks pass: older schemas remain readable and read-only for state append. The expected finding transition against published v2 evaluations is now present_in_changed_file, not new.
+
+Machine evidence: [review-2-results.json](review-2-results.json). Exact checks and promotion evidence are recorded in VERIFICATION.md. Native case-sensitive O1, Linux/Windows full runtime, Windows junction/descendant/durability checks, real Skill X-Ray and live acquisition remain unverified. Existing checks are best effort against ordinary filesystem changes, not hostile mutation.
+
+## Version freeze
+
+SA001 v2 was published, so its expanded receiver coverage is deliberately **SA001 v3**, evaluation **SA001/v3;sh/v3.10.0;scope/v2**. Stored v2 observations remain unchanged. Report/v2, inventory/v3, discovery/v3 and state/v3 are still unpublished; this local promotion does not publish them. No fingerprint-domain encoding, published catalog/search shape, scanner interface pin, vendored dependency, catalog byte, license/notice or .gitattributes byte changed.

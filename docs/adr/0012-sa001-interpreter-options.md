@@ -23,3 +23,7 @@ This changes published SA001 behavior. Bump the rule from v2 to v3 and the evalu
 | R3 | v2 baseline versus new option coverage | Content comparison works; no comparable new finding claim. |
 
 Accepted explicitly by the user in this review thread on 2026-10-29.
+
+## Second-review implementation evidence (2026-10-29)
+
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. R1–R3 pass: grouped supported flags qualify, excluded command/parse/value modes do not, and v2 evaluations cannot establish new v3 findings. See [second-review record](../review-2-fixes.md).
