@@ -1,3 +1,42 @@
+# Verification — third review on canonical main, 2026-10-29
+
+Started on clean canonical `main` at **573eed67f416aa4c01f260baecc297cb59e08897**. Verified implementation: **77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e**. The following documentation commit changes no production Go bytes. User-approved ADR-0012 R4 and ADR-0013 precede their implementation. [Third-review record](docs/review-3-fixes.md) maps all ten findings to the rules, fixes and source evidence; [machine results](docs/review-3-results.json) preserve outcomes.
+
+Native macOS arm64 / Go 1.23.5: **157 passing tests/subtests, zero failures, one skip** (`TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity`: this volume is case-insensitive). Initial fixture regressions failed for items 1–4, 7 and 8. Item 1's complete-SARIF/nonzero case is synthetic; source inspection disproves the claim that the pinned upstream exits 1 for security findings. Item 9's allegedly unused cache is reachable on transient tree failure, proven by a regression that passes before any code change. The lone-dash receiver regression also failed before the receiver correction. No live scanner or skill script was executed.
+
+All commands run from `/Users/nathanhuh/Documents/Documents - Nathan’s MacBook Pro/Interview_Repos/skill-audit`. Scoped gofmt emits nothing. Host and Windows vet, offline tests, native build, fixture demo, Linux/Windows cross-builds and Windows test compilation pass. Native runtime validation is separate from compilation.
+
+```sh
+export GOPROXY=off GOSUMDB=off GOCACHE=/private/tmp/skill-audit-rewrite-gocache
+gofmt -l cmd internal
+go vet ./...
+GOOS=windows GOARCH=amd64 go vet ./...
+go test -json -count=1 ./... > /private/tmp/skill-audit-review3-tests.jsonl
+go build -o /private/tmp/skill-audit-review3 ./cmd/skill-audit
+go test -c -o /private/tmp/skill-audit-review3-helper.exe ./internal/audit
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-review3-linux ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-review3-windows.exe ./cmd/skill-audit
+GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review3-windows.test.exe ./internal/audit
+GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review3-windows-cli.test.exe ./cmd/skill-audit
+sh scripts/demo.sh > /private/tmp/skill-audit-review3-demo.log
+python3 scripts/review3-smoke.py /private/tmp/skill-audit-review3 /private/tmp/skill-audit-review3-helper.exe /private/tmp/skill-audit-review3-cli.json
+python3 scripts/review-smoke.py /private/tmp/skill-audit-review3 /private/tmp/skill-audit-review3-helper.exe /private/tmp/skill-audit-review3-smoke --large
+python3 scripts/acceptance.py /private/tmp/skill-audit-frozen /private/tmp/skill-audit-review3 /private/tmp/skill-audit-review3-shared /private/tmp/skill-audit-review3-helper.exe
+python3 scripts/verify-published.py /private/tmp/skill-audit-published /private/tmp/skill-audit-review3 /private/tmp/skill-audit-review3-published.json
+git diff --check
+git diff --exit-code 573eed6 -- go.mod go.sum vendor internal/audit/catalog .gitattributes
+```
+
+The new compiled CLI smoke passes nine commands: normal nonzero scanner exits retain complete SARIF/security findings, reports expose complete/time, upper-case file/directory hashes compare unchanged without writing state, sh - yields SA001 v3, and missing packages keep discovery complete while overall coverage is partial. Search tests use fake HTTP transports: legacy-v2 plus live queries save v3 inputs and sync them without modifying the source. No provider credentials or live service is required.
+
+The prior ten-command smoke still saves 66,010,508 bytes with 937 whole packages under the 64 MiB production bound. The shared harness passes 17 commands per binary and 14 syntax samples. Six real published-format checks pass against a locally recorded frozen binary from **3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0**: inventory/v2, report/v1, state/v1 stay readable; legacy append is refused; finding exit priority and content comparison remain valid; published v2 evaluation cannot justify new v3 findings. Frozen reference binary remains **8c6f3b83d725c716246bdbdecc8495bb9cedbccb**. Older files are not migrated.
+
+Freeze: search/v3 is the only new identifier. Search/v2 remains readable. Report/v2 adds overall complete/time and unpublished SA001 v3 adds accepted lone-dash forms in place. State/inventory versions, published directory/reference-catalog encodings, catalog-store shape, scanner/API pins, dependency files, vendored sources, catalog bytes, attribution/licenses and .gitattributes are unchanged. Local commits are not publication; nothing is pushed.
+
+Pending: native Linux/Windows tests/demo, case-sensitive O1, native Windows junctions/descendant cleanup/NTFS durability, real Skill X-Ray/OpenGrep, live acquisition and exhaustive device discovery. Checks remain best effort against ordinary filesystem changes. No runtime monitoring, policy enforcement or cloud integration was added.
+
+---
+
 # Verification — second review and authorized main promotion, 2026-10-29
 
 Review started on clean `codex/adr-rewrite` at `d2242e0d4f0078a84213053add0921b621cb0c2c`. Verified implementation: **a59cddbc4c6b17940a249579131e71c31db95e5c**. The user explicitly approved ADR-0003 D13 (explicit roots before device roots), ADR-0012 (expanded receiver flags and SA001 v3) and promotion to canonical main. The documentation commit contains no further production Go changes. Canonical main is fast-forwarded from the preserved reference **8c6f3b83d725c716246bdbdecc8495bb9cedbccb** to the commit containing this record. No history is rewritten and nothing is pushed/published.

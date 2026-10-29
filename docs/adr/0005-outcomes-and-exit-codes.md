@@ -71,3 +71,7 @@ See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERI
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #1/E8: imported diagnostic names no longer control recording. The current operation context and private runtime interruption fact enforce B6. Complete anchors record alongside fake inventory/catalog interruption diagnostics; genuine cancellation still refuses recording.
 
 See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Third-review evidence (2026-10-29)
+
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Report JSON now explicitly includes overall complete and created_at. Scanner/drift/missing gaps can keep overall complete false while discovery.complete remains true. Complete scanner SARIF plus a normal non-zero exit retains its completion and exit evidence; security findings retain exit-1 priority. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).

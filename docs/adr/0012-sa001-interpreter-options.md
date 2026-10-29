@@ -31,3 +31,7 @@ Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. R1–R3 pass: groupe
 ## Accepted amendment: lone-dash option termination (2026-10-29)
 
 The user explicitly approved this amendment in the third review thread. Before options have ended, a lone `-` ends receiver options just like `--`; it does not select a script. Thus `sh -`, `bash -e -` and `bash -s - argument` qualify. A subsequent filename without an earlier `-s` does not qualify; `sh -- -` is also a filename form and remains outside this subset. This adds R4: test both stdin and filename forms. SA001 v3/evaluation remains unpublished, so it changes in place under ADR-0008 rule 1. Published v2 remains unchanged.
+
+## Third-review evidence (2026-10-29)
+
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. R4 passes for sh -, bash -e -, grouped supported flags with a lone dash, and excluded following filenames and a dash after --. The compiled CLI emits SA001 v3 for curl HTTP(S) piped to sh -. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).

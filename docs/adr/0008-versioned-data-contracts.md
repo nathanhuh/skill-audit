@@ -19,7 +19,7 @@ Reviews raised two opposite complaints: schemas bumped where the change could ha
 | Discovery policy | `skill-audit/discovery/v3` | no |
 | State | `skill-audit/state/v3` | no (v1 published; v2 local only) |
 | Catalog / catalog store | `catalog/v1`, `catalog-store/v2` | yes |
-| Search | `search/v2` | yes |
+| Search | `search/v3` | no (v2 published; still readable) |
 | Fingerprint domains | `directory/v1`, `reference-catalog/v1` | yes |
 | Local rule | SA001 v3 | no (v2 published; still comparison-readable) |
 
@@ -74,3 +74,7 @@ See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERI
 ## Accepted SA001 update (2026-10-29)
 
 ADR-0012 explicitly changes receiver coverage and bumps SA001/evaluation to v3. V2 observations remain readable; their evaluations do not establish comparable new v3 findings. Directory/reference-catalog fingerprint encodings and published catalog/search shapes remain unchanged.
+
+## Third-review evidence (2026-10-29)
+
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Accepted ADR-0013 bumps search/v2 to search/v3 for input-batch provenance; v2 remains readable. Optional overall report/time fields use unpublished report/v2, and the lone-dash amendment uses unpublished SA001 v3. Published fingerprint domains, catalog shapes and scanner/API pins remain unchanged. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).

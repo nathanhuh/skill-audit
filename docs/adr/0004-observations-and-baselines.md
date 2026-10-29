@@ -68,3 +68,7 @@ See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md)
 ## Second-review implementation evidence (2026-10-29)
 
 Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-skill incomplete diagnostics and explicit partial discovery survive report/state readback. Final output-budget refusal cannot claim complete coverage. Manual stale-lock policy is unchanged, with actionable error guidance. See [second-review record](../review-2-fixes.md).
+
+## Third-review evidence (2026-10-29)
+
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Valid hex hashes normalize in the in-memory comparison view. Published/current stored observation bytes remain unchanged, and invalid file manifests/fingerprints remain rejected. Overall report completeness survives serialization alongside independent discovery coverage. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).

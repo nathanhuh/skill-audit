@@ -89,3 +89,7 @@ This supersedes only root group precedence, not no-follow checks, per-root depth
 ## Second-review implementation evidence (2026-10-29)
 
 Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. D13 uses injected device roots; explicit root precedes device work under a tight entry budget. Root and sibling ordering ranks are precomputed. See [second-review record](../review-2-fixes.md).
+
+## Third-review evidence (2026-10-29)
+
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. D6: case-alias delegation now names the encountered path and separately selected root, using deterministic filesystem-identity confirmation. This is visible delegation under existing overlap rules, not a new exclusion. Its bounded informational evidence leaves covered discovery complete; omitted evidence still makes coverage partial under ADR-0010. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).

@@ -1,0 +1,422 @@
+{
+  "reviewed_revision": "573eed67f416aa4c01f260baecc297cb59e08897",
+  "fixed_implementation_revision": "77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e",
+  "branch": "main",
+  "passed_tests_and_subtests": 157,
+  "failures": [],
+  "skipped_tests": [
+    "TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity"
+  ],
+  "accepted_decisions": [
+    "ADR-0012 lone-dash amendment / R4",
+    "ADR-0013 provenance batches / Q1-Q3"
+  ],
+  "versions": {
+    "search_writer": "skill-audit/search/v3",
+    "search_reader": [
+      "skill-audit/search/v2",
+      "skill-audit/search/v3"
+    ],
+    "sa001": "3",
+    "evaluation": "SA001/v3;sh/v3.10.0;scope/v2",
+    "report": "skill-audit/report/v2"
+  },
+  "scanner_source_check": {
+    "commit": "c89eacfdd643e50d5f8e3ed18cf3c4992d174ff2",
+    "local_checkout_clean": true,
+    "complete_with_security_findings_exit": 0,
+    "incomplete_or_error_exit": 2,
+    "real_scanner_executed": false
+  },
+  "resolution_cache": {
+    "transient_tree_requests": 2,
+    "metadata_requests": 1,
+    "head_commit_requests": 1,
+    "retained": true
+  },
+  "empty_blob_cache_attribution_fixture": {
+    "packages": 40,
+    "attribution_files": 3,
+    "requests_before_fix": 100,
+    "complete_imports_before_fix": 24,
+    "requests_after_fix": 46,
+    "complete_imports_after_fix": 40
+  },
+  "checks": {
+    "project_gofmt": "pass",
+    "host_vet": "pass",
+    "windows_amd64_vet": "pass",
+    "offline_tests": "pass",
+    "native_build": "pass",
+    "linux_amd64_build": "pass",
+    "windows_amd64_build": "pass",
+    "windows_test_compilation": "pass",
+    "fixture_demo": "pass"
+  },
+  "third_review_cli_smoke": {
+    "checks": {
+      "nonzero_coverage": true,
+      "report_overall_complete": true,
+      "created_at": true,
+      "uppercase_hash_comparison": true,
+      "state_not_rewritten": true,
+      "lone_dash": true,
+      "missing_package_partial": true
+    },
+    "commands": [
+      {
+        "name": "inventory",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "scanner_exit1_0",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--xray",
+          "<fixture>/scan-findings-exit1.exe",
+          "--json"
+        ],
+        "exit": 1
+      },
+      {
+        "name": "scanner_exit1_1",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--xray",
+          "<fixture>/scan-findings-exit1.exe",
+          "--json"
+        ],
+        "exit": 1
+      },
+      {
+        "name": "baseline",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "baseline",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "uppercase_state",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "refresh",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "lone_dash",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--json"
+        ],
+        "exit": 1
+      },
+      {
+        "name": "empty_inventory",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "tracked_missing",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--json"
+        ],
+        "exit": 2
+      }
+    ]
+  },
+  "prior_review_smoke": {
+    "reviewed_revision": "7a84ccc0a4d2c910606e73239c3b343db96ed98c",
+    "commands": [
+      {
+        "name": "initial",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<output>/initial.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "imported_interruption",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/initial.json",
+          "--catalog",
+          "<output>/input-catalog.json",
+          "--state",
+          "<fixture>/recorded-state.json",
+          "--record",
+          "baseline",
+          "--out",
+          "<output>/e8-report.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "explicit_metadata",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/metadata/.git",
+          "--out",
+          "<output>/metadata.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "rejected_alias",
+        "args": [
+          "inventory",
+          "--root",
+          "/tmp/skill-audit-review-8zdctsqq/actual/x",
+          "--root",
+          "<fixture>/actual",
+          "--out",
+          "<output>/aliases.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "both",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected",
+          "--out",
+          "<output>/both.json"
+        ],
+        "exit": 0
+      },
+      {
+        "name": "console_limit",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--xray",
+          "<output>/scan-flood.exe",
+          "--out",
+          "<output>/flood.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "state_mismatch",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--state",
+          "<fixture>/selected/state.json",
+          "--record",
+          "baseline",
+          "--out",
+          "<output>/state-mismatch.json"
+        ],
+        "exit": 3
+      },
+      {
+        "name": "unsafe_temp",
+        "args": [
+          "audit",
+          "--inventory",
+          "<output>/both.json",
+          "--xray",
+          "<output>/scan-flood.exe",
+          "--out",
+          "<output>/temp.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "gap_budget",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/gaps",
+          "--out",
+          "<output>/gaps.json"
+        ],
+        "exit": 2
+      },
+      {
+        "name": "production_output_budget",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/large",
+          "--out",
+          "<output>/large.json"
+        ],
+        "exit": 2
+      }
+    ],
+    "production_inventory_budget": {
+      "bytes": 66010508,
+      "retained_whole_packages": 937,
+      "candidate_packages": 1000
+    },
+    "status": "passed"
+  },
+  "shared_harness": {
+    "status": "pass",
+    "commands_per_binary": 17,
+    "syntax_samples": 14
+  },
+  "published_compatibility": {
+    "published_revision": "3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0",
+    "actual_inventory_v2": true,
+    "actual_report_v1": true,
+    "actual_state_v1": true,
+    "content_comparison": true,
+    "legacy_append_refused": true,
+    "findings_exit_priority": true,
+    "v2_evaluation_not_comparable_with_v3": true,
+    "no_state_migration": true,
+    "commands": [
+      {
+        "binary": "skill-audit-published",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-published",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "baseline",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review3",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review3",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "snapshot",
+          "--json"
+        ],
+        "exit": 3
+      },
+      {
+        "binary": "skill-audit-review3",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-review3",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "snapshot",
+          "--json"
+        ],
+        "exit": 1
+      }
+    ]
+  },
+  "freeze_diff_unchanged": [
+    "go.mod",
+    "go.sum",
+    "vendor",
+    "internal/audit/catalog",
+    ".gitattributes"
+  ],
+  "limitations": [
+    "native Linux/Windows runtime",
+    "native case-sensitive O1",
+    "Windows junction/descendant/durability checks",
+    "real Skill X-Ray/OpenGrep",
+    "live acquisition",
+    "exhaustive device scan"
+  ]
+}

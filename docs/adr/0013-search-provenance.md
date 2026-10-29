@@ -23,3 +23,7 @@ Rejected alternative: disallow saved/live combinations. That is simpler but remo
 | Q1 | Published v2 saved hit plus a fresh query from another source | Each input keeps its source, query, hit membership and diagnostics in v3. |
 | Q2 | Merge an already merged search, with overlapping hits and a failed/empty input | Inputs stay flat; all evidence survives; sync imports each deduplicated reference once. |
 | Q3 | Read v2 or v3, then ordinary sync | Both are accepted; source files stay byte-for-byte unchanged; unknown schemas are rejected. |
+
+## Third-review evidence (2026-10-29)
+
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Q1–Q3 pass with different-source batches, an opaque published-v2 query, failed/empty inputs, nested flat merges and deduplicated sync imports. CLI tests save merged v3, consume it in sync and preserve the v2 source file. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
