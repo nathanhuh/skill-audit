@@ -16,6 +16,7 @@ type InventoryOptions struct {
 	Home, StatePath                   string
 	MaxEntries, MaxPackages, MaxDepth int
 	DeviceRoots                       func() []string
+	Budget                            *InventoryBudget
 }
 
 func DefaultInventoryOptions() InventoryOptions {
@@ -77,25 +78,35 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 	if o.StatePath != "" {
 		inv.StatePath = Abs(o.StatePath)
 	}
+	budget := newInventoryBudget(&inv, o.Budget)
+	if inv.outputFailure != nil {
+		inv.Diagnostics = append(inv.Diagnostics, diag("inventory_output_budget", "", inv.outputFailure.Error()))
+		return inv
+	}
 	exclusions := map[string]*Exclusion{}
-	exclude := func(rule, path string) {
-		x := exclusions[rule]
-		if x == nil {
-			x = &Exclusion{Rule: rule, Examples: []string{}}
-			exclusions[rule] = x
-		}
-		x.Count++
-		if len(x.Examples) < 3 {
-			x.Examples = append(x.Examples, path)
-		} else {
-			x.OmittedExamples++
-		}
-	}
-	gap := func(code, path, msg string) {
-		inv.Complete = false
-		inv.Diagnostics = append(inv.Diagnostics, diag(code, path, msg))
-	}
 	stopped := ""
+	gap := func(code, path, msg string) { budget.gap(diag(code, path, msg)) }
+	exclude := func(rule, path string) {
+		old := exclusions[rule]
+		next := Exclusion{Rule: rule, Examples: []string{}}
+		if old != nil {
+			next = *old
+			next.Examples = append([]string(nil), old.Examples...)
+		}
+		next.Count++
+		if len(next.Examples) < 3 {
+			next.Examples = append(next.Examples, path)
+		} else {
+			next.OmittedExamples++
+		}
+		if !budget.exclusion(old, next) {
+			stopped = "inventory_output_budget"
+			gap(stopped, path, "exclusion evidence exceeded inventory output capacity")
+			return
+		}
+		exclusions[rule] = &next
+	}
+
 	check := func() bool {
 		if ctx.Err() != nil {
 			stopped = "inventory_canceled"
@@ -109,12 +120,14 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 		return stopped != ""
 	}
 	selected := map[string]bool{}
-	for _, r := range roots {
-		selected[r] = true
-	}
 	selectedInfo := map[string]os.FileInfo{}
 	for _, r := range roots {
-		if i, e := os.Lstat(r); e == nil && i.IsDir() && !isLink(i) {
+		if NoLinks(r) != nil {
+			continue
+		}
+		i, e := os.Lstat(r)
+		if e == nil && i.IsDir() && !isLink(i) && exclusionRule(r, i, true) == "" {
+			selected[r] = true
 			selectedInfo[r] = i
 		}
 	}
@@ -146,7 +159,7 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 		}
 		rule := exclusionRule(path, info, root)
 		if rule != "" {
-			if root && strings.HasPrefix(rule, "system/") {
+			if root {
 				gap("excluded_root", path, "selected root rejected by "+rule)
 			} else {
 				exclude(rule, path)
@@ -157,7 +170,7 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 			gap("symlink_skipped", path, "link not followed")
 			return
 		}
-		inv.Entries++
+		budget.entry()
 		if !info.IsDir() {
 			if !info.Mode().IsRegular() {
 				gap("special_file", path, "special entry not inspected")
@@ -184,7 +197,11 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 					}
 					p := Measure(ctx, path, o.Home)
 					p.Data = nil
-					inv.Packages = append(inv.Packages, p)
+					if !budget.packageMeasurement(p) {
+						stopped = "inventory_output_budget"
+						gap(stopped, path, "next whole package measurement exceeds inventory output capacity; earlier measurements retained")
+						return
+					}
 					break
 				}
 			}
@@ -239,6 +256,7 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 	}
 	sort.Slice(inv.Exclusions, func(i, j int) bool { return inv.Exclusions[i].Rule < inv.Exclusions[j].Rule })
 	sort.Slice(inv.Packages, func(i, j int) bool { return Identity(inv.Packages[i]) < Identity(inv.Packages[j]) })
+	budget.finish()
 	return inv
 }
 func unique(s []string) []string {

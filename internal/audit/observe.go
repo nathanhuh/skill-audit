@@ -13,11 +13,17 @@ type AuditOptions struct {
 }
 
 func AuditRun(ctx context.Context, inv Inventory, c Catalog, o AuditOptions) Report {
-	r := Report{Schema: ReportSchema, StatePath: inv.StatePath, Home: inv.Home, Limits: inv.Limits, CreatedAt: time.Now().UTC(), CatalogID: CatalogID(c), Roots: inv.Roots, Policy: inv.Policy, DiscoveryComplete: inv.Complete, Complete: inv.Complete, Exclusions: inv.Exclusions, Diagnostics: append([]Diagnostic(nil), inv.Diagnostics...), Skills: []Skill{}, Recording: &Recording{Status: "not_requested"}}
+	r := Report{BudgetStop: inv.BudgetStop, DiagnosticsTruncated: inv.DiagnosticsTruncated, OmittedDiagnostics: inv.OmittedDiagnostics, Schema: ReportSchema, StatePath: inv.StatePath, Home: inv.Home, Limits: inv.Limits, CreatedAt: time.Now().UTC(), CatalogID: CatalogID(c), Roots: inv.Roots, Policy: inv.Policy, DiscoveryComplete: inv.Complete, Complete: inv.Complete, Exclusions: inv.Exclusions, Diagnostics: append([]Diagnostic(nil), inv.Diagnostics...), Skills: []Skill{}, Recording: &Recording{Status: "not_requested"}}
 	r.Diagnostics = append(r.Diagnostics, c.Diagnostics...)
 	for _, d := range c.Diagnostics {
 		if d.Incomplete {
 			r.Complete = false
+		}
+	}
+	if o.StatePath != "" {
+		if e := stateExclusionError(o.StatePath, r.Roots, r.StatePath); e != nil {
+			r.Complete = false
+			r.Diagnostics = append(r.Diagnostics, diag("state_exclusion_unconfirmed", Abs(o.StatePath), e.Error()))
 		}
 	}
 	var state *State
@@ -33,12 +39,15 @@ func AuditRun(ctx context.Context, inv Inventory, c Catalog, o AuditOptions) Rep
 		}
 	}
 	matcher := NewMatcher(c)
-	scanner := NewScanner(o.Xray, o.Timeout, o.ScanTimeout)
+	scanner := NewScanner(o.Xray, o.Timeout, o.ScanTimeout, inv.Packages...)
 	defer scanner.Close()
 	packages := append([]Package(nil), inv.Packages...)
 	sort.Slice(packages, func(i, j int) bool { return Identity(packages[i]) < Identity(packages[j]) })
+	interrupted := false
 	for _, prior := range packages {
 		if ctx.Err() != nil {
+			interrupted = true
+			r.interrupted = true
 			r.Complete = false
 			r.Diagnostics = append(r.Diagnostics, diag("audit_interrupted", prior.Path, ctx.Err().Error()))
 			break
@@ -63,7 +72,8 @@ func AuditRun(ctx context.Context, inv Inventory, c Catalog, o AuditOptions) Rep
 		s.Data = nil
 		r.Skills = append(r.Skills, s)
 	}
-	if ctx.Err() != nil && !hasCode(r.Diagnostics, "audit_interrupted") {
+	if ctx.Err() != nil && !interrupted {
+		r.interrupted = true
 		r.Complete = false
 		r.Diagnostics = append(r.Diagnostics, diag("audit_interrupted", "", ctx.Err().Error()))
 	}

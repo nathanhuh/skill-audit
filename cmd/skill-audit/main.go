@@ -150,6 +150,9 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 			for _, p := range i.Packages {
 				printDiagnostics(out, p.Diagnostics)
 			}
+			if i.DiagnosticsTruncated {
+				printOmissions(out, i.OmittedDiagnostics)
+			}
 			printExclusions(out, i.Exclusions)
 			printDiagnostics(out, i.Diagnostics)
 		})
@@ -272,6 +275,12 @@ func printDiagnostics(w io.Writer, ds []audit.Diagnostic) {
 	}
 }
 func printReport(w io.Writer, r audit.Report) {
+	if r.DiagnosticsTruncated {
+		printOmissions(w, r.OmittedDiagnostics)
+	}
+	if r.BudgetStop != "" {
+		fmt.Fprintf(w, "inventory_budget_stop=%q\n", r.BudgetStop)
+	}
 	fmt.Fprintf(w, "audit skills=%d complete=%t discovery_complete=%t\n", len(r.Skills), r.Complete, r.DiscoveryComplete)
 	for _, s := range r.Skills {
 		fmt.Fprintf(w, "%s %q correlation=%s lineage=%s\n", s.Scope, s.Path, s.Correlation.Status, s.Lineage.Status)
@@ -316,4 +325,9 @@ func (w *checkedWriter) Write(p []byte) (int, error) {
 		w.err = e
 	}
 	return n, e
+}
+
+func printOmissions(w io.Writer, counts map[string]int) {
+	b, _ := json.Marshal(counts)
+	fmt.Fprintf(w, "diagnostics_truncated=true omitted_by_code=%s\n", b)
 }

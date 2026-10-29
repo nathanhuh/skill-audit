@@ -81,7 +81,7 @@ func TestD1D2D10D11D12B1B2B5B7B10B11(t *testing.T) {
 	}
 	c := Catalog{Schema: CatalogSchema}
 	r := AuditRun(context.Background(), i, c, AuditOptions{})
-	p := filepath.Join(root, "baseline.json")
+	p := filepath.Join(tempDir(t), "baseline.json")
 	rec := Record(context.Background(), p, "baseline", r, nil, nil)
 	if rec.Status != "recorded" {
 		t.Fatal(rec)
@@ -304,8 +304,10 @@ func TestD8BoundedExclusionsAndD3Links(t *testing.T) {
 func TestB6LockAndImmutableBaseline(t *testing.T) {
 	root := tempDir(t)
 	fixture(t, root, "p/SKILL.md", "# fixture")
-	r := AuditRun(context.Background(), InventoryRun(context.Background(), fixtureOptions(root)), Catalog{}, AuditOptions{})
 	state := filepath.Join(root, "state.json")
+	o := fixtureOptions(root)
+	o.StatePath = state
+	r := AuditRun(context.Background(), InventoryRun(context.Background(), o), Catalog{}, AuditOptions{})
 	rec := Record(context.Background(), state, "baseline", r, nil, nil)
 	if rec.Status != "recorded" {
 		t.Fatal(rec)

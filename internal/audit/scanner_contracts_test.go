@@ -215,6 +215,10 @@ func TestMain(m *testing.M) {
 		if b, e := os.ReadFile(filepath.Join(os.Args[6], "SKILL.md")); e != nil || len(b) == 0 {
 			os.Exit(92)
 		}
+		if strings.Contains(filepath.Base(exe), "scan-flood") {
+			fmt.Print(strings.Repeat("x", 70<<10))
+			fmt.Fprint(os.Stderr, strings.Repeat("y", 70<<10))
+		}
 		if e := os.WriteFile(os.Args[3], []byte(cleanSARIF), 0600); e != nil {
 			os.Exit(93)
 		}

@@ -17,13 +17,16 @@ type wireRoot struct {
 	Status   string `json:"status"`
 }
 type wireDiscovery struct {
-	Complete   *bool       `json:"complete,omitempty"`
-	StatePath  string      `json:"state_path,omitempty"`
-	Roots      []string    `json:"roots"`
-	Home       string      `json:"home,omitempty"`
-	Policy     string      `json:"policy"`
-	Limits     Limits      `json:"limits"`
-	Exclusions []Exclusion `json:"exclusions"`
+	BudgetStop           string         `json:"budget_stop,omitempty"`
+	DiagnosticsTruncated bool           `json:"diagnostics_truncated,omitempty"`
+	OmittedDiagnostics   map[string]int `json:"omitted_diagnostics,omitempty"`
+	Complete             *bool          `json:"complete,omitempty"`
+	StatePath            string         `json:"state_path,omitempty"`
+	Roots                []string       `json:"roots"`
+	Home                 string         `json:"home,omitempty"`
+	Policy               string         `json:"policy"`
+	Limits               Limits         `json:"limits"`
+	Exclusions           []Exclusion    `json:"exclusions"`
 }
 type WireChange struct {
 	Path string `json:"path"`
@@ -48,7 +51,7 @@ type wireReport struct {
 }
 
 func (r Report) MarshalJSON() ([]byte, error) {
-	w := wireReport{Discovery: &wireDiscovery{Roots: r.Roots, Home: r.Home, Policy: r.Policy, Limits: r.Limits, Exclusions: nonNil(r.Exclusions), Complete: &r.DiscoveryComplete, StatePath: r.StatePath}, Recording: r.Recording, Schema: r.Schema, CatalogID: r.CatalogID, Roots: []wireRoot{}, Skills: nonNil(r.Skills), Lineage: append([]WireLineage{}, r.Missing...), Diagnostics: nonNil(r.Diagnostics)}
+	w := wireReport{Discovery: &wireDiscovery{Roots: r.Roots, Home: r.Home, Policy: r.Policy, Limits: r.Limits, Exclusions: nonNil(r.Exclusions), Complete: &r.DiscoveryComplete, StatePath: r.StatePath, BudgetStop: r.BudgetStop, DiagnosticsTruncated: r.DiagnosticsTruncated, OmittedDiagnostics: r.OmittedDiagnostics}, Recording: r.Recording, Schema: r.Schema, CatalogID: r.CatalogID, Roots: []wireRoot{}, Skills: nonNil(r.Skills), Lineage: append([]WireLineage{}, r.Missing...), Diagnostics: nonNil(r.Diagnostics)}
 	for _, s := range r.Skills {
 		w.Roots = append(w.Roots, wireRoot{s.Scope, s.Path, true, "inventoried"})
 		if s.Lineage.Status == "" || s.Lineage.Status == "not_compared" {
@@ -88,6 +91,9 @@ func (r *Report) UnmarshalJSON(b []byte) error {
 		r.Limits = w.Discovery.Limits
 		r.Exclusions = w.Discovery.Exclusions
 		r.StatePath = w.Discovery.StatePath
+		r.BudgetStop = w.Discovery.BudgetStop
+		r.DiagnosticsTruncated = w.Discovery.DiagnosticsTruncated
+		r.OmittedDiagnostics = w.Discovery.OmittedDiagnostics
 	}
 	for _, d := range r.Diagnostics {
 		if d.Incomplete {

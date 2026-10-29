@@ -261,3 +261,35 @@ func TestOutputFileFailureStillDeliversRecordingSummary(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+func TestO3PlannedCaseAliasesCannotOverwriteCommittedState(t *testing.T) {
+	root := testRoot(t)
+	pkg := filepath.Join(root, "p")
+	writeFixture(t, filepath.Join(pkg, "SKILL.md"), "# fixture")
+	inv := filepath.Join(root, "inventory.json")
+	invoke("inventory", "--root", pkg, "--out", inv)
+	state := filepath.Join(root, "State.json")
+	report := filepath.Join(root, "state.json")
+	code, out, stderr := invoke("audit", "--inventory", inv, "--state", state, "--record", "baseline", "--out", report)
+	if !strings.Contains(out, "recording=recorded") || !strings.Contains(stderr, "recording=recorded") {
+		t.Fatal(code, out, stderr)
+	}
+	a, e := os.Stat(state)
+	if e != nil {
+		t.Fatal(e)
+	}
+	b, e := os.Stat(report)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if os.SameFile(a, b) {
+		if code != 2 {
+			t.Fatal(code, out, stderr)
+		}
+	} else if code != 0 {
+		t.Fatal(code, out, stderr)
+	}
+	s, e := audit.ReadState(state)
+	if e != nil || len(s.Observations) != 1 {
+		t.Fatal(s, e)
+	}
+}

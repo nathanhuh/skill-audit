@@ -436,12 +436,14 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 	groups := map[string][]importTarget{}
 	explicitSet := map[string]bool{}
 	for _, r := range explicit {
+		r = strings.ToLower(r)
 		if !explicitSet[r] {
 			groups[r] = append(groups[r], importTarget{repo: r, full: true})
 			explicitSet[r] = true
 		}
 	}
 	for _, h := range search.Hits {
+		h.Repository = strings.ToLower(h.Repository)
 		groups[h.Repository] = append(groups[h.Repository], importTarget{h.Repository, h.Path, h.Slug, false})
 	}
 	order := []string{}
@@ -462,6 +464,7 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 	attrs := map[string]bool{}
 	budget := false
 	budgetReason := "import admission"
+	sizes := newStoreSize(c)
 	diagnostic := func(code, p, msg string) {
 		c.Complete = false
 		d := diag(code, p, msg)
@@ -473,11 +476,11 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 			}
 			d.Message = string(b) + "… [truncated]"
 		}
-		candidate := c
-		candidate.Diagnostics = append(append([]Diagnostic(nil), c.Diagnostics...), d)
-		b, _ := Encode(candidate)
-		if len(b)+reserve <= a.OutputLimit {
-			c = candidate
+		delta, err := sizes.diagnostic(d)
+		if err == nil && sizes.bytes+delta+reserve <= a.OutputLimit {
+			c.Diagnostics = append(c.Diagnostics, d)
+			sizes.bytes += delta
+			sizes.diagnostics++
 		} else {
 			budget = true
 			budgetReason = "diagnostic evidence capacity"
@@ -544,20 +547,21 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 				for _, b := range r.Data {
 					extra += len(b)
 				}
-				candidate := c
-				candidate.Skills = append(append([]Reference(nil), c.Skills...), r)
-				candidate.Attribution = append([]Attribution(nil), c.Attribution...)
-				newAttrs := []string{}
+				delta, e := sizes.entry(r)
+				newAttrs := []Attribution{}
 				for _, x := range at {
 					k := x.Repository + "\x00" + x.Commit + "\x00" + x.Path
 					if !attrs[k] {
 						extra += len(x.Data)
-						newAttrs = append(newAttrs, k)
-						candidate.Attribution = append(candidate.Attribution, x)
+						n, err := sizes.attribute(x, len(newAttrs))
+						if err != nil {
+							e = err
+						}
+						delta += n
+						newAttrs = append(newAttrs, x)
 					}
 				}
-				b, e := Encode(candidate)
-				if e != nil || raw+extra > a.RawLimit || len(b)+reserve > a.OutputLimit {
+				if e != nil || raw+extra > a.RawLimit || sizes.bytes+delta+reserve > a.OutputLimit {
 					if raw+extra > a.RawLimit {
 						budgetReason = "retained raw content"
 					} else {
@@ -566,11 +570,15 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 					budget = true
 					break
 				}
-				c = candidate
+				c.Skills = append(c.Skills, r)
+				c.Attribution = append(c.Attribution, newAttrs...)
+				sizes.bytes += delta
+				sizes.entries++
+				sizes.attribution += len(newAttrs)
 				raw += extra
 				seen[key] = true
 				for _, k := range newAttrs {
-					attrs[k] = true
+					attrs[k.Repository+"\x00"+k.Commit+"\x00"+k.Path] = true
 				}
 			}
 		}

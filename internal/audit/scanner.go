@@ -25,11 +25,15 @@ type Scanner struct {
 	terminal         *Evaluation
 	probed           bool
 	temp             string
+	packages         []Package
 	process          func(context.Context, string, []string) (string, int, error)
 }
 
-func NewScanner(executable string, operation, phase time.Duration) *Scanner {
-	s := &Scanner{executable: executable, timeout: phase, reserve: operation / 4, process: runScanner}
+func NewScanner(executable string, operation, phase time.Duration, packages ...Package) *Scanner {
+	s := &Scanner{executable: executable, timeout: phase, reserve: operation / 4, packages: append([]Package(nil), packages...)}
+	s.process = func(ctx context.Context, exe string, args []string) (string, int, error) {
+		return runScanner(ctx, exe, args, s.temp)
+	}
 	if phase <= 0 {
 		s.timeout = 30 * time.Second
 	}
@@ -76,7 +80,7 @@ func (s *Scanner) phase(ctx context.Context) (context.Context, context.CancelFun
 }
 
 type cappedBuffer struct {
-	bytes.Buffer
+	buffer    bytes.Buffer
 	remaining int
 	overflow  bool
 }
@@ -88,21 +92,24 @@ func (b *cappedBuffer) Write(p []byte) (int, error) {
 		p = p[:b.remaining]
 	}
 	b.remaining -= len(p)
-	b.Buffer.Write(p)
+	b.buffer.Write(p)
 	return n, nil
 }
-func runScanner(ctx context.Context, exe string, args []string) (string, int, error) {
+
+func (b *cappedBuffer) String() string { return b.buffer.String() }
+func (b *cappedBuffer) Len() int       { return b.buffer.Len() }
+
+type consoleLimitError struct{}
+
+func (consoleLimitError) Error() string {
+	return "scanner console output exceeded 64 KiB; logs truncated"
+}
+func runScanner(ctx context.Context, exe string, args []string, dir string) (string, int, error) {
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Env = scannerEnv()
+	cmd.Dir = dir
 	if len(args) > 2 && args[0] == "scan" {
 		cmd.Dir = filepath.Dir(args[2])
-	} else {
-		dir, e := os.MkdirTemp(resolvedTemp(), "skill-audit-probe-*")
-		if e != nil {
-			return "", -1, fmt.Errorf("probe staging failed")
-		}
-		defer os.RemoveAll(dir)
-		cmd.Dir = dir
 	}
 	configureProcess(cmd)
 	out := &cappedBuffer{remaining: 64 << 10}
@@ -113,17 +120,12 @@ func runScanner(ctx context.Context, exe string, args []string) (string, int, er
 	if ctx.Err() != nil {
 		return out.String(), -1, ctx.Err()
 	}
-	if out.overflow || stderr.overflow {
-		return out.String(), -1, fmt.Errorf("scanner output limit")
+	code := -1
+	if cmd.ProcessState != nil {
+		code = cmd.ProcessState.ExitCode()
 	}
-	code := 0
-	if e != nil {
-		var ee *exec.ExitError
-		if errors.As(e, &ee) {
-			code = ee.ExitCode()
-		} else {
-			code = -1
-		}
+	if out.overflow || stderr.overflow {
+		return out.String(), code, consoleLimitError{}
 	}
 	return out.String(), code, e
 }
@@ -145,13 +147,19 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 	if s.terminal != nil {
 		return *s.terminal, nil
 	}
+	s.packages = append(s.packages, Package{Path: p.Path})
 	if !s.probed {
 		phase, cancel, e := s.phase(ctx)
 		if e != nil {
 			return s.fail(e.Error()), nil
 		}
+		if err := s.prepareTemp(); err != nil {
+			cancel()
+			return s.fail(err.Error()), nil
+		}
 		output, code, err := s.process(phase, s.executable, []string{"version"})
-		if code == 75 && phase.Err() == nil {
+		var overflow consoleLimitError
+		if code == 75 && phase.Err() == nil && !errors.As(err, &overflow) {
 			output, _, err = s.process(phase, s.executable, []string{"version"})
 		}
 		cancel()
@@ -168,12 +176,6 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 		return s.fail(e.Error()), nil
 	}
 	defer cancel()
-	if s.temp == "" {
-		s.temp, e = os.MkdirTemp(resolvedTemp(), "skill-audit-scanner-*")
-		if e != nil {
-			return s.fail("scanner staging failed"), nil
-		}
-	}
 	dir, e := os.MkdirTemp(s.temp, "scan-*")
 	if e != nil {
 		return s.fail("scanner staging failed"), nil
@@ -211,6 +213,9 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 	b, e := ReadBounded(reportPath, 8<<20)
 	if e != nil {
 		evaluation.Message = "scanner report unavailable"
+		if err != nil {
+			evaluation.Message += "; " + safeProcessError(err)
+		}
 		return evaluation, nil
 	}
 	findings, e := parseSARIF(b, &evaluation)
@@ -219,15 +224,22 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 		evaluation.Message = e.Error()
 		return evaluation, nil
 	}
-	if !p.Complete || code != 0 {
+	if !p.Complete || code != 0 || err != nil {
 		if Completed(evaluation) {
 			evaluation.Status = "partial"
 		}
 		evaluation.Message = fmt.Sprintf("incomplete measurement or scanner exit %d", code)
+		if err != nil {
+			evaluation.Message = safeProcessError(err)
+		}
 	}
 	return evaluation, findings
 }
 func safeProcessError(e error) string {
+	var overflow consoleLimitError
+	if errors.As(e, &overflow) {
+		return overflow.Error()
+	}
 	if errors.Is(e, context.DeadlineExceeded) {
 		return "deadline exceeded"
 	}
@@ -356,4 +368,46 @@ func resolvedTemp() string {
 		return os.TempDir()
 	}
 	return p
+}
+
+// Validate the real temp base against every audited package before any write.
+func (s *Scanner) prepareTemp() error {
+	if s.temp != "" {
+		return nil
+	}
+	base := resolvedTemp()
+	if e := NoLinks(base); e != nil {
+		return fmt.Errorf("scanner staging refused: %w", e)
+	}
+	for _, p := range s.packages {
+		if p.Path == "" {
+			continue
+		}
+		inside := Within(p.Path, base)
+		pkg, err := os.Lstat(p.Path)
+		if err == nil {
+			for q := base; ; q = filepath.Dir(q) {
+				info, e := os.Lstat(q)
+				if e == nil && os.SameFile(pkg, info) {
+					inside = true
+					break
+				}
+				if filepath.Dir(q) == q {
+					break
+				}
+			}
+		}
+		if inside {
+			return fmt.Errorf("scanner staging refused: temporary directory is inside audited package %q", p.Path)
+		}
+	}
+	if e := OutputSafe(filepath.Join(base, ".skill-audit-stage-check"), nil, s.packages); e != nil {
+		return fmt.Errorf("scanner staging refused: %w", e)
+	}
+	var e error
+	s.temp, e = os.MkdirTemp(base, "skill-audit-scanner-*")
+	if e != nil {
+		return fmt.Errorf("scanner staging failed")
+	}
+	return nil
 }

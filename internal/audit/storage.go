@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -76,7 +75,7 @@ func OutputSafe(path string, inputs []string, packages []Package) error {
 			continue
 		}
 		p = Abs(p)
-		if strings.EqualFold(p, path) {
+		if p == path {
 			return fmt.Errorf("output aliases input %q", p)
 		}
 		a, e := os.Stat(path)
@@ -148,6 +147,16 @@ func atomicWrite(ctx context.Context, path string, b []byte, exclusive bool, syn
 	return WriteResult{true, syncDir(dir)}
 }
 func WriteJSON(ctx context.Context, path string, v any, packages ...Package) error {
+	switch x := v.(type) {
+	case Inventory:
+		if x.outputFailure != nil {
+			return x.outputFailure
+		}
+	case *Inventory:
+		if x.outputFailure != nil {
+			return x.outputFailure
+		}
+	}
 	b, e := Encode(v)
 	if e != nil {
 		return e
@@ -209,6 +218,9 @@ func ReadState(path string) (State, error) {
 func Record(ctx context.Context, path, mode string, r Report, old *State, syncDir func(string) error) Recording {
 	result := Recording{Status: "not_recorded", Path: Abs(path)}
 	fail := func(e error) Recording { result.Message = e.Error(); return result }
+	if r.interrupted {
+		return fail(fmt.Errorf("current observation was interrupted"))
+	}
 	if mode != "baseline" && mode != "snapshot" {
 		return fail(fmt.Errorf("record mode must be baseline or snapshot"))
 	}
@@ -223,13 +235,11 @@ func Record(ctx context.Context, path, mode string, r Report, old *State, syncDi
 			complete++
 		}
 	}
-	if e := OutputSafe(path, nil, ps); e != nil {
+	if e := stateExclusionError(path, r.Roots, r.StatePath); e != nil {
 		return fail(e)
 	}
-	for _, d := range r.Diagnostics {
-		if d.Incomplete && (d.Code == "inventory_canceled" || d.Code == "inventory_timeout" || d.Code == "audit_interrupted" || d.Code == "audit_canceled") {
-			return fail(fmt.Errorf("interrupted observation cannot be recorded"))
-		}
+	if e := OutputSafe(path, nil, ps); e != nil {
+		return fail(e)
 	}
 	if (!r.DiscoveryComplete || len(r.Skills) > 0) && complete == 0 {
 		return fail(fmt.Errorf("no complete package measurements in partial observation"))
@@ -290,4 +300,16 @@ func Record(ctx context.Context, path, mode string, r Report, old *State, syncDi
 		result.Message = "state committed; durability unconfirmed: " + w.Err.Error()
 	}
 	return result
+}
+
+func stateExclusionError(path string, roots []string, designated string) error {
+	if designated != "" && Abs(path) == Abs(designated) {
+		return nil
+	}
+	for _, root := range roots {
+		if directoryContains(root, path) {
+			return fmt.Errorf("state path is within discovery scope but was not designated for exclusion; refresh inventory with --state %q", Abs(path))
+		}
+	}
+	return nil
 }

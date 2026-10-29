@@ -58,18 +58,22 @@ type Limits struct {
 	Depth    int `json:"depth"`
 }
 type Inventory struct {
-	Limits      Limits       `json:"limits"`
-	Schema      string       `json:"schema"`
-	CreatedAt   time.Time    `json:"created_at"`
-	Roots       []string     `json:"roots"`
-	Home        string       `json:"home,omitempty"`
-	Policy      string       `json:"policy"`
-	Complete    bool         `json:"complete"`
-	Entries     int          `json:"entries"`
-	Packages    []Package    `json:"packages"`
-	Exclusions  []Exclusion  `json:"exclusions,omitempty"`
-	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`
-	StatePath   string       `json:"state_path,omitempty"`
+	outputFailure        error
+	BudgetStop           string         `json:"budget_stop,omitempty"`
+	DiagnosticsTruncated bool           `json:"diagnostics_truncated,omitempty"`
+	OmittedDiagnostics   map[string]int `json:"omitted_diagnostics,omitempty"`
+	Limits               Limits         `json:"limits"`
+	Schema               string         `json:"schema"`
+	CreatedAt            time.Time      `json:"created_at"`
+	Roots                []string       `json:"roots"`
+	Home                 string         `json:"home,omitempty"`
+	Policy               string         `json:"policy"`
+	Complete             bool           `json:"complete"`
+	Entries              int            `json:"entries"`
+	Packages             []Package      `json:"packages"`
+	Exclusions           []Exclusion    `json:"exclusions,omitempty"`
+	Diagnostics          []Diagnostic   `json:"diagnostics,omitempty"`
+	StatePath            string         `json:"state_path,omitempty"`
 }
 type Reference struct {
 	ID           string            `json:"id"`
@@ -150,21 +154,25 @@ type Recording struct {
 	Message string `json:"message,omitempty"`
 }
 type Report struct {
-	StatePath         string        `json:"-"`
-	Limits            Limits        `json:"-"`
-	Home              string        `json:"-"`
-	Missing           []WireLineage `json:"-"`
-	Schema            string        `json:"schema"`
-	CreatedAt         time.Time     `json:"created_at"`
-	CatalogID         string        `json:"catalog_id"`
-	Roots             []string      `json:"roots"`
-	Policy            string        `json:"discovery_policy"`
-	DiscoveryComplete bool          `json:"discovery_complete"`
-	Complete          bool          `json:"complete"`
-	Exclusions        []Exclusion   `json:"exclusions,omitempty"`
-	Diagnostics       []Diagnostic  `json:"diagnostics,omitempty"`
-	Skills            []Skill       `json:"skills"`
-	Recording         *Recording    `json:"recording,omitempty"`
+	interrupted          bool
+	BudgetStop           string
+	DiagnosticsTruncated bool
+	OmittedDiagnostics   map[string]int
+	StatePath            string        `json:"-"`
+	Limits               Limits        `json:"-"`
+	Home                 string        `json:"-"`
+	Missing              []WireLineage `json:"-"`
+	Schema               string        `json:"schema"`
+	CreatedAt            time.Time     `json:"created_at"`
+	CatalogID            string        `json:"catalog_id"`
+	Roots                []string      `json:"roots"`
+	Policy               string        `json:"discovery_policy"`
+	DiscoveryComplete    bool          `json:"discovery_complete"`
+	Complete             bool          `json:"complete"`
+	Exclusions           []Exclusion   `json:"exclusions,omitempty"`
+	Diagnostics          []Diagnostic  `json:"diagnostics,omitempty"`
+	Skills               []Skill       `json:"skills"`
+	Recording            *Recording    `json:"recording,omitempty"`
 }
 type State struct {
 	RawObservations []json.RawMessage `json:"-"`

@@ -13,6 +13,8 @@ Each ADR records one decision: its rule, consequences, acceptance scenarios with
 | [0007](0007-reference-acquisition.md) | Reference acquisition, cache and budgets | accepted | C1–C8 |
 | [0008](0008-versioned-data-contracts.md) | Versioned data contracts | accepted | V1–V7 |
 | [0009](0009-portability-boundaries.md) | Portability boundaries | accepted | P1–P4 |
+| [0010](0010-inventory-output-budget.md) | Inventory output and gap-detail budgets | accepted | I1–I4 |
+| [0011](0011-output-path-identity.md) | Output/input filesystem identity | accepted | O1–O3 |
 
 ## Status
 
