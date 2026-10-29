@@ -170,3 +170,16 @@ func TestI1TruncationEvidenceSurvivesAuditAndStoredObservation(t *testing.T) {
 		t.Fatal(history, e)
 	}
 }
+
+func TestReview2FinalBudgetFailureIsIncomplete(t *testing.T) {
+	inv := Inventory{Schema: InventorySchema, Complete: true, Packages: []Package{}, Roots: []string{"/fixture"}}
+	budget := newInventoryBudget(&inv, nil)
+	budget.limit.OutputBytes = budget.used - 1
+	budget.finish()
+	b, _ := Encode(inv)
+	var raw map[string]any
+	json.Unmarshal(b, &raw)
+	if inv.outputFailure == nil || inv.Complete || raw["complete"] != false || !hasCode(inv.Diagnostics, "inventory_output_budget") {
+		t.Fatal(inv, string(b))
+	}
+}
