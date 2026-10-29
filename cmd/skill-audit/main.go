@@ -8,68 +8,76 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
 	"skill-audit/internal/audit"
-	"skill-audit/internal/workflow"
 )
 
-type many []string
+type stringsFlag []string
 
-func (m *many) String() string     { return fmt.Sprint([]string(*m)) }
-func (m *many) Set(s string) error { *m = append(*m, s); return nil }
+func (s *stringsFlag) String() string     { return strings.Join(*s, ",") }
+func (s *stringsFlag) Set(v string) error { *s = append(*s, v); return nil }
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	os.Exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
 }
-func run(ctx context.Context, args []string, out, errout io.Writer) int {
-	fail := func(e error) int { fmt.Fprintf(errout, "skill-audit: %q\n", e.Error()); return 2 }
+func run(parent context.Context, args []string, out, errOut io.Writer) int {
+	delivery := &checkedWriter{w: out}
+	out = delivery
 	if len(args) == 0 {
-		return fail(fmt.Errorf("usage: skill-audit {inventory|search|sync|audit} --help"))
+		fmt.Fprintln(out, "usage: skill-audit inventory|search|sync|audit [options]")
+		return 2
 	}
-	f := flag.NewFlagSet(args[0], flag.ContinueOnError)
-	f.SetOutput(errout)
-	var roots, repos many
-	var device, searchNames, asJSON bool
-	var home, output, inventoryPath, catalogPath, searchFile, query, registry, ref, xray, state, record string
-	var limit = 20
-	var maxEntries, maxPackages, maxDepth int
-	var deadline time.Duration
-	f.StringVar(&output, "out", "", "save versioned JSON; parent must exist")
-	f.DurationVar(&deadline, "timeout", 2*time.Minute, "overall operation deadline; external scanner phases have shorter budgets")
-	switch args[0] {
+	command := args[0]
+	if command == "--help" || command == "help" {
+		fmt.Fprintln(out, "usage: skill-audit inventory|search|sync|audit [options]")
+		return 0
+	}
+	f := flag.NewFlagSet(command, flag.ContinueOnError)
+	f.SetOutput(errOut)
+	timeout := f.Duration("timeout", 2*time.Minute, "operation deadline")
+	output := f.String("out", "", "output JSON file")
+	asJSON := f.Bool("json", false, "print JSON")
+	var roots, repos stringsFlag
+	var device bool
+	var home, inventory, catalog, state, record, xray, query, registry, searchPath, ref string
+	var names bool
+	var limit int
+	var scanTimeout time.Duration
+	opts := audit.DefaultInventoryOptions()
+	switch command {
 	case "inventory":
-		homeDefault, _ := os.UserHomeDir()
-		f.Var(&roots, "root", "inventory search root; repeatable")
-		f.BoolVar(&device, "device", false, "inventory all accessible device roots, excluding documented subtrees")
-		f.StringVar(&home, "home", homeDefault, "home for global/project classification")
-		f.IntVar(&maxEntries, "max-entries", 500000, "inventory entry budget")
-		f.IntVar(&maxPackages, "max-packages", 2000, "inventory package budget")
-		f.IntVar(&maxDepth, "max-depth", 64, "inventory relative directory depth budget")
+		f.Var(&roots, "root", "selected root (repeatable)")
+		f.BoolVar(&device, "device", false, "include device roots (default without roots)")
+		home, _ = os.UserHomeDir()
+		f.StringVar(&home, "home", home, "installation ownership hint")
+		f.StringVar(&state, "state", "", "designated state file excluded from discovery")
+		f.IntVar(&opts.MaxEntries, "max-entries", opts.MaxEntries, "entry budget")
+		f.IntVar(&opts.MaxPackages, "max-packages", opts.MaxPackages, "package budget")
+		f.IntVar(&opts.MaxDepth, "max-depth", opts.MaxDepth, "depth budget")
 	case "audit":
-		f.StringVar(&inventoryPath, "inventory", "", "saved inventory JSON for offline audit")
-		f.StringVar(&catalogPath, "catalog", "", "optional saved catalog; defaults to two pinned Anthropic skills")
-		f.StringVar(&xray, "xray", "", "optional trusted Skill X-Ray absolute executable path")
-		f.StringVar(&state, "state", "", "optional baseline comparison JSON outside skill packages")
-		f.StringVar(&record, "record", "", "baseline or snapshot; requires --state")
-		f.BoolVar(&asJSON, "json", false, "JSON rather than readable output")
+		f.StringVar(&inventory, "inventory", "", "saved inventory (required)")
+		f.StringVar(&catalog, "catalog", "", "external reference catalog")
+		f.StringVar(&state, "state", "", "lineage file")
+		f.StringVar(&record, "record", "", "baseline or snapshot")
+		f.StringVar(&xray, "xray", "", "absolute trusted Skill X-Ray executable")
+		f.DurationVar(&scanTimeout, "scan-timeout", 30*time.Second, "version probe and each scan phase budget")
 	case "search", "sync":
-		f.StringVar(&inventoryPath, "inventory", "", "saved inventory for opt-in name search")
-		f.BoolVar(&searchNames, "search-names", false, "explicitly send names from --inventory to public search, at most 10 distinct names")
-		f.StringVar(&query, "query", "", "explicit public search query; sent to chosen service")
-		f.StringVar(&registry, "registry-url", "", "optional Skills.sh-v1-compatible HTTPS search endpoint")
-		f.IntVar(&limit, "limit", 20, "search results or packages per repository (1–100)")
-		if args[0] == "sync" {
-			f.Var(&repos, "repo", "sync public owner/repo; repeatable")
-			f.StringVar(&searchFile, "search", "", "saved search JSON to import")
-			f.StringVar(&ref, "ref", "HEAD", "ref resolved to exact commit")
+		f.StringVar(&query, "query", "", "explicit public query")
+		f.StringVar(&inventory, "inventory", "", "inventory for opt-in name search")
+		f.BoolVar(&names, "search-names", false, "allow transmission of inventory names (max 10)")
+		f.StringVar(&registry, "registry-url", "", "Skills.sh v1 endpoint")
+		f.IntVar(&limit, "limit", 20, "search hits or packages per repository target")
+		if command == "sync" {
+			f.Var(&repos, "repo", "explicit owner/repo (repeatable)")
+			f.StringVar(&ref, "ref", "HEAD", "reference resolved to immutable commit")
+			f.StringVar(&searchPath, "search", "", "saved search")
 		}
 	default:
-		return fail(fmt.Errorf("unknown command %q", args[0]))
+		fmt.Fprintln(errOut, "unknown command")
+		return 2
 	}
 	if e := f.Parse(args[1:]); e != nil {
 		if e == flag.ErrHelp {
@@ -77,272 +85,235 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 		}
 		return 2
 	}
-	if f.NArg() != 0 {
-		return fail(fmt.Errorf("unexpected positional arguments"))
+	bad := func(e error) int { fmt.Fprintln(errOut, e); return 2 }
+	if f.NArg() != 0 || *timeout <= 0 {
+		return bad(fmt.Errorf("unexpected arguments or non-positive timeout"))
 	}
-	if args[0] == "sync" && output == "" {
-		return fail(fmt.Errorf("sync requires --out catalog file"))
-	}
-	if deadline <= 0 || limit < 1 || limit > 100 {
-		return fail(fmt.Errorf("invalid timeout/limit"))
-	}
-	checkPaths := func() error {
-		return validateFilePaths(
-			fileOption{"--out", output, true},
-			fileOption{"--state", state, record != ""},
-			fileOption{"--inventory", inventoryPath, false},
-			fileOption{"--catalog", catalogPath, false},
-			fileOption{"--search", searchFile, false},
-		)
-	}
-	if e := checkPaths(); e != nil {
-		return fail(e)
-	}
-	ctx, cancel := context.WithTimeout(ctx, deadline)
+	ctx, cancel := context.WithTimeout(parent, *timeout)
 	defer cancel()
-	var outputRoots []audit.Root
-	emit := func(v any) error {
-		if output != "" {
-			if e := checkPaths(); e != nil {
-				return e
+	inputs := []string{inventory, catalog, searchPath, state}
+	var observed []audit.Package
+	emit := func(v any, text func()) bool {
+		success := true
+		if *output != "" {
+			e := audit.OutputSafe(*output, inputs, observed)
+			if e == nil {
+				e = audit.WriteJSON(context.Background(), *output, v, observed...)
 			}
-			return workflow.WriteJSON(output, v, outputRoots...)
+			if e != nil {
+				fmt.Fprintln(errOut, e)
+				success = false
+			}
 		}
-		enc := json.NewEncoder(out)
-		enc.SetIndent("", "  ")
-		return enc.Encode(v)
+		if *asJSON {
+			enc := json.NewEncoder(out)
+			enc.SetIndent("", "  ")
+			if e := enc.Encode(v); e != nil {
+				fmt.Fprintln(errOut, e)
+				return false
+			}
+		} else {
+			text()
+		}
+		if delivery.err != nil {
+			fmt.Fprintln(errOut, "output delivery failed")
+			return false
+		}
+		return success
 	}
-	switch args[0] {
+	if *output != "" {
+		if e := audit.OutputSafe(*output, inputs, nil); e != nil {
+			return bad(e)
+		}
+	}
+	switch command {
 	case "inventory":
-		if maxEntries < 1 || maxPackages < 1 || maxDepth < 1 {
-			return fail(fmt.Errorf("inventory limits must be positive"))
+		opts.Roots = roots
+		opts.Device = device
+		opts.Home = home
+		opts.StatePath = state
+		if e := audit.ValidateInventoryOptions(opts); e != nil {
+			return bad(e)
 		}
-		if device {
-			roots = append(roots, workflow.DeviceRoots()...)
+		if state != "" {
+			if e := audit.OutputSafe(state, nil, nil); e != nil {
+				return bad(e)
+			}
 		}
-		if len(roots) == 0 {
-			return fail(fmt.Errorf("choose --device or at least one --root"))
+		i := audit.InventoryRun(ctx, opts)
+		observed = i.Packages
+		ok := emit(i, func() {
+			fmt.Fprintf(out, "inventory packages=%d complete=%t entries=%d\n", len(i.Packages), i.Complete, i.Entries)
+			for _, p := range i.Packages {
+				fmt.Fprintf(out, "%s %q name=%q complete=%t\n", p.Scope, p.Path, p.Name, p.Complete)
+			}
+			for _, p := range i.Packages {
+				printDiagnostics(out, p.Diagnostics)
+			}
+			printExclusions(out, i.Exclusions)
+			printDiagnostics(out, i.Diagnostics)
+		})
+		if !ok || !i.Complete {
+			return 2
 		}
-		inv := workflow.Discover(ctx, roots, home, workflow.Limits{Entries: maxEntries, Packages: maxPackages, Depth: maxDepth})
-		for _, p := range inv.Packages {
-			outputRoots = append(outputRoots, audit.Root{Path: p.Path})
-		}
-
-		if e := emit(inv); e != nil {
-			return fail(e)
-		}
-		for _, d := range inv.Diagnostics {
-			if d.Incomplete {
+		for _, p := range i.Packages {
+			if !p.Complete || len(p.Diagnostics) > 0 {
 				return 2
 			}
 		}
 		return 0
+	case "audit":
+		if inventory == "" || scanTimeout <= 0 || (record != "" && record != "baseline" && record != "snapshot") || (record != "" && state == "") {
+			return bad(fmt.Errorf("audit requires --inventory; recording requires --state and baseline|snapshot; scan timeout must be positive"))
+		}
+		i, e := audit.ReadInventory(inventory)
+		observed = i.Packages
+		if e != nil {
+			return bad(e)
+		}
+		if state != "" {
+			if e = audit.OutputSafe(state, []string{inventory, catalog, *output}, i.Packages); e != nil {
+				return bad(e)
+			}
+		}
+		if *output != "" {
+			if e = audit.OutputSafe(*output, inputs, i.Packages); e != nil {
+				return bad(e)
+			}
+		}
+		var c audit.Catalog
+		if catalog == "" {
+			c, e = audit.BuiltinCatalog()
+		} else {
+			c, e = audit.ReadCatalog(catalog)
+		}
+		if e != nil {
+			return bad(e)
+		}
+		r := audit.AuditRun(ctx, i, c, audit.AuditOptions{StatePath: state, Record: record, Xray: xray, Timeout: *timeout, ScanTimeout: scanTimeout})
+		if record != "" {
+			printRecording(errOut, r.Recording)
+		}
+		ok := emit(r, func() {
+			printReport(out, r)
+			if record != "" {
+				printRecording(out, r.Recording)
+			}
+		})
+		exit := audit.Exit(r)
+		if !ok && exit == 0 {
+			return 2
+		}
+		return exit
 	case "search", "sync":
-		token := os.Getenv("GH_TOKEN")
-		if token == "" {
-			token = os.Getenv("GITHUB_TOKEN")
+		if limit <= 0 || limit > 100 {
+			return bad(fmt.Errorf("limit must be 1–100"))
 		}
-		client := workflow.NewClient(token)
-		targets := []workflow.Hit{}
-		explicit := map[string]bool{}
-		for _, repo := range repos {
-			explicit[repo] = true
-			targets = append(targets, workflow.Hit{Repository: repo})
+		if command == "sync" && *output == "" {
+			return bad(fmt.Errorf("sync requires --out"))
 		}
-		searches := []workflow.Search{}
-		if searchFile != "" {
-			var saved workflow.Search
-			if e := workflow.ReadJSON(searchFile, &saved); e != nil {
-				return fail(e)
-			}
-			if saved.Schema != "skill-audit/search/v2" {
-				return fail(fmt.Errorf("unsupported search schema"))
-			}
-			searches = append(searches, saved)
+		queries, e := audit.Queries(query, inventory, names)
+		if e != nil {
+			return bad(e)
 		}
-		queries := []string{}
-		if query != "" {
-			queries = append(queries, query)
+		client := audit.NewAcquirer(ctx)
+		var search audit.Search
+		if searchPath != "" {
+			if e = audit.Decode(searchPath, audit.StoreLimit, &search); e != nil {
+				return bad(e)
+			}
+			if search.Schema != audit.SearchSchema {
+				return bad(fmt.Errorf("unsupported search schema"))
+			}
 		}
-		if searchNames {
-			if inventoryPath == "" {
-				return fail(fmt.Errorf("--search-names requires --inventory"))
+		if len(queries) > 0 {
+			next := client.Search(queries, registry, limit)
+			if search.Schema != "" {
+				next.Hits = append(search.Hits, next.Hits...)
+				next.Diagnostics = append(search.Diagnostics, next.Diagnostics...)
+				next.Complete = next.Complete && search.Complete
 			}
-			var inv workflow.Inventory
-			if e := workflow.ReadJSON(inventoryPath, &inv); e != nil {
-				return fail(e)
-			}
-			if inv.Schema != workflow.InventorySchema {
-				return fail(fmt.Errorf("unsupported inventory schema"))
-			}
-			seen := map[string]bool{}
-			for _, p := range inv.Packages {
-				if p.Name != "" && !seen[p.Name] {
-					seen[p.Name] = true
-					queries = append(queries, p.Name)
-				}
-			}
-			sort.Strings(queries)
-			if len(queries) > 10 {
-				return fail(fmt.Errorf("more than 10 search names; narrow inventory or choose explicit --query"))
-			}
-			fmt.Fprintln(errout, "Search-names enabled: transmitting only recorded skill names to the selected public search service.")
+			search = next
 		}
-		for _, q := range queries {
-			var result workflow.Search
-			var e error
-			if registry != "" {
-				result, e = workflow.SearchRegistry(ctx, registry, os.Getenv("SKILL_AUDIT_REGISTRY_TOKEN"), q, limit)
-			} else {
-				result, e = client.Search(ctx, q, limit)
+		if command == "search" {
+			if len(queries) == 0 {
+				return bad(fmt.Errorf("search requires --query or --inventory --search-names"))
 			}
-			if e != nil {
-				return fail(e)
-			}
-			searches = append(searches, result)
-		}
-		combined := workflow.Search{Schema: "skill-audit/search/v2", Source: "github-code-search", Query: strings.Join(queries, "; "), Hits: []workflow.Hit{}, Diagnostics: []audit.Diagnostic{}}
-		if registry != "" {
-			combined.Source = "skills-sh-v1"
-		}
-		for _, s := range searches {
-			combined.Hits = append(combined.Hits, s.Hits...)
-			combined.Diagnostics = append(combined.Diagnostics, s.Diagnostics...)
-			combined.Incomplete = combined.Incomplete || s.Incomplete
-		}
-		if args[0] == "search" {
-			if len(searches) == 0 {
-				return fail(fmt.Errorf("provide --query or --inventory with --search-names"))
-			}
-			if e := emit(combined); e != nil {
-				return fail(e)
-			}
-			if combined.Incomplete {
+			ok := emit(search, func() {
+				fmt.Fprintf(out, "search hits=%d complete=%t\n", len(search.Hits), search.Complete)
+				printDiagnostics(out, search.Diagnostics)
+			})
+			if !ok || !search.Complete {
 				return 2
 			}
 			return 0
 		}
-		targets = append(targets, combined.Hits...)
-		if len(targets) == 0 {
-			return fail(fmt.Errorf("provide --repo, --search, --query, or --search-names"))
+		if len(repos) == 0 && len(search.Hits) == 0 {
+			return bad(fmt.Errorf("sync requires repositories or search targets"))
 		}
-		store := workflow.EmptyStore()
-		store.Diagnostics = append(store.Diagnostics, combined.Diagnostics...)
-		if combined.Incomplete {
-			store.Diagnostics = append(store.Diagnostics, audit.Diagnostic{Code: "search_incomplete", Message: "candidate search incomplete/limited", Incomplete: true})
-		}
-		seen := map[string]bool{}
-		entrySeen := map[string]bool{}
-		sort.Slice(targets, func(i, j int) bool {
-			// Explicit full imports get first use of the shared request budget.
-			a := explicit[targets[i].Repository] && targets[i].Path == "" && targets[i].Hint == ""
-			b := explicit[targets[j].Repository] && targets[j].Path == "" && targets[j].Hint == ""
-			if a != b {
-				return a
-			}
-			return targets[i].Repository+"\x00"+targets[i].Path+"\x00"+targets[i].Hint < targets[j].Repository+"\x00"+targets[j].Path+"\x00"+targets[j].Hint
+		c := client.Sync(repos, ref, search, limit)
+		ok := emit(c, func() {
+			fmt.Fprintf(out, "sync references=%d complete=%t\n", len(c.Skills), c.Complete)
+			printDiagnostics(out, c.Diagnostics)
 		})
-		for _, target := range targets {
-			key := target.Repository + "\x00" + target.Path + "\x00" + target.Hint
-			if seen[key] {
-				continue
-			}
-			seen[key] = true
-			s, e := client.SyncTarget(ctx, target, ref, limit)
-			if e != nil {
-				store.Diagnostics = append(store.Diagnostics, audit.Diagnostic{Path: target.Repository, Code: "sync_error", Message: e.Error(), Incomplete: true})
-				continue
-			}
-			for _, entry := range s.Entries {
-				if !entrySeen[entry.Reference.ID] {
-					entrySeen[entry.Reference.ID] = true
-					store.Entries = append(store.Entries, entry)
-				}
-			}
-			store.Diagnostics = append(store.Diagnostics, s.Diagnostics...)
-			for k, b := range s.Attribution {
-				store.Attribution[k] = b
-			}
-		}
-		sort.Slice(store.Entries, func(i, j int) bool { return store.Entries[i].Reference.ID < store.Entries[j].Reference.ID })
-		if e := emit(store); e != nil {
-			return fail(e)
-		}
-		if len(store.Diagnostics) > 0 {
+		if !ok || !c.Complete {
 			return 2
 		}
 		return 0
-	case "audit":
-		if inventoryPath == "" {
-			return fail(fmt.Errorf("--inventory is required"))
-		}
-		if record != "" && (state == "" || (record != "baseline" && record != "snapshot")) {
-			return fail(fmt.Errorf("--record baseline|snapshot requires --state"))
-		}
-		var inv workflow.Inventory
-		if e := workflow.ReadJSON(inventoryPath, &inv); e != nil {
-			return fail(e)
-		}
-		store, e := workflow.LoadStore(catalogPath)
-		if e != nil {
-			return fail(e)
-		}
-		r, e := workflow.Audit(ctx, inv, store, xray, deadline)
-		if e != nil {
-			return fail(e)
-		}
-		outputRoots = r.Roots
-		if state != "" {
-			stateErr := func() error {
-				absolute, err := filepath.Abs(state)
-				if err != nil {
-					return err
-				}
-				state = absolute
-				if err = audit.OutputOutside(state, r.Roots); err != nil {
-					return err
-				}
-				if record != "baseline" {
-					st, err := audit.LoadState(state)
-					if err != nil {
-						return err
-					}
-					audit.Compare(&r, st)
-				}
-				if record != "" {
-					if err = checkPaths(); err != nil {
-						return err
-					}
-					return audit.SaveObservation(ctx, state, r, record == "baseline")
-				}
-				return nil
-			}()
-			if stateErr != nil {
-				if record == "" {
-					return fail(stateErr)
-				}
-				diagnostic, _ := recordingDiagnostic(state, stateErr)
-				r.Diagnostics = append(r.Diagnostics, diagnostic)
-			}
-			if record != "" {
-				r.Recording = recordingOutcome(state, stateErr)
-			}
-		}
-		exitCode := reportOutcome(errout, &r)
-
-		if output != "" || asJSON {
-			if e = emit(r); e != nil {
-				fail(e)
-				if exitCode == 1 || exitCode == 3 {
-					return exitCode
-				}
-				return 2
-			}
-		} else {
-			audit.Print(out, r, exitCode)
-		}
-		return exitCode
-	default:
-		return fail(fmt.Errorf("unknown command %q", args[0]))
 	}
+	return 2
+}
+func printRecording(w io.Writer, r *audit.Recording) {
+	fmt.Fprintf(w, "recording=%s path=%q message=%q\n", r.Status, r.Path, r.Message)
+}
+func printDiagnostics(w io.Writer, ds []audit.Diagnostic) {
+	for _, d := range ds {
+		fmt.Fprintf(w, "%q path=%q message=%q\n", d.Code, d.Path, d.Message)
+	}
+}
+func printReport(w io.Writer, r audit.Report) {
+	fmt.Fprintf(w, "audit skills=%d complete=%t discovery_complete=%t\n", len(r.Skills), r.Complete, r.DiscoveryComplete)
+	for _, s := range r.Skills {
+		fmt.Fprintf(w, "%s %q correlation=%s lineage=%s\n", s.Scope, s.Path, s.Correlation.Status, s.Lineage.Status)
+		for _, c := range s.Correlation.Candidates {
+			fmt.Fprintf(w, "candidate=%q repository=%q commit=%q upstream_path=%q basis=%q score=%.3f shared=%d union=%d\n", c.Reference.ID, c.Reference.Repository, c.Reference.Commit, c.Reference.UpstreamPath, c.Basis, c.Score, c.Shared, c.Union)
+		}
+		for _, p := range s.Lineage.Added {
+			fmt.Fprintf(w, "added=%q\n", p)
+		}
+		for _, p := range s.Lineage.Removed {
+			fmt.Fprintf(w, "removed=%q\n", p)
+		}
+		for _, p := range s.Lineage.Modified {
+			fmt.Fprintf(w, "modified=%q\n", p)
+		}
+		for _, e := range s.Evaluations {
+			fmt.Fprintf(w, "scanner=%s version=%q status=%s message=%q analyzed=%d outside_scope=%d\n", e.Scanner, e.Version, e.Status, e.Message, len(e.Analyzed), len(e.OutsideScope))
+		}
+		for _, f := range s.Findings {
+			fmt.Fprintf(w, "%s/%q %s %q:%d change=%s evidence=%q\n", f.Scanner, f.RuleID, f.Severity, f.File, f.Line, f.Change, f.Evidence)
+		}
+		printDiagnostics(w, s.Diagnostics)
+	}
+	printExclusions(w, r.Exclusions)
+	printDiagnostics(w, r.Diagnostics)
+}
+
+func printExclusions(w io.Writer, xs []audit.Exclusion) {
+	for _, x := range xs {
+		fmt.Fprintf(w, "exclusion=%q count=%d examples=%q omitted_examples=%d\n", x.Rule, x.Count, x.Examples, x.OmittedExamples)
+	}
+}
+
+type checkedWriter struct {
+	w   io.Writer
+	err error
+}
+
+func (w *checkedWriter) Write(p []byte) (int, error) {
+	n, e := w.w.Write(p)
+	if e != nil && w.err == nil {
+		w.err = e
+	}
+	return n, e
 }

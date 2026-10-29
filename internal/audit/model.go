@@ -1,17 +1,26 @@
-// Package audit inventories untrusted skill data without executing it.
+// Package audit implements bounded, on-demand observations. All package bytes are data.
 package audit
 
 import (
-	"crypto/sha256"
-	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
-	"sort"
+	"time"
 )
 
-const ReportSchema = "skill-audit/report/v2"
-const LocalRuleVersion = "2"
-const LocalVersion = "SA001/v" + LocalRuleVersion + ";sh/v3.10.0;scope/v2"
+const (
+	InventorySchema   = "skill-audit/inventory/v3"
+	ReportSchema      = "skill-audit/report/v2"
+	StateSchema       = "skill-audit/state/v3"
+	DiscoveryPolicy   = "skill-audit/discovery/v3"
+	CatalogSchema     = "skill-audit/catalog/v1"
+	StoreSchema       = "skill-audit/catalog-store/v2"
+	SearchSchema      = "skill-audit/search/v2"
+	EvaluationVersion = "SA001/v2;sh/v3.10.0;scope/v2"
+	FileLimit         = 1 << 20
+	PackageLimit      = 16 << 20
+	PackageEntries    = 1000
+	StoreLimit        = 64 << 20
+	StateLimit        = 32 << 20
+)
 
 type Diagnostic struct {
 	Scope      string `json:"scope,omitempty"`
@@ -20,16 +29,47 @@ type Diagnostic struct {
 	Message    string `json:"message"`
 	Incomplete bool   `json:"incomplete"`
 }
+type Exclusion struct {
+	Rule            string   `json:"rule"`
+	Count           int      `json:"count"`
+	Examples        []string `json:"examples"`
+	OmittedExamples int      `json:"omitted_examples"`
+}
 type File struct {
 	Path   string `json:"path"`
 	SHA256 string `json:"sha256"`
 	Size   int64  `json:"size"`
 }
-type Root struct {
-	Scope    string `json:"scope"`
-	Path     string `json:"path"`
-	Explicit bool   `json:"explicit"`
-	Status   string `json:"status"`
+type Package struct {
+	Scope       string            `json:"scope"`
+	Path        string            `json:"path"`
+	Agent       string            `json:"agent"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Digest      string            `json:"digest,omitempty"`
+	Complete    bool              `json:"complete"`
+	Files       []File            `json:"files"`
+	Diagnostics []Diagnostic      `json:"diagnostics,omitempty"`
+	Data        map[string][]byte `json:"-"`
+}
+type Limits struct {
+	Entries  int `json:"entries"`
+	Packages int `json:"packages"`
+	Depth    int `json:"depth"`
+}
+type Inventory struct {
+	Limits      Limits       `json:"limits"`
+	Schema      string       `json:"schema"`
+	CreatedAt   time.Time    `json:"created_at"`
+	Roots       []string     `json:"roots"`
+	Home        string       `json:"home,omitempty"`
+	Policy      string       `json:"policy"`
+	Complete    bool         `json:"complete"`
+	Entries     int          `json:"entries"`
+	Packages    []Package    `json:"packages"`
+	Exclusions  []Exclusion  `json:"exclusions,omitempty"`
+	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`
+	StatePath   string       `json:"state_path,omitempty"`
 }
 type Reference struct {
 	ID           string            `json:"id"`
@@ -39,6 +79,19 @@ type Reference struct {
 	Digest       string            `json:"digest"`
 	Files        []File            `json:"files"`
 	Data         map[string][]byte `json:"-"`
+}
+type Attribution struct {
+	Repository string `json:"repository"`
+	Commit     string `json:"commit"`
+	Path       string `json:"path"`
+	Data       []byte `json:"content"`
+}
+type Catalog struct {
+	Schema      string        `json:"schema"`
+	Skills      []Reference   `json:"skills"`
+	Attribution []Attribution `json:"attribution,omitempty"`
+	Diagnostics []Diagnostic  `json:"diagnostics,omitempty"`
+	Complete    bool          `json:"complete"`
 }
 type Candidate struct {
 	Reference Reference `json:"reference"`
@@ -53,161 +106,80 @@ type Correlation struct {
 	Candidates []Candidate `json:"candidates"`
 }
 type Finding struct {
-	Scanner        string          `json:"scanner"`
 	ScannerVersion string          `json:"scanner_version"`
+	Kind           string          `json:"kind"`
+	Scanner        string          `json:"scanner"`
 	RuleID         string          `json:"rule_id"`
 	RuleVersion    string          `json:"rule_version,omitempty"`
 	Severity       string          `json:"severity"`
-	Kind           string          `json:"kind"`
-	Path           string          `json:"path,omitempty"`
-	Line           int             `json:"line,omitempty"`
-	Evidence       string          `json:"evidence"`
-	Explanation    string          `json:"explanation"`
-	Limitations    string          `json:"limitations"`
+	File           string          `json:"path,omitempty"`
+	Line           int             `json:"line"`
+	Evidence       string          `json:"evidence,omitempty"`
+	Message        string          `json:"explanation"`
+	Limitations    string          `json:"limitations,omitempty"`
 	Change         string          `json:"change,omitempty"`
-	Source         json.RawMessage `json:"source,omitempty"`
+	Original       json.RawMessage `json:"source,omitempty"`
 }
 type Evaluation struct {
-	Scanner      string          `json:"scanner"`
-	Version      string          `json:"version,omitempty"`
-	Status       string          `json:"status"`
 	Analyzed     []string        `json:"analyzed"`
 	OutsideScope []string        `json:"outside_scope"`
-	Message      string          `json:"message,omitempty"`
 	Source       json.RawMessage `json:"source,omitempty"`
-}
-type Skill struct {
-	Scope       string            `json:"scope"`
-	Path        string            `json:"path"`
-	Name        string            `json:"name"`
-	Digest      string            `json:"digest,omitempty"`
-	Complete    bool              `json:"complete"`
-	Files       []File            `json:"files"`
-	Diagnostics []Diagnostic      `json:"diagnostics"`
-	Correlation Correlation       `json:"correlation"`
-	Origins     []Candidate       `json:"origins"`
-	Evaluations []Evaluation      `json:"evaluations"`
-	Findings    []Finding         `json:"findings"`
-	Data        map[string][]byte `json:"-"`
-}
-type Change struct {
-	Path string `json:"path"`
-	Kind string `json:"kind"`
+	Scanner      string          `json:"scanner"`
+	Version      string          `json:"version"`
+	Status       string          `json:"status"`
+	Message      string          `json:"message,omitempty"`
 }
 type Lineage struct {
-	Scope   string      `json:"scope"`
-	Path    string      `json:"path"`
-	Status  string      `json:"status"`
-	Origin  []Candidate `json:"origin"`
-	Changes []Change    `json:"changes"`
+	Status         string       `json:"status"`
+	Added          []string     `json:"added,omitempty"`
+	Removed        []string     `json:"removed,omitempty"`
+	Modified       []string     `json:"modified,omitempty"`
+	BaselineOrigin *Correlation `json:"baseline_origin,omitempty"`
 }
-
-// Recording is set by the operation, never inferred from imported diagnostics.
-// Stored observations omit it: final durability is known only after committing
-// the observation. CLI reports always receive the actual operation outcome.
+type Skill struct {
+	Package
+	Origins     []Candidate  `json:"origins"`
+	Correlation Correlation  `json:"correlation"`
+	Evaluations []Evaluation `json:"evaluations"`
+	Findings    []Finding    `json:"findings"`
+	Lineage     Lineage      `json:"-"`
+}
 type Recording struct {
 	Status  string `json:"status"`
 	Path    string `json:"path,omitempty"`
 	Message string `json:"message,omitempty"`
 }
-
-const (
-	RecordingNotRequested = "not_requested"
-	RecordingRecorded     = "recorded"
-	RecordingFailed       = "not_recorded"
-	RecordingUncertain    = "committed_durability_unconfirmed"
-)
-
-// Exclusions are intentional policy omissions, separate from uninspected links.
-type Exclusion struct {
-	OmittedExamples int      `json:"omitted_examples"`
-	Rule            string   `json:"rule"`
-	Count           int      `json:"count"`
-	Examples        []string `json:"examples"`
-}
-type TraversalLimits struct {
-	Entries  int `json:"entries"`
-	Packages int `json:"packages"`
-	Depth    int `json:"depth"`
-}
-type Discovery struct {
-	Roots      []string        `json:"roots"`
-	Home       string          `json:"home,omitempty"`
-	Policy     string          `json:"policy"`
-	Limits     TraversalLimits `json:"limits"`
-	Exclusions []Exclusion     `json:"exclusions"`
-}
 type Report struct {
-	Discovery      *Discovery   `json:"discovery,omitempty"`
-	Recording      *Recording   `json:"recording,omitempty"`
-	Schema         string       `json:"schema"`
-	CatalogVersion string       `json:"catalog_version"`
-	Roots          []Root       `json:"roots"`
-	Skills         []Skill      `json:"skills"`
-	Lineage        []Lineage    `json:"lineage"`
-	Diagnostics    []Diagnostic `json:"diagnostics"`
+	StatePath         string        `json:"-"`
+	Limits            Limits        `json:"-"`
+	Home              string        `json:"-"`
+	Missing           []WireLineage `json:"-"`
+	Schema            string        `json:"schema"`
+	CreatedAt         time.Time     `json:"created_at"`
+	CatalogID         string        `json:"catalog_id"`
+	Roots             []string      `json:"roots"`
+	Policy            string        `json:"discovery_policy"`
+	DiscoveryComplete bool          `json:"discovery_complete"`
+	Complete          bool          `json:"complete"`
+	Exclusions        []Exclusion   `json:"exclusions,omitempty"`
+	Diagnostics       []Diagnostic  `json:"diagnostics,omitempty"`
+	Skills            []Skill       `json:"skills"`
+	Recording         *Recording    `json:"recording,omitempty"`
+}
+type State struct {
+	RawObservations []json.RawMessage `json:"-"`
+	Schema          string            `json:"schema"`
+	Observations    []Report          `json:"observations"`
 }
 
-// Hash fingerprints raw bytes without normalization.
-func Hash(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }
-func Digest(files []File) string {
-	fs := append([]File(nil), files...)
-	sort.Slice(fs, func(i, j int) bool { return fs[i].Path < fs[j].Path })
-	h := sha256.New()
-	h.Write([]byte("skill-audit/directory/v1\x00"))
-	for _, f := range fs {
-		var n [8]byte
-		binary.BigEndian.PutUint64(n[:], uint64(len(f.Path)))
-		h.Write(n[:])
-		h.Write([]byte(f.Path))
-		b, _ := hex.DecodeString(f.SHA256)
-		h.Write(b)
-	}
-	return hex.EncodeToString(h.Sum(nil))
+func diag(code, path, message string) Diagnostic {
+	return Diagnostic{Code: code, Path: path, Message: message, Incomplete: true}
 }
-func (s Skill) identity() string { return s.Scope + "\x00" + s.Path }
-func completed(s string) bool {
-	return s == "completed_with_findings" || s == "completed_without_findings"
+func Identity(p Package) string { return p.Scope + "\x00" + p.Path }
+func Completed(e Evaluation) bool {
+	return e.Status == "completed_without_findings" || e.Status == "completed_with_findings"
 }
-func finishStatus(findings int, partial bool) string {
-	if partial {
-		return "partial"
-	}
-	if findings > 0 {
-		return "completed_with_findings"
-	}
-	return "completed_without_findings"
-}
-
-// HasCoverageGaps reports discovery, measurement and detection gaps.
-// Diagnostic.Incomplete records whether an observation is an operational gap;
-// explicit policy exclusions remain visible without becoming failures.
-func (r Report) HasCoverageGaps() bool {
-	for _, d := range r.Diagnostics {
-		if d.Incomplete {
-			return true
-		}
-	}
-	for _, s := range r.Skills {
-		if !s.Complete {
-			return true
-		}
-		for _, d := range s.Diagnostics {
-			if d.Incomplete {
-				return true
-			}
-		}
-		for _, e := range s.Evaluations {
-			if e.Status != "disabled" && !completed(e.Status) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// ExitCode describes analysis only; the CLI owns persistence-operation status.
-func (r Report) ExitCode() int {
+func Exit(r Report) int {
 	for _, s := range r.Skills {
 		for _, f := range s.Findings {
 			if f.Kind == "security" {
@@ -215,26 +187,17 @@ func (r Report) ExitCode() int {
 			}
 		}
 	}
-	if r.HasCoverageGaps() {
+	if r.Recording != nil && r.Recording.Status == "not_recorded" {
+		return 3
+	}
+	if !r.Complete || r.Recording != nil && r.Recording.Status == "committed_durability_unconfirmed" {
 		return 2
 	}
 	return 0
 }
-func sortFindings(fs []Finding) {
-	sort.SliceStable(fs, func(i, j int) bool {
-		a, b := fs[i], fs[j]
-		if a.Scanner != b.Scanner {
-			return a.Scanner < b.Scanner
-		}
-		if a.Path != b.Path {
-			return a.Path < b.Path
-		}
-		if a.Line != b.Line {
-			return a.Line < b.Line
-		}
-		if a.RuleID != b.RuleID {
-			return a.RuleID < b.RuleID
-		}
-		return a.Evidence < b.Evidence
-	})
+
+func info(code, path, message string) Diagnostic {
+	d := diag(code, path, message)
+	d.Incomplete = false
+	return d
 }
