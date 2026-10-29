@@ -1,3 +1,44 @@
+# Verification — review corrections, 2026-10-29
+
+Reviewed and edited the canonical original checkout on `main`, starting from clean `207a4f5d4d68810ff0e8d94c7fcf7210f35acd61`. These corrections are local, uncommitted changes. The detached checkout was not edited. Initial failing fixture regressions reproduced a hung version probe exhausting the operation deadline, repeated permanent launch failures, cancellation replacing a cached configuration error, explicit macOS aliases hidden behind policy exclusions, and speculative recording status in saved history.
+
+Addressed review items #1–#4, #6 and #9; centralized exclusion classification also addresses #7–#8. Catalog acquisition/output budgeting (#5) and repository target grouping (#10) are deferred. Findings retain ADR exit priority; no total acquisition budget was added.
+
+- Scanner phases use independent capped budgets, bounded further by a quarter of remaining operation time. Only probe exit 75 retries once. Real fake-executable tests hang both version and scan phases under a two-second operation deadline and still measure both packages and record the baseline. Injected launch errors are attempted once. Cached configuration diagnostics survive later cancellation. Overall cancellation still refuses recording.
+- Injected directory-sync failures after baseline replacement and snapshot replacement return committed-write warnings; saved observations remain readable without speculative recording status. Actual CLI outcomes remain in report/v2 and requested-recording stderr. State/v3 derives anchors from its first observation; B1–B9 regressions retain immutable anchor eligibility. Valid state/v1 and state/v2 remain comparison-readable, reject append, and retain identical bytes. Corrupt legacy v2 anchors remain rejected.
+- A temporary package under /private/tmp is discoverable; its explicit /tmp alias reports a symlink gap with no policy exclusion. Table tests cover /etc, /tmp and /var as explicit roots versus discovered aliases, and stable system/proc summary keys. Ordinary files avoid subtree classification; metadata and link exclusions remain covered by the existing suite.
+- Default audit has no recording stderr; JSON retains not_requested. Requested recording is printed once on stderr. Failed persistence with findings retains exit 1, and actual save failures remain explicit.
+
+Environment: macOS arm64, Go 1.23.5. Go commands used `GOPROXY=off GOSUMDB=off` and the normal host build cache; sandbox access to that cache and canonical checkout was explicitly approved. Tests used temporary fixtures and local HTTP handlers. No installed skills, external scanner installation, skill-script execution, public service calls, publishing, pushing or submission.
+
+Executed checks:
+
+- `gofmt -w cmd/skill-audit internal/audit internal/workflow`; `gofmt -l cmd internal`: no output. `git diff --check`: exit 0.
+- `GOPROXY=off GOSUMDB=off go vet ./...`: exit 0.
+- `GOPROXY=off GOSUMDB=off go test -count=1 ./...`: exit 0; cmd/skill-audit 2.489s, internal/audit 4.195s, internal/workflow 2.214s.
+- `GOPROXY=off GOSUMDB=off go build -o /private/tmp/skill-audit-review ./cmd/skill-audit`: exit 0.
+- `GOPROXY=off GOSUMDB=off CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-review-linux ./cmd/skill-audit`: exit 0.
+- `GOPROXY=off GOSUMDB=off CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-review-windows.exe ./cmd/skill-audit`: exit 0.
+- `GOPROXY=off GOSUMDB=off sh scripts/demo.sh`: exit 0; temporary global/project baseline, bundled modification, comparable new SA001 and appended snapshot.
+- `python3 /private/tmp/skill-audit-review-smoke.py`: exit 0 against the compiled CLI; quiet human/JSON ordinary audit, recorded baseline, state/v3 without redundant anchors or recording, byte-identical state after ordinary comparison and refused baseline replacement, new finding with snapshot exit 1, and two stored observations. The smoke harness and binaries are temporary verification artifacts; durable regression tests are in the repository.
+- `git diff --exit-code HEAD -- go.mod go.sum vendor internal/audit/catalog`: no differences; dependencies, upstream bytes and attribution unchanged.
+
+Targeted case-filesystem verification (run to expose skip details):
+
+```text
+=== RUN   TestCaseAliasedRootsDoNotDuplicatePackages
+--- PASS: TestCaseAliasedRootsDoNotDuplicatePackages (0.01s)
+=== RUN   TestDistinctCaseSensitiveRootsStayDistinct
+    adr_exclusions_test.go:113: case-insensitive fixture filesystem; alias test covers merging
+--- SKIP: TestDistinctCaseSensitiveRootsStayDistinct (0.00s)
+PASS
+ok  	skill-audit/internal/workflow	0.313s
+```
+
+Native Windows-only persistence tests were not run on this macOS host; the distinct-case test skips on this case-insensitive volume. Linux and native Windows runtime, real Skill X-Ray, and whole-device scans remain unverified. Cross-builds prove compilation only. Fake scanners still use /bin/sh; Windows process-tree cleanup and native helper adaptation remain pending. Scanner budgets cannot guarantee completion of slow local I/O, and actual operation expiry still prevents recording. State history cannot attest to its final directory-sync outcome; capture the final CLI report when that outcome is needed. Existing state/v1 or state/v2 needs an explicit new baseline path to adopt v3.
+
+## Prior verification
+
 # Verification — ADR step 4 and final alignment, 2026-10-29
 
 Based on canonical main 64d3524, following outcome commit 71e3cee and anchor commit 4b5a86a. Routine exclusions now aggregate by rule/count, three examples and an explicit omitted count. A 1,000-.DS_Store fixture produces three total summaries (.DS_Store, .git, node_modules), not 1,002 per-entry diagnostics; the evidence survives state round-trip. Actionable skipped links retain paths and incomplete coverage. Explicit system-excluded roots remain reported. The obsolete policy_symlink rewrite is removed.

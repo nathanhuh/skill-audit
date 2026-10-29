@@ -54,7 +54,7 @@ func TestADRPartialBaselineB2B4E5(t *testing.T) {
 				t.Fatal(code, stdout, stderr)
 			}
 			st, err := audit.LoadState(state)
-			if err != nil || len(st.Anchors) != 1 || st.Observations[0].Report.Discovery.Policy != workflow.DiscoveryPolicy {
+			if err != nil || (len(st.Observations[0].Report.Skills) != 1 || !st.Observations[0].Report.Skills[0].Complete) || st.Observations[0].Report.Discovery.Policy != workflow.DiscoveryPolicy {
 				t.Fatal(st, err)
 			}
 		})
@@ -85,7 +85,7 @@ func TestADRScannerFailureStillRecordsContentB3(t *testing.T) {
 		t.Fatal(code, stdout, stderr)
 	}
 	st, err := audit.LoadState(state)
-	if err != nil || len(st.Anchors) != 1 {
+	if err != nil || (len(st.Observations[0].Report.Skills) != 1 || !st.Observations[0].Report.Skills[0].Complete) {
 		t.Fatal(st, err)
 	}
 }

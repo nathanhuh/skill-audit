@@ -103,7 +103,8 @@ type Lineage struct {
 }
 
 // Recording is set by the operation, never inferred from imported diagnostics.
-// A nil value is reserved for historical reports that did not record this field.
+// Stored observations omit it: final durability is known only after committing
+// the observation. CLI reports always receive the actual operation outcome.
 type Recording struct {
 	Status  string `json:"status"`
 	Path    string `json:"path,omitempty"`

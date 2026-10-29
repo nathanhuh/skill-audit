@@ -55,7 +55,6 @@ func TestADRInstallationOwnershipS1S2(t *testing.T) {
 	}
 	// A stored old scope is historical evidence; comparisons never rewrite it.
 	st.Observations[0].Report.Skills[0].Scope = "machine"
-	st.Anchors[0].Scope = "machine"
 	report.Lineage = nil
 	audit.Compare(&report, st)
 	seen := map[string]bool{}

@@ -11,7 +11,7 @@ import (
 )
 
 func Audit(ctx context.Context, inventory Inventory, store Store, xray string, timeout time.Duration) (audit.Report, error) {
-	r := audit.Report{Recording: &audit.Recording{Status: audit.RecordingNotRequested}, Schema: audit.ReportSchema, Roots: []audit.Root{}, Skills: []audit.Skill{}, Lineage: []audit.Lineage{}, Diagnostics: append([]audit.Diagnostic{}, inventory.Diagnostics...)}
+	r := audit.Report{Schema: audit.ReportSchema, Roots: []audit.Root{}, Skills: []audit.Skill{}, Lineage: []audit.Lineage{}, Diagnostics: append([]audit.Diagnostic{}, inventory.Diagnostics...)}
 	if inventory.Schema != InventorySchema && inventory.Schema != "skill-audit/inventory/v2" {
 		return r, fmt.Errorf("unsupported inventory schema")
 	}

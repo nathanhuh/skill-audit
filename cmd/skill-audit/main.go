@@ -40,7 +40,7 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 	var maxEntries, maxPackages, maxDepth int
 	var deadline time.Duration
 	f.StringVar(&output, "out", "", "save versioned JSON; parent must exist")
-	f.DurationVar(&deadline, "timeout", 2*time.Minute, "operation deadline; also per external scan")
+	f.DurationVar(&deadline, "timeout", 2*time.Minute, "overall operation deadline; external scanner phases have shorter budgets")
 	switch args[0] {
 	case "inventory":
 		homeDefault, _ := os.UserHomeDir()
@@ -292,7 +292,6 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 			return fail(e)
 		}
 		outputRoots = r.Roots
-		r.Recording = &audit.Recording{Status: audit.RecordingNotRequested}
 		if state != "" {
 			stateErr := func() error {
 				absolute, err := filepath.Abs(state)
@@ -314,7 +313,6 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 					if err = checkPaths(); err != nil {
 						return err
 					}
-					r.Recording = &audit.Recording{Status: audit.RecordingRecorded, Path: state}
 					return audit.SaveObservation(ctx, state, r, record == "baseline")
 				}
 				return nil

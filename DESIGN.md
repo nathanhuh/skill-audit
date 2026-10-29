@@ -4,6 +4,14 @@
 
 [ADR-0001](docs/adr/0001-observation-and-outcome-contracts.md) freezes baseline eligibility, independent outcomes and exit priority, installation ownership, and cache/import semantics. [CONTEXT.md](CONTEXT.md) defines the vocabulary. The ADR supersedes conflicting policies in the historical review notes below; its acceptance matrix is the implementation target. Acceptance in cb4be34 was documentation-only. The runtime alignment sections below and VERIFICATION.md describe the implemented scenarios; the ADR retains its historical gap table.
 
+## Review correction — scanner budgets and historical evidence
+
+This section supersedes historical timeout notes below. Probe phases have a five-second cap and scans a thirty-second cap; each is further bounded by the configured timeout and one quarter of remaining operation time. Probe retry is limited to explicit temporary failure (exit 75), once. Timeout/launch/version failures are cached; a later canceled call preserves a cached configuration error. Overall operation cancellation and timeouts still refuse recording under B6. Budgets leave room for local processing but cannot guarantee local I/O completion.
+
+Explicit macOS alias roots reach no-follow diagnostics, while discovered aliases remain exclusions. System summary keys identify the matched policy root, with no double slash. Ordinary files bypass subtree policy checks; metadata and symlink classification remain explicit. This diagnostic correction leaves inventory schema and policy identity unchanged.
+
+State/v3 removes redundant anchor storage and speculative recording outcomes. State/v1 and state/v2 remain read-only, preserving their history without silent migration. Report/v2 still carries actual CLI recording outcomes. No catalog budget or repository-grouping change is included.
+
 ## Historical design and review notes
 
 The following sections preserve prior decisions and implementation history; conflicting policies are superseded by ADR-0001.
@@ -125,7 +133,7 @@ Use direct exec argument arrays, context timeout/cancellation, bounded stdout/st
 
 ## Output, dependencies, and acceptance
 
-Report/v2, inventory/v3 and state/v2 have separate version markers. Readable escaped terminal strings and deterministic JSON ordering (observation timestamps intentionally vary for explicit snapshots). Priority: security findings 1, then failed pre-commit recording 3, then incomplete/operational or durability uncertainty 2, otherwise 0. Recording is independent structured output, always printed on stderr. Disabled optional scanning is not a gap. Historical state/v1 remains readable and is never silently migrated.
+Report/v2, inventory/v3 and state/v3 have separate version markers. Readable escaped terminal strings and deterministic JSON ordering (observation timestamps intentionally vary for explicit snapshots). Priority: security findings 1, then failed pre-commit recording 3, then incomplete/operational or durability uncertainty 2, otherwise 0. Recording is independent structured output; requested recording is printed once on stderr, while ordinary audit is quiet there. Disabled optional scanning is not a gap. Historical state/v1 and state/v2 remain comparison-readable and append-read-only; neither is silently migrated.
 
 Use standard libraries except pinned `gopkg.in/yaml.v3 v3.0.1` for correct frontmatter and `mvdan.cc/sh/v3 v3.10.0` for shell syntax. Vendor dependencies for offline builds/tests. Avoid concurrency, database, service, UI, generic plugins, and fuzzy/LLM matching.
 
@@ -146,9 +154,9 @@ CLI review: register flags only for the command that consumes them, so audit fla
 
 ## ADR runtime alignment: content anchors
 
-State/v2 records explicit baseline anchors (scope, path, digest) referencing complete measurements in its first observation. That observation retains all packages, including unusable measurements, scanner evaluations, selected roots, home hint, traversal limits, exclusion policy/version and listed exclusions. Thus later complete bytes cannot silently replace an incomplete first measurement. Content completeness selects anchors; report-wide coverage affects outcomes separately. Empty completed scopes are permitted; partial baselines need at least one complete measurement. Cancellation/deadline evidence prevents recording, and snapshots preserve anchors. Missing identities stay missing/undiscovered, without deletion claims.
+State/v3 derives baseline anchors from complete measurements in its first observation. State/v2 explicit anchor arrays are validated only when reading historical files. New stored observations omit recording outcomes: final durability is known only after their bytes have been committed. The CLI emits the actual outcome after saving; it never makes a second write to retrofit that result. History alone does not attest to its final directory-sync outcome. That observation retains all packages, including unusable measurements, scanner evaluations, selected roots, home hint, traversal limits, exclusion policy/version and listed exclusions. Thus later complete bytes cannot silently replace an incomplete first measurement. Content completeness selects anchors; report-wide coverage affects outcomes separately. Empty completed scopes are permitted; partial baselines need at least one complete measurement. Cancellation/deadline evidence prevents recording, and snapshots preserve anchors. Missing identities stay missing/undiscovered, without deletion claims.
 
-Inventory/v3 adds explicit discovery policy metadata; report/v2 carries this evidence and the independent operation result. Legacy inventory/v2 policy is unknown, with its original diagnostics retained. State/v1 remains readable for comparisons but append is refused: explicitly create a new baseline elsewhere, preserving prior history. No automatic migration or scope rewrite. Known macOS aliases /etc, /tmp, /var and the alternate Data tree are listed exclusions; arbitrary manager links remain gaps.
+Inventory/v3 adds explicit discovery policy metadata; report/v2 carries this evidence and the independent operation result. Legacy inventory/v2 policy is unknown, with its original diagnostics retained. State/v1 and state/v2 remain readable for comparisons but append is refused: explicitly create a new baseline elsewhere, preserving prior history. No automatic migration or scope rewrite. Known macOS aliases /etc, /tmp, /var and the alternate Data tree are listed exclusions; arbitrary manager links remain gaps.
 
 ## ADR runtime alignment: ownership and bounded evidence
 

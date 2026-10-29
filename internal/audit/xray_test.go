@@ -219,7 +219,7 @@ func TestXRayProbeFailureRetriesBeforeScanning(t *testing.T) {
 	}
 }
 
-func TestXRayProbeUsesConfiguredAndParentDeadlines(t *testing.T) {
+func TestXRayProbeHasIndependentBudgetWithinParentDeadline(t *testing.T) {
 	p := skill(t, temp(t), "pkg", "body")
 	exe := fakeScanner(t, "exit 99")
 	for _, parentBudget := range []time.Duration{0, 200 * time.Millisecond} {
@@ -238,11 +238,11 @@ func TestXRayProbeUsesConfiguredAndParentDeadlines(t *testing.T) {
 			remaining := time.Until(deadline)
 			if args[0] == "version" {
 				probes++
-				if parentBudget == 0 && remaining < 11*time.Second {
-					t.Fatal("fixed cap shortened configured probe", remaining)
+				if parentBudget == 0 && (remaining > xrayProbeTimeout || remaining < xrayProbeTimeout-time.Second) {
+					t.Fatal("unexpected probe cap", remaining)
 				}
-				if parentBudget > 0 && remaining > parentBudget {
-					t.Fatal("probe ignored operation deadline", remaining)
+				if parentBudget > 0 && remaining > parentBudget/4 {
+					t.Fatal("probe consumed recording reserve", remaining)
 				}
 				return "skill-xray " + XRayVersion, "", 0, nil
 			}

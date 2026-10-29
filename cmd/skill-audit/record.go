@@ -46,7 +46,9 @@ func reportOutcome(stderr io.Writer, r *audit.Report) int {
 		audit.RecordingFailed:       "state not recorded",
 		audit.RecordingUncertain:    "state recorded; durability unconfirmed",
 	}[outcome.Status]
-	fmt.Fprintf(stderr, "skill-audit: %s: path=%q message=%q\n", label, outcome.Path, outcome.Message)
+	if outcome.Status != audit.RecordingNotRequested {
+		fmt.Fprintf(stderr, "skill-audit: %s: path=%q message=%q\n", label, outcome.Path, outcome.Message)
+	}
 	code := r.ExitCode()
 	if code == 1 {
 		return 1

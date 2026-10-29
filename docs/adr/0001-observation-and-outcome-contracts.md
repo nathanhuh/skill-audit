@@ -95,3 +95,8 @@ Future changes should be justified against this matrix. A review finding may exp
 ## Runtime alignment — 2026-10-29
 
 The historical acceptance-time gap table above remains a record of ed4c74f. The subsequent implementation adds E1–E8 outcome tests, B1–B9 anchor tests and S1–S2 installation-ownership tests, plus bounded exclusion and case-alias regressions. Current data contracts are report/v2, inventory/v3 and state/v2. Legacy state/v1 remains comparison-readable but append-read-only; new baselines require an explicit new path. No silent migration or identity rewrite occurs. C1/C2 cache/import invariants remain protected by existing tests; this work does not change their policy or add a total acquisition budget. See [VERIFICATION.md](../../VERIFICATION.md) for executed checks and limitations.
+
+
+## Follow-up representation correction — 2026-10-29
+
+New state/v3 derives anchors directly from complete measurements in the immutable first observation. It omits recording from stored observations because a write cannot contain its own final disk-sync outcome. Actual recording status remains in the final CLI report and requested-recording stderr; history alone cannot confirm that final durability check. State/v1 and state/v2 remain comparison-readable and append-read-only, without rewriting historical assertions. Report/v2 and inventory/v3 stay unchanged. This corrects representation without changing baseline eligibility or the E1–E8 outcome/exit matrix.

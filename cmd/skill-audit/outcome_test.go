@@ -87,7 +87,7 @@ func TestADROutcomesE1ToE8(t *testing.T) {
 				r.Recording = recordingOutcome("state", tc.err)
 			}
 			stderr := new(bytes.Buffer)
-			if got := reportOutcome(stderr, &r); got != tc.want || r.Recording.Status != tc.status || stderr.Len() == 0 {
+			if got := reportOutcome(stderr, &r); got != tc.want || r.Recording.Status != tc.status || (stderr.Len() > 0) != tc.requested {
 				t.Fatal(got, r.Recording, stderr)
 			}
 			data, err := json.Marshal(r)
@@ -168,7 +168,7 @@ func TestADRCommittedRecordingSurvivesDeliveryFailure(t *testing.T) {
 		t.Fatal(code, stderr)
 	}
 	st, err := audit.LoadState(state)
-	if err != nil || len(st.Observations) != 1 || st.Observations[0].Report.Recording.Status != audit.RecordingRecorded {
+	if err != nil || len(st.Observations) != 1 || st.Observations[0].Report.Recording != nil {
 		t.Fatal(st, err)
 	}
 }

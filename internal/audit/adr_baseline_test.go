@@ -59,7 +59,7 @@ func TestADRBaselinesB1ToB9(t *testing.T) {
 			if id == "B7" {
 				want = 0
 			}
-			if st.Schema != StateSchema || len(st.Anchors) != want || st.Observations[0].Report.Discovery.Policy != "fixture-policy/v1" {
+			if st.Schema != StateSchema || completeMeasurements(st) != want || st.Observations[0].Report.Discovery.Policy != "fixture-policy/v1" {
 				t.Fatal(st)
 			}
 			if id == "B2" || id == "B3" || id == "B4" || id == "B9" {
@@ -91,14 +91,14 @@ func TestADRBaselinesB1ToB9(t *testing.T) {
 				current.Skills[1] = Inspect(context.Background(), "project", foo)
 				LocalScan(&current.Skills[1])
 				Compare(&current, st)
-				if current.Lineage[1].Status != "comparison_unavailable" || current.Skills[1].Findings[0].Change != "not_compared" || len(st.Anchors) != 1 {
+				if current.Lineage[1].Status != "comparison_unavailable" || current.Skills[1].Findings[0].Change != "not_compared" || completeMeasurements(st) != 1 {
 					t.Fatal(current.Lineage)
 				}
 				if err = SaveObservation(context.Background(), path, current, false); err != nil {
 					t.Fatal(err)
 				}
 				appended, err := LoadState(path)
-				if err != nil || len(appended.Anchors) != 1 || len(appended.Observations) != 2 {
+				if err != nil || completeMeasurements(appended) != 1 || len(appended.Observations) != 2 {
 					t.Fatal(appended, err)
 				}
 			}
@@ -118,7 +118,9 @@ func TestLegacyStateReadOnlyAndAnchorValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st.Anchors[0].Digest = Hash([]byte("wrong"))
+	st.Schema = AnchorStateSchema
+	s := st.Observations[0].Report.Skills[0]
+	st.Anchors = []Anchor{{s.Scope, s.Path, Hash([]byte("wrong"))}}
 	b, _ := json.Marshal(st)
 	put(t, p, b)
 	if _, err = LoadState(p); err == nil {
@@ -139,4 +141,14 @@ func TestLegacyStateReadOnlyAndAnchorValidation(t *testing.T) {
 	if string(after) != string(b) {
 		t.Fatal("legacy state changed")
 	}
+}
+
+func completeMeasurements(st State) int {
+	n := 0
+	for _, s := range st.Observations[0].Report.Skills {
+		if s.Complete {
+			n++
+		}
+	}
+	return n
 }

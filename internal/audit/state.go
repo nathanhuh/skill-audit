@@ -13,7 +13,8 @@ import (
 	"time"
 )
 
-const StateSchema = "skill-audit/state/v2"
+const StateSchema = "skill-audit/state/v3"
+const AnchorStateSchema = "skill-audit/state/v2"
 const LegacyStateSchema = "skill-audit/state/v1"
 const MaxState = 32 << 20
 
@@ -22,8 +23,8 @@ type Observation struct {
 	Report     Report `json:"report"`
 }
 
-// Anchors reference complete measurements in the first observation. Content,
-// origins and scanner evaluations live there once, avoiding duplicated manifests.
+// Anchor is retained only to read and validate legacy state/v2. State/v3
+// derives anchors from complete measurements in the immutable first observation.
 type Anchor struct {
 	Scope  string `json:"scope"`
 	Path   string `json:"path"`
@@ -53,7 +54,7 @@ func LoadState(path string) (State, error) {
 }
 
 func validateState(st State) (State, error) {
-	if (st.Schema != StateSchema && st.Schema != LegacyStateSchema) || len(st.Observations) == 0 {
+	if (st.Schema != StateSchema && st.Schema != AnchorStateSchema && st.Schema != LegacyStateSchema) || len(st.Observations) == 0 {
 		return st, fmt.Errorf("unsupported/empty state")
 	}
 	for _, o := range st.Observations {
@@ -82,6 +83,16 @@ func validateState(st State) (State, error) {
 		}
 	}
 	if st.Schema == StateSchema {
+		if len(st.Anchors) != 0 {
+			return st, fmt.Errorf("state/v3 must derive anchors from its first observation")
+		}
+		for _, o := range st.Observations {
+			if o.Report.Recording != nil {
+				return st, fmt.Errorf("stored observations cannot predict their own recording outcome")
+			}
+		}
+	}
+	if st.Schema == AnchorStateSchema {
 		expected := map[string]string{}
 		for _, s := range st.Observations[0].Report.Skills {
 			if s.Complete {
@@ -145,6 +156,10 @@ func OutputOutside(path string, roots []Root) error {
 // SaveObservation serializes writers using an exclusive lock and re-reads state
 // under it. Baseline creation cannot overwrite earlier evidence.
 func SaveObservation(ctx context.Context, path string, r Report, baseline bool) error {
+	return saveObservation(ctx, path, r, baseline, WriteAtomic)
+}
+
+func saveObservation(ctx context.Context, path string, r Report, baseline bool, write func(context.Context, string, []byte) error) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("state recording interrupted: %w", err)
 	}
@@ -153,13 +168,13 @@ func SaveObservation(ctx context.Context, path string, r Report, baseline bool) 
 			return fmt.Errorf("state recording refused: interrupted observation; no state written")
 		}
 	}
-	anchors := []Anchor{}
+	complete := 0
 	for _, s := range r.Skills {
 		if s.Complete {
-			anchors = append(anchors, Anchor{s.Scope, s.Path, s.Digest})
+			complete++
 		}
 	}
-	if baseline && r.HasCoverageGaps() && len(anchors) == 0 {
+	if baseline && r.HasCoverageGaps() && complete == 0 {
 		return fmt.Errorf("baseline has no fully measured packages in this partial observation; no state written")
 	}
 	// Parent creation and the lock are writes too; guard them before the
@@ -180,7 +195,7 @@ func SaveObservation(ctx context.Context, path string, r Report, baseline bool) 
 	}
 	lock.Close()
 	defer os.Remove(path + ".lock")
-	st := State{Schema: StateSchema, Anchors: anchors, Observations: []Observation{}}
+	st := State{Schema: StateSchema, Observations: []Observation{}}
 	if baseline {
 		if _, err = os.Lstat(path); err == nil {
 			return fmt.Errorf("baseline already exists; use snapshot")
@@ -198,6 +213,9 @@ func SaveObservation(ctx context.Context, path string, r Report, baseline bool) 
 		}
 	}
 	r.Lineage = []Lineage{} // Derived comparisons need not be duplicated inside every observation.
+	// Final durability is only known after these bytes are committed. Keep the
+	// actual outcome in the caller's report, never predict it in stored history.
+	r.Recording = nil
 	st.Observations = append(st.Observations, Observation{time.Now().UTC().Format(time.RFC3339Nano), r})
 	if _, err = validateState(st); err != nil {
 		return err
@@ -210,7 +228,7 @@ func SaveObservation(ctx context.Context, path string, r Report, baseline bool) 
 	if len(b) > MaxState {
 		return fmt.Errorf("state exceeds 32 MiB; archive state and start a separate baseline")
 	}
-	return WriteAtomic(ctx, path, b)
+	return write(ctx, path, b)
 }
 func Compare(r *Report, st State) {
 	baseline := st.Observations[0].Report
@@ -221,12 +239,6 @@ func Compare(r *Report, st State) {
 	for i := range r.Skills {
 		current[r.Skills[i].identity()] = &r.Skills[i]
 	}
-	anchorIDs := map[string]bool{}
-	if st.Schema == StateSchema {
-		for _, a := range st.Anchors {
-			anchorIDs[a.Scope+"\x00"+a.Path] = true
-		}
-	}
 	baselineIDs := map[string]bool{}
 	for _, b := range baseline.Skills {
 		baselineIDs[b.identity()] = true
@@ -235,7 +247,7 @@ func Compare(r *Report, st State) {
 		if !ok {
 			l.Status = "missing_or_undiscovered"
 			r.Diagnostics = append(r.Diagnostics, Diagnostic{b.Scope, b.Path, "tracked_missing", "tracked package missing or outside current discovery; no deletions inferred", true})
-		} else if !b.Complete || !s.Complete || (st.Schema == StateSchema && !anchorIDs[b.identity()]) {
+		} else if !b.Complete || !s.Complete {
 			l.Status = "comparison_unavailable"
 			for i := range s.Findings {
 				s.Findings[i].Change = "not_compared"

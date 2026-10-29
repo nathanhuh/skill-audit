@@ -111,8 +111,8 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 			pending(walkRoots[index:], interrupted(), ctx.Err().Error())
 			break
 		}
-		if excluded(root, filepath.Base(root), root) {
-			noteExclusion(root, exclusionRule(root, filepath.Base(root)))
+		if rule := exclusionRuleOnOS(root, filepath.Base(root), root, runtime.GOOS); rule != "" {
+			noteExclusion(root, rule)
 			issue(root, "excluded_root", "selected root excluded by discovery policy; not inspected")
 			continue
 		}
@@ -162,12 +162,16 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 				issue(p, "depth_limit", "subtree skipped")
 				return fs.SkipDir
 			}
-			if excluded(p, d.Name(), root) {
-				noteExclusion(p, exclusionRule(p, d.Name()))
-				if d.IsDir() {
-					return fs.SkipDir
+			// Ordinary files cannot be excluded subtrees. Metadata files and
+			// links still need policy classification before no-follow handling.
+			if d.IsDir() || d.Type()&os.ModeSymlink != 0 || audit.ExcludedMetadata(d.Name()) {
+				if rule := exclusionRuleOnOS(p, d.Name(), root, runtime.GOOS); rule != "" {
+					noteExclusion(p, rule)
+					if d.IsDir() {
+						return fs.SkipDir
+					}
+					return nil
 				}
-				return nil
 			}
 			if d.Type()&os.ModeSymlink != 0 {
 				issue(p, "policy_symlink", "link not followed; target skill coverage is unknown")
@@ -234,30 +238,44 @@ func excluded(p, name, root string) bool {
 }
 
 func excludedOnOS(p, name, root, goos string) bool {
+	return exclusionRuleOnOS(p, name, root, goos) != ""
+}
+
+// System rules use the matched policy root, never a selected descendant path.
+var systemExclusions = [...]string{"/proc", "/sys", "/dev"}
+var macAliases = [...]string{"/etc", "/tmp", "/var"}
+
+func exclusionRuleOnOS(p, name, root, goos string) string {
 	clean := filepath.ToSlash(filepath.Clean(p))
-	virtual := []string{"/proc", "/sys", "/dev"}
-	// The unified macOS tree exposes Data through firmlinks. Walking the
-	// alternate mount as well duplicates identities and consumes scan budgets.
-	// Keep this an explicit coverage exclusion, not a completeness claim.
-	if goos == "darwin" {
-		virtual = append(virtual, "/System/Volumes/Data", "/etc", "/tmp", "/var")
-	}
-	for _, v := range virtual {
-		if clean == v || strings.HasPrefix(clean, v+"/") {
-			return true
+	match := func(v string) bool { return clean == v || strings.HasPrefix(clean, v+"/") }
+	for _, v := range systemExclusions {
+		if match(v) {
+			return "system/" + strings.TrimPrefix(v, "/")
 		}
 	}
+	// The alternate Data tree remains a hard exclusion, including explicit roots.
+	if goos == "darwin" && match("/System/Volumes/Data") {
+		return "system/System/Volumes/Data"
+	}
+	// Explicit aliases must reach NoSymlinks, giving their actual rejection cause.
 	if p == root {
-		return false
+		return ""
+	}
+	if goos == "darwin" {
+		for _, v := range macAliases {
+			if match(v) {
+				return "system/" + strings.TrimPrefix(v, "/")
+			}
+		}
 	}
 	if audit.ExcludedMetadata(name) {
-		return true
+		return "metadata/" + name
 	}
 	switch name {
 	case "node_modules", "vendor", ".venv", "venv", "__pycache__":
-		return true
+		return "dependency/" + name
 	}
-	return false
+	return ""
 }
 func agentDirectory(name string) bool {
 	switch name {
@@ -306,15 +324,4 @@ func conventionalHome(p string) bool {
 		return len(parts) == 1 && parts[0] == "root" || len(parts) == 2 && (parts[0] == "Users" || parts[0] == "home")
 	}
 	return len(parts) == 3 && strings.HasSuffix(parts[0], ":") && strings.EqualFold(parts[1], "Users")
-}
-
-func exclusionRule(p, name string) string {
-	if audit.ExcludedMetadata(name) {
-		return "metadata/" + name
-	}
-	switch name {
-	case "node_modules", "vendor", ".venv", "venv", "__pycache__":
-		return "dependency/" + name
-	}
-	return "system/" + filepath.ToSlash(filepath.Clean(p))
 }

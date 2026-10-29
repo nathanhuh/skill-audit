@@ -18,6 +18,8 @@ const XRayVersion = "0.1.0"
 const XRayCommit = "c89eacfdd643e50d5f8e3ed18cf3c4992d174ff2"
 const MaxScannerOutput = 64 << 10
 const MaxSARIF = 8 << 20
+const xrayProbeTimeout = 5 * time.Second
+const xrayScanTimeout = 30 * time.Second
 
 type boundedBuffer struct {
 	bytes.Buffer
@@ -84,6 +86,18 @@ func (x *XRayScanner) Close() {
 		os.RemoveAll(x.dir)
 	}
 }
+
+// Each external phase gets at most a quarter of the remaining operation budget,
+// leaving time for local measurements and recording after scanner failure. The
+// parent still owns cancellation; this is not a guarantee against slow local I/O.
+func (x *XRayScanner) phaseTimeout(ctx context.Context, cap time.Duration) time.Duration {
+	budget := min(x.timeout, cap)
+	if deadline, ok := ctx.Deadline(); ok {
+		budget = min(budget, time.Until(deadline)/4)
+	}
+	return budget
+}
+
 func (x *XRayScanner) prepare(ctx context.Context) {
 	x.prepared = true
 	if x.dir != "" {
@@ -117,11 +131,13 @@ func (x *XRayScanner) prepare(ctx context.Context) {
 		return
 	}
 	var stdout, stderr string
-	// Startup has its own budget. Retry a probe process failure once; unsupported
-	// versions and other deterministic failures remain cached for the audit.
+	// Retry only an explicit temporary-failure exit (EX_TEMPFAIL, 75), once.
+	// Timeouts, launch failures and other exits remain cached for this audit.
 	for attempt := 0; attempt < 2; attempt++ {
-		probeCtx, cancel := context.WithTimeout(ctx, x.timeout)
-		stdout, stderr, _, err = x.process(probeCtx, exe, dir, "version")
+		probeCtx, cancel := context.WithTimeout(ctx, x.phaseTimeout(ctx, xrayProbeTimeout))
+		var code int
+		stdout, stderr, code, err = x.process(probeCtx, exe, dir, "version")
+		probeErr := probeCtx.Err()
 		cancel()
 		if err == nil {
 			break
@@ -130,7 +146,7 @@ func (x *XRayScanner) prepare(ctx context.Context) {
 		if ctx.Err() != nil {
 			return
 		}
-		if attempt == 1 {
+		if attempt == 1 || code != 75 || probeErr != nil {
 			return
 		}
 	}
@@ -145,6 +161,13 @@ func (x *XRayScanner) prepare(ctx context.Context) {
 }
 
 func (x *XRayScanner) Scan(ctx context.Context, s *Skill) {
+	// A known unavailable/failed/disabled scanner does no further work. Preserve
+	// its cause even if the caller is now canceled; operation coverage is separate.
+	if x.prepared && !x.ready {
+		s.Evaluations = append(s.Evaluations, x.evaluation)
+		sortFindings(s.Findings)
+		return
+	}
 	if err := ctx.Err(); err != nil {
 		e := x.evaluation
 		if x.exe != "" {
@@ -163,7 +186,7 @@ func (x *XRayScanner) Scan(ctx context.Context, s *Skill) {
 	if !x.ready {
 		return
 	}
-	ctx, cancel := context.WithTimeout(ctx, x.timeout)
+	ctx, cancel := context.WithTimeout(ctx, x.phaseTimeout(ctx, xrayScanTimeout))
 	defer cancel()
 	if err := ctx.Err(); err != nil {
 		e.Message = "scan canceled/timed out: " + err.Error()
