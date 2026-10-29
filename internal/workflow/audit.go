@@ -19,8 +19,12 @@ func Audit(ctx context.Context, inventory Inventory, store Store, xray string, t
 			r.Diagnostics[i].Incomplete = true
 		}
 	}
-	if inventory.Schema != InventorySchema {
+	if inventory.Schema != InventorySchema && inventory.Schema != "skill-audit/inventory/v2" {
 		return r, fmt.Errorf("unsupported inventory schema")
+	}
+	r.Discovery = &audit.Discovery{Roots: append([]string{}, inventory.Roots...), Home: inventory.Home, Policy: inventory.Policy, Limits: audit.TraversalLimits(inventory.Limits), Exclusions: append([]audit.Exclusion{}, inventory.Exclusions...)}
+	if r.Discovery.Policy == "" {
+		r.Discovery.Policy = "unknown (legacy inventory)"
 	}
 	catalog, e := store.Catalog()
 	if e != nil {

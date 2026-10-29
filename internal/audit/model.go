@@ -117,7 +117,26 @@ const (
 	RecordingUncertain    = "committed_durability_unconfirmed"
 )
 
+// Exclusions are intentional policy omissions, separate from uninspected links.
+type Exclusion struct {
+	Rule     string   `json:"rule"`
+	Count    int      `json:"count"`
+	Examples []string `json:"examples"`
+}
+type TraversalLimits struct {
+	Entries  int `json:"entries"`
+	Packages int `json:"packages"`
+	Depth    int `json:"depth"`
+}
+type Discovery struct {
+	Roots      []string        `json:"roots"`
+	Home       string          `json:"home,omitempty"`
+	Policy     string          `json:"policy"`
+	Limits     TraversalLimits `json:"limits"`
+	Exclusions []Exclusion     `json:"exclusions"`
+}
 type Report struct {
+	Discovery      *Discovery   `json:"discovery,omitempty"`
 	Recording      *Recording   `json:"recording,omitempty"`
 	Schema         string       `json:"schema"`
 	CatalogVersion string       `json:"catalog_version"`

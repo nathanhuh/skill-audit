@@ -102,7 +102,7 @@ func TestBaselineAllowsFindingsButNotPartialCoverage(t *testing.T) {
 	}
 }
 
-func TestReportCompletenessAndBaselineSharePolicy(t *testing.T) {
+func TestReportCoveragePolicy(t *testing.T) {
 	for _, tc := range []struct {
 		report Report
 		gap    bool

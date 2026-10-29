@@ -1,3 +1,11 @@
+# Verification — ADR step 2: observed anchors, 2026-10-29
+
+Based on 71e3cee. B1–B9 now have scenario tests: complete packages survive unrelated exclusions/link/budget/scanner gaps; partial observations without usable anchors and interrupted runs are refused; completed empty scopes are allowed; missing packages and initially incomplete measurements never fabricate deletions or new findings. A real CLI B2/B4/E5 fixture records one anchor while returning coverage exit 2. B9 appends a later complete observation and verifies the original anchor set remains unchanged. Legacy state/v1 is comparison-readable and append-read-only; corrupt anchors are rejected. State/v2 references first-observation measurements, report/v2 preserves discovery evidence, inventory/v3 carries policy/home/limits/exclusions. macOS alias exclusions are covered by a policy table, without scanning the device.
+
+Offline macOS arm64 / Go 1.23.5, same GOCACHE/GOPROXY/GOSUMDB settings as below. gofmt applied. go vet ./... exit 0 after correcting an alias-related unkeyed-literal warning. Full go test -count=1 ./... exit 0 (cmd 0.687s, audit 3.497s, workflow 1.267s); then focused B1–B9/legacy-state tests exit 0 (0.411s) after strengthening B9 append checks. Native build /private/tmp/skill-audit-adr-baselines exit 0. Fixture-only sh scripts/demo.sh exit 0, including comparable new SA001 and preserved baseline. No live services, installed skills or skill scripts were used. Native Linux/Windows and real Skill X-Ray remain unverified; cross-builds will run with final verification.
+
+## Prior verification
+
 # Verification — ADR step 1: outcomes, 2026-10-29
 
 Canonical main started at cb4be34. Implemented E1–E8 with a table-driven operation-outcome test, real CLI baseline/snapshot/failure tests, and an injected post-rename directory-sync failure test. Findings take priority over recording and coverage; recording is independently structured in report/v2 and printed on stderr for every analyzed audit. Historical report/v1 observations remain readable without fabricated outcome metadata. Old coverage-first assertions were changed to require both exit 1 and retained gaps.

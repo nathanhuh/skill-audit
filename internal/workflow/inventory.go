@@ -14,7 +14,8 @@ import (
 	"skill-audit/internal/audit"
 )
 
-const InventorySchema = "skill-audit/inventory/v2"
+const InventorySchema = "skill-audit/inventory/v3"
+const DiscoveryPolicy = "skill-audit/discovery/v3"
 
 type Package struct {
 	Name     string       `json:"name"`
@@ -26,13 +27,17 @@ type Package struct {
 	Files    []audit.File `json:"files"`
 }
 type Inventory struct {
+	Policy      string             `json:"policy"`
+	Home        string             `json:"home,omitempty"`
+	Limits      Limits             `json:"limits"`
+	Exclusions  []audit.Exclusion  `json:"exclusions"`
 	Schema      string             `json:"schema"`
 	Roots       []string           `json:"roots"`
 	Packages    []Package          `json:"packages"`
 	Diagnostics []audit.Diagnostic `json:"diagnostics"`
 	Entries     int                `json:"entries"`
 }
-type Limits struct{ Entries, Packages, Depth int }
+type Limits audit.TraversalLimits
 
 func DefaultLimits() Limits { return Limits{500000, 2000, 64} }
 func DeviceRoots() []string {
@@ -49,7 +54,7 @@ func DeviceRoots() []string {
 	return roots
 }
 func Discover(ctx context.Context, roots []string, home string, limits Limits) Inventory {
-	out := Inventory{Schema: InventorySchema, Roots: []string{}, Packages: []Package{}, Diagnostics: []audit.Diagnostic{}}
+	out := Inventory{Policy: DiscoveryPolicy, Home: home, Limits: limits, Exclusions: []audit.Exclusion{}, Schema: InventorySchema, Roots: []string{}, Packages: []Package{}, Diagnostics: []audit.Diagnostic{}}
 	issue := func(p, code, msg string) {
 		out.Diagnostics = append(out.Diagnostics, audit.Diagnostic{Path: p, Code: code, Message: msg, Incomplete: code != "excluded_subtree"})
 	}
@@ -130,6 +135,7 @@ func Discover(ctx context.Context, roots []string, home string, limits Limits) I
 				if p == root {
 					code = "excluded_root"
 				}
+				out.Exclusions = append(out.Exclusions, audit.Exclusion{Rule: exclusionRule(p, d.Name()), Count: 1, Examples: []string{p}})
 				issue(p, code, "outside device-search policy; entry not inspected")
 				if d.IsDir() {
 					return fs.SkipDir
@@ -190,7 +196,7 @@ func excludedOnOS(p, name, root, goos string) bool {
 	// alternate mount as well duplicates identities and consumes scan budgets.
 	// Keep this an explicit coverage exclusion, not a completeness claim.
 	if goos == "darwin" {
-		virtual = append(virtual, "/System/Volumes/Data")
+		virtual = append(virtual, "/System/Volumes/Data", "/etc", "/tmp", "/var")
 	}
 	for _, v := range virtual {
 		if clean == v || strings.HasPrefix(clean, v+"/") {
@@ -245,4 +251,15 @@ func conventionalHome(p string) bool {
 		return len(parts) == 1 && parts[0] == "root" || len(parts) == 2 && (parts[0] == "Users" || parts[0] == "home")
 	}
 	return len(parts) == 3 && strings.HasSuffix(parts[0], ":") && strings.EqualFold(parts[1], "Users")
+}
+
+func exclusionRule(p, name string) string {
+	if audit.ExcludedMetadata(name) {
+		return "metadata/" + name
+	}
+	switch name {
+	case "node_modules", "vendor", ".venv", "venv", "__pycache__":
+		return "dependency/" + name
+	}
+	return "system/" + filepath.ToSlash(filepath.Clean(p))
 }

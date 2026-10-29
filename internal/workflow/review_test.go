@@ -12,6 +12,11 @@ func TestMacOSAlternateDataTreePolicy(t *testing.T) {
 		{"/System/Volumes/Data", "/System/Volumes/Data", "darwin", true},
 		{"/System/Volumes/Data/Users", "/System/Volumes/Data/Users", "darwin", true},
 		{"/Users/alice", "/", "darwin", false},
+		{"/etc", "/", "darwin", true},
+		{"/tmp", "/", "darwin", true},
+		{"/var", "/", "darwin", true},
+		{"/private/etc", "/", "darwin", false},
+		{"/etc", "/", "linux", false},
 		{"/System/Volumes/Database", "/", "darwin", false},
 		{"/System/Volumes/Data", "/", "linux", false},
 	} {

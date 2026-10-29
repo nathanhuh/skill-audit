@@ -93,8 +93,8 @@ func TestInventoryLinkPolicyDoesNotHidePackageGap(t *testing.T) {
 	if !report.HasCoverageGaps() || len(report.Diagnostics) == 0 {
 		t.Fatal("unscanned link target treated as complete", report)
 	}
-	if err = audit.SaveObservation(context.Background(), filepath.Join(root, "blocked.json"), report, true); err == nil {
-		t.Fatal("link-gap baseline accepted")
+	if err = audit.SaveObservation(context.Background(), filepath.Join(root, "partial-anchors.json"), report, true); err != nil {
+		t.Fatal("B2 complete package anchor refused due to another link", err)
 	}
 	if err = os.Remove(filepath.Join(root, "project", "link")); err != nil {
 		t.Fatal(err)
