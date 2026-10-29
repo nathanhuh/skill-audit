@@ -376,6 +376,13 @@ func (a *Acquirer) importPackage(r *repository, dir string) (Reference, []Attrib
 		if entry.Path != dir && !(dir == "." || strings.HasPrefix(entry.Path, dir+"/")) {
 			continue
 		}
+		rel := entry.Path
+		if dir != "." {
+			rel = strings.TrimPrefix(rel, dir+"/")
+		}
+		if fingerprintMetadataPath(rel) {
+			continue
+		}
 		if entry.Type == "tree" {
 			if entry.Mode != "040000" {
 				return out, nil, fmt.Errorf("invalid Git directory mode")
@@ -393,10 +400,6 @@ func (a *Acquirer) importPackage(r *repository, dir string) (Reference, []Attrib
 		total += len(b)
 		if total > PackageLimit {
 			return out, nil, fmt.Errorf("package byte limit")
-		}
-		rel := entry.Path
-		if dir != "." {
-			rel = strings.TrimPrefix(rel, dir+"/")
 		}
 		out.Data[rel] = b
 		out.Files = append(out.Files, File{rel, Sum(b), int64(len(b))})
@@ -583,25 +586,12 @@ func (a *Acquirer) Sync(explicit []string, ref string, search Search, limit int)
 			}
 		}
 	}
+	if !search.Complete && search.Schema != "" && !budget {
+		diagnostic("search_partial", "", "search coverage incomplete")
+	}
 	if budget {
 		c.Complete = false
 		c.Diagnostics = append(c.Diagnostics, diag("sync_budget", "", "acquisition stopped at "+budgetReason+" budget; next import/diagnostic omitted; earlier imports and required attribution retained"))
 	}
-	if !search.Complete && search.Schema != "" && !budget {
-		diagnostic("search_partial", "", "search coverage incomplete")
-	}
-	if budget && !hasCode(c.Diagnostics, "sync_budget") {
-		c.Complete = false
-		c.Diagnostics = append(c.Diagnostics, diag("sync_budget", "", "diagnostic evidence budget reached; additional diagnostic omitted; earlier complete imports retained"))
-	}
 	return c
-}
-
-func hasCode(ds []Diagnostic, code string) bool {
-	for _, d := range ds {
-		if d.Code == code {
-			return true
-		}
-	}
-	return false
 }

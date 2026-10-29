@@ -79,3 +79,9 @@ See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERI
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #2/#3: explicit metadata roots now produce rejected-root gaps; only admitted no-follow-valid roots participate in delegation. Compiled /tmp versus /private/tmp fixture and root regressions pass. ADR-0010 separately governs evidence/output budgets.
 
 See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Accepted amendment: explicit roots precede device roots (2026-10-29)
+
+**Accepted explicitly by the user in the review thread.** Process all explicitly supplied `--root` locations before roots added by explicit/default device selection. Within each group retain priority, depth and lexical ordering. A root selected both explicitly and by device enumeration belongs to the explicit group. A selected ancestor must still defer a selected descendant to its own root traversal; this can make an earlier ancestor partial under a shared budget but must never starve all explicit roots behind the device sweep. Rejected roots retain their gaps and never delegate coverage.
+
+This supersedes only root group precedence, not no-follow checks, per-root depth, deduplication or shared limits. Discovery/v3 remains unpublished, so the policy identifier is retained under ADR-0008. Acceptance scenario D13: an injected device root plus an explicit agent subtree under a small entry budget reaches the explicit package before spending the remaining budget in the device root. No real device scan is required for verification.

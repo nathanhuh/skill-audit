@@ -104,7 +104,16 @@ func (r *Report) UnmarshalJSON(b []byte) error {
 	if w.Discovery != nil && w.Discovery.Complete != nil {
 		r.DiscoveryComplete = *w.Discovery.Complete
 	}
+	if !r.DiscoveryComplete || r.DiagnosticsTruncated || len(r.OmittedDiagnostics) > 0 || r.BudgetStop != "" {
+		r.DiscoveryComplete = false
+		r.Complete = false
+	}
 	for _, s := range r.Skills {
+		for _, d := range s.Diagnostics {
+			if d.Incomplete {
+				r.Complete = false
+			}
+		}
 		if !s.Complete {
 			r.Complete = false
 		}
@@ -225,8 +234,7 @@ func (c Catalog) MarshalJSON() ([]byte, error) {
 		w.Entries = append(w.Entries, wireEntry{r, r.Data})
 	}
 	for _, a := range c.Attribution {
-		k := strings.TrimPrefix(a.Repository, "https://github.com/") + "@" + a.Commit + "/" + a.Path
-		w.Attribution[k] = a.Data
+		w.Attribution[attributionKey(a)] = a.Data
 	}
 	return json.Marshal(w)
 }

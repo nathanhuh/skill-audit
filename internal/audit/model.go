@@ -14,7 +14,8 @@ const (
 	CatalogSchema     = "skill-audit/catalog/v1"
 	StoreSchema       = "skill-audit/catalog-store/v2"
 	SearchSchema      = "skill-audit/search/v2"
-	EvaluationVersion = "SA001/v2;sh/v3.10.0;scope/v2"
+	LocalRuleVersion  = "3"
+	EvaluationVersion = "SA001/v3;sh/v3.10.0;scope/v2"
 	FileLimit         = 1 << 20
 	PackageLimit      = 16 << 20
 	PackageEntries    = 1000
@@ -209,3 +210,6 @@ func info(code, path, message string) Diagnostic {
 	d.Incomplete = false
 	return d
 }
+
+// OutputError is a runtime admission failure, never an imported diagnostic.
+func (i Inventory) OutputError() error { return i.outputFailure }

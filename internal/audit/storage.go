@@ -252,7 +252,7 @@ func Record(ctx context.Context, path, mode string, r Report, old *State, syncDi
 	}
 	lock, e := os.OpenFile(path+".lock", os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if e != nil {
-		return fail(fmt.Errorf("state lock unavailable: %w", e))
+		return fail(fmt.Errorf("state lock unavailable; inspect the lock and any active writer, then remove a stale lock manually before retrying: %w", e))
 	}
 	lock.Close()
 	defer os.Remove(path + ".lock")

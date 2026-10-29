@@ -27,6 +27,10 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 		o.Home = Abs(o.Home)
 	}
 	inv := Inventory{Schema: InventorySchema, CreatedAt: time.Now().UTC(), Home: o.Home, Policy: DiscoveryPolicy, Complete: true, Limits: Limits{o.MaxEntries, o.MaxPackages, o.MaxDepth}, Packages: []Package{}}
+	explicitRoots := map[string]bool{}
+	for _, root := range o.Roots {
+		explicitRoots[Abs(root)] = true
+	}
 	roots := append([]string(nil), o.Roots...)
 	if o.Device || len(roots) == 0 {
 		f := o.DeviceRoots
@@ -42,7 +46,7 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 	inv.Roots = unique(inv.Roots)
 	roots = append([]string(nil), inv.Roots...)
 	priority := func(p string) int {
-		if o.Home != "" && Within(p, Abs(o.Home)) {
+		if o.Home != "" && Within(p, o.Home) {
 			return 0
 		}
 		if isAgent(filepath.Base(p)) {
@@ -64,12 +68,21 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 		}
 		return priority(p)
 	}
+	ranks := map[string]int{}
+	depths := map[string]int{}
+	for _, root := range roots {
+		ranks[root] = rootPriority(root)
+		depths[root] = strings.Count(root, string(filepath.Separator))
+	}
 	sort.Slice(roots, func(i, j int) bool {
-		a, b := rootPriority(roots[i]), rootPriority(roots[j])
+		if explicitRoots[roots[i]] != explicitRoots[roots[j]] {
+			return explicitRoots[roots[i]]
+		}
+		a, b := ranks[roots[i]], ranks[roots[j]]
 		if a != b {
 			return a < b
 		}
-		a, b = strings.Count(roots[i], string(filepath.Separator)), strings.Count(roots[j], string(filepath.Separator))
+		a, b = depths[roots[i]], depths[roots[j]]
 		if a != b {
 			return a < b
 		}
@@ -206,8 +219,12 @@ func InventoryRun(ctx context.Context, o InventoryOptions) Inventory {
 				}
 			}
 		}
+		entryRanks := make(map[string]int, len(entries))
+		for _, entry := range entries {
+			entryRanks[entry.Name()] = priority(filepath.Join(path, entry.Name()))
+		}
 		sort.SliceStable(entries, func(i, j int) bool {
-			a, b := priority(filepath.Join(path, entries[i].Name())), priority(filepath.Join(path, entries[j].Name()))
+			a, b := entryRanks[entries[i].Name()], entryRanks[entries[j].Name()]
 			if a != b {
 				return a < b
 			}

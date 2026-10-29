@@ -320,3 +320,12 @@ func sameDirectory(a, b string) bool {
 	y, f := os.Lstat(b)
 	return e == nil && f == nil && x.IsDir() && y.IsDir() && os.SameFile(x, y)
 }
+
+func fingerprintMetadataPath(path string) bool {
+	for _, part := range strings.Split(path, "/") {
+		if Metadata(part) {
+			return true
+		}
+	}
+	return false
+}

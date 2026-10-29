@@ -147,8 +147,8 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 	if s.terminal != nil {
 		return *s.terminal, nil
 	}
-	s.packages = append(s.packages, Package{Path: p.Path})
 	if !s.probed {
+		s.packages = append(s.packages, Package{Path: p.Path})
 		phase, cancel, e := s.phase(ctx)
 		if e != nil {
 			return s.fail(e.Error()), nil
@@ -178,27 +178,27 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 	defer cancel()
 	dir, e := os.MkdirTemp(s.temp, "scan-*")
 	if e != nil {
-		return s.fail("scanner staging failed"), nil
+		return packageScannerFailure("scanner staging failed"), nil
 	}
 	defer os.RemoveAll(dir)
 	staged := filepath.Join(dir, "package")
 	if e = os.Mkdir(staged, 0700); e != nil {
-		return s.fail("scanner staging failed"), nil
+		return packageScannerFailure("scanner staging failed"), nil
 	}
 	for _, f := range p.Files {
 		if !SafeRelative(f.Path) {
-			return s.fail("unsafe staged path"), nil
+			return packageScannerFailure("unsafe staged path"), nil
 		}
 		b := p.Data[f.Path]
 		if Sum(b) != f.SHA256 {
-			return s.fail("staged content hash mismatch"), nil
+			return packageScannerFailure("staged content hash mismatch"), nil
 		}
 		dest := filepath.Join(staged, filepath.FromSlash(f.Path))
 		if e = os.MkdirAll(filepath.Dir(dest), 0700); e == nil {
 			e = os.WriteFile(dest, b, 0600)
 		}
 		if e != nil {
-			return s.fail("scanner staging failed"), nil
+			return packageScannerFailure("scanner staging failed"), nil
 		}
 	}
 	reportPath := filepath.Join(dir, "report.sarif")
@@ -412,4 +412,8 @@ func (s *Scanner) prepareTemp() error {
 		return fmt.Errorf("scanner staging failed")
 	}
 	return nil
+}
+
+func packageScannerFailure(message string) Evaluation {
+	return Evaluation{Scanner: "skill-xray", Version: XrayVersion, Status: "failed", Message: message}
 }

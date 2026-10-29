@@ -2,12 +2,13 @@ package audit
 
 import (
 	"bytes"
-	"mvdan.cc/sh/v3/syntax"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func literal(w *syntax.Word) (string, bool) {
@@ -116,15 +117,20 @@ func interpreter(a []string) bool {
 		if terminated {
 			return stdin
 		}
-		if v == "-s" {
-			stdin = true
-		} else if v == "--" {
+		if v == "--" {
 			terminated = true
-		} else if !strings.HasPrefix(v, "-") {
+			continue
+		}
+		if !strings.HasPrefix(v, "-") {
 			return stdin
-		} else {
+		}
+		if len(v) < 2 || strings.Trim(v[1:], "euxvs") != "" {
 			return false
 		}
+		if strings.ContainsRune(v[1:], 's') {
+			stdin = true
+		}
+
 	}
 	return true
 }
@@ -264,7 +270,7 @@ func LocalScan(p Package) (Evaluation, []Finding) {
 				}
 				ev = append(append([]byte(nil), ev...), []byte("…")...)
 			}
-			findings = append(findings, Finding{Scanner: "skill-audit", ScannerVersion: EvaluationVersion, Kind: "security", RuleID: "SA001", RuleVersion: "2", Severity: "high", File: f.Path, Line: int(left.Pos().Line()), Evidence: string(ev), Message: "Literal HTTP(S) download piped to a shell", Limitations: "Static syntax only; no execution, expansion, command resolution or general dataflow", Change: "not_compared"})
+			findings = append(findings, Finding{Scanner: "skill-audit", ScannerVersion: EvaluationVersion, Kind: "security", RuleID: "SA001", RuleVersion: LocalRuleVersion, Severity: "high", File: f.Path, Line: int(left.Pos().Line()), Evidence: string(ev), Message: "Literal HTTP(S) download piped to a shell", Limitations: "Static syntax only; no execution, expansion, command resolution or general dataflow", Change: "not_compared"})
 			return true
 		})
 	}

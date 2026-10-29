@@ -34,10 +34,10 @@ try:
  run(rewrite,['inventory','--root',pkg,'--out',inventory],0)
  findings=run(rewrite,['audit','--inventory',inventory,'--state',state,'--record','snapshot','--json'],1)
  assert findings['lineage'][0]['status']=='changed'
- assert findings['skills'][0]['findings'][0]['change']=='new'
+ assert findings['skills'][0]['findings'][0]['change']=='present_in_changed_file'
  assert findings['recording']['status']=='not_recorded'
  assert before==hashlib.sha256(state.read_bytes()).hexdigest()
- result={'published_revision':'3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0','actual_inventory_v2':True,'actual_report_v1':True,'actual_state_v1':True,'content_comparison':True,'legacy_append_refused':True,'findings_exit_priority':True,'no_state_migration':True,'commands':commands}
+ result={'published_revision':'3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0','actual_inventory_v2':True,'actual_report_v1':True,'actual_state_v1':True,'content_comparison':True,'legacy_append_refused':True,'findings_exit_priority':True,'v2_evaluation_not_comparable_with_v3':True,'no_state_migration':True,'commands':commands}
  output.write_text(json.dumps(result,indent=2)+'\n')
  print(json.dumps({k:v for k,v in result.items() if k!='commands'},indent=2))
 finally:shutil.rmtree(root)

@@ -124,6 +124,8 @@ func (s *inventoryBudget) finish() {
 		s.used += n
 	}
 	if s.inv.outputFailure == nil && s.used > s.limit.OutputBytes {
+		s.partial()
 		s.inv.outputFailure = fmt.Errorf("mandatory inventory coverage evidence exceeds output budget")
+		s.inv.Diagnostics = append(s.inv.Diagnostics, diag("inventory_output_budget", s.inv.BudgetStop, s.inv.outputFailure.Error()))
 	}
 }

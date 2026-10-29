@@ -6,7 +6,7 @@ Each ADR records one decision: its rule, consequences, acceptance scenarios with
 | --- | --- | --- | --- |
 | [0001](0001-scope-and-trust-model.md) | Scope and trust model | accepted | T1–T5 |
 | [0002](0002-local-identity-and-installation-ownership.md) | Local identity and installation ownership | accepted | S1–S4 |
-| [0003](0003-discovery-and-exclusion-policy.md) | Discovery, exclusions and links | accepted | D1–D12 |
+| [0003](0003-discovery-and-exclusion-policy.md) | Discovery, exclusions and links | accepted | D1–D13 |
 | [0004](0004-observations-and-baselines.md) | Observations, baselines and anchors | accepted | B1–B11 |
 | [0005](0005-outcomes-and-exit-codes.md) | Outcomes and exit codes | accepted | E1–E9 |
 | [0006](0006-external-scanner-budgets.md) | External scanner integration and time budgets | accepted | X1–X10 |
@@ -15,6 +15,7 @@ Each ADR records one decision: its rule, consequences, acceptance scenarios with
 | [0009](0009-portability-boundaries.md) | Portability boundaries | accepted | P1–P4 |
 | [0010](0010-inventory-output-budget.md) | Inventory output and gap-detail budgets | accepted | I1–I4 |
 | [0011](0011-output-path-identity.md) | Output/input filesystem identity | accepted | O1–O3 |
+| [0012](0012-sa001-interpreter-options.md) | SA001 interpreter flag subset and v3 | accepted | R1–R3 |
 
 ## Status
 

@@ -141,6 +141,9 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 			}
 		}
 		i := audit.InventoryRun(ctx, opts)
+		if e := i.OutputError(); e != nil {
+			return bad(e)
+		}
 		observed = i.Packages
 		ok := emit(i, func() {
 			fmt.Fprintf(out, "inventory packages=%d complete=%t entries=%d\n", len(i.Packages), i.Complete, i.Entries)

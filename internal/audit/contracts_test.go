@@ -344,7 +344,7 @@ func TestT2NeverExecuteSkillData(t *testing.T) {
 	}
 }
 func TestFingerprintsFrozenDomains(t *testing.T) {
-	if FileLimit != 1<<20 || PackageLimit != 16<<20 || StoreLimit != 64<<20 || StateLimit != 32<<20 || EvaluationVersion != "SA001/v2;sh/v3.10.0;scope/v2" {
+	if FileLimit != 1<<20 || PackageLimit != 16<<20 || StoreLimit != 64<<20 || StateLimit != 32<<20 || EvaluationVersion != "SA001/v3;sh/v3.10.0;scope/v2" || LocalRuleVersion != "3" {
 		t.Fatal("contract identifiers or limits changed")
 	}
 	c, e := BuiltinCatalog()
@@ -463,4 +463,13 @@ func TestD5GlobalRootBeforeExternalBudget(t *testing.T) {
 	if len(inv.Packages) != 1 || inv.Packages[0].Scope != "global" || !inv.Packages[0].Complete || inv.Complete || !hasCode(inv.Diagnostics, "entry_limit") {
 		t.Fatal(inv)
 	}
+}
+
+func hasCode(ds []Diagnostic, code string) bool {
+	for _, d := range ds {
+		if d.Code == code {
+			return true
+		}
+	}
+	return false
 }
