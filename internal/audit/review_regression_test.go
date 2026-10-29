@@ -3,6 +3,7 @@ package audit
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -189,5 +190,29 @@ func TestReviewB10CaseAliasScopeStillRequiresExclusion(t *testing.T) {
 	r := AuditRun(context.Background(), inv, Catalog{}, AuditOptions{StatePath: filepath.Join(alias, "state.json"), Record: "baseline"})
 	if r.Recording.Status != "not_recorded" || !hasCode(r.Diagnostics, "state_exclusion_unconfirmed") {
 		t.Fatal(r)
+	}
+}
+func TestReviewX3ExitedProcessIsNotALaunchFailure(t *testing.T) {
+	s := scannerFixture(t)
+	defer s.Close()
+	scans := 0
+	s.process = func(_ context.Context, _ string, args []string) (string, int, error) {
+		if args[0] == "version" {
+			return "skill-xray 0.1.0", 0, nil
+		}
+		scans++
+		if e := os.WriteFile(args[2], []byte(cleanSARIF), 0600); e != nil {
+			t.Fatal(e)
+		}
+		return "", -1, &exec.ExitError{}
+	}
+	for i := 0; i < 2; i++ {
+		evaluation, _ := s.Scan(context.Background(), measuredFixture(t))
+		if evaluation.Status != "partial" {
+			t.Fatal(evaluation)
+		}
+	}
+	if scans != 2 {
+		t.Fatal(scans)
 	}
 }

@@ -206,7 +206,9 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 	if phase.Err() != nil {
 		return s.fail("scan timeout or cancellation: " + phase.Err().Error()), nil
 	}
-	if code < 0 && err != nil {
+	var exited *exec.ExitError
+	var console consoleLimitError
+	if code < 0 && err != nil && !errors.As(err, &exited) && !errors.As(err, &console) {
 		return s.fail("scan launch failed: " + safeProcessError(err)), nil
 	}
 	evaluation := Evaluation{Scanner: "skill-xray", Version: XrayVersion, Status: "failed"}
@@ -250,7 +252,7 @@ func safeProcessError(e error) string {
 	if errors.As(e, &ee) {
 		return fmt.Sprintf("exit %d", ee.ExitCode())
 	}
-	return "executable launch failed"
+	return "scanner process error"
 }
 func parseSARIF(b []byte, e *Evaluation) ([]Finding, error) {
 	var doc struct {
