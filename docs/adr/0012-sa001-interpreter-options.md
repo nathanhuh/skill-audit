@@ -28,7 +28,7 @@ Accepted explicitly by the user in this review thread on 2026-10-29.
 
 ## Second-review implementation evidence (2026-10-29)
 
-Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. R1–R3 pass: grouped supported flags qualify, excluded command/parse/value modes do not, and v2 evaluations cannot establish new v3 findings. See [second-review record](../review-2-fixes.md).
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. R1–R3 pass: grouped supported flags qualify, excluded command/parse/value modes do not, and v2 evaluations cannot establish new v3 findings. See [second-review record](../history/review-2-fixes.md).
 
 ## Accepted amendment: lone-dash option termination (2026-10-29)
 
@@ -36,4 +36,4 @@ The user explicitly approved this amendment in the third review thread. Before o
 
 ## Third-review evidence (2026-10-29)
 
-Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. R4 passes for sh -, bash -e -, grouped supported flags with a lone dash, and excluded following filenames and a dash after --. The compiled CLI emits SA001 v3 for curl HTTP(S) piped to sh -. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. R4 passes for sh -, bash -e -, grouped supported flags with a lone dash, and excluded following filenames and a dash after --. The compiled CLI emits SA001 v3 for curl HTTP(S) piped to sh -. See [third-review record](../history/review-3-fixes.md) and [verification](../../VERIFICATION.md).

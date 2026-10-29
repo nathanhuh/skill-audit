@@ -57,26 +57,26 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 
 B1–B11 have scenario-oriented fixture coverage for complete per-package anchors under unrelated gaps, empty and unusable observations, scanner failure, immutable observations, lock/recording refusal, missing/unanchored identities, designated state exclusion and placement. Final-sync uncertainty is injected at the persistence boundary; it is not a crash-durability experiment. Ordinary audit remains read-only.
 
-See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+See [rewrite comparison](../history/rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
 
 ## Review follow-up evidence (2026-10-29)
 
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #5: an in-scope state path different from the inventory designation is reported as state_exclusion_unconfirmed and cannot be recorded without refreshing inventory --state. No retroactive exclusion is claimed. Truncation evidence survives audit and stored observations under ADR-0010.
 
-See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+See [review fixes](../history/review-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Second-review implementation evidence (2026-10-29)
 
-Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-skill incomplete diagnostics and explicit partial discovery survive report/state readback. Final output-budget refusal cannot claim complete coverage. Manual stale-lock policy is unchanged, with actionable error guidance. See [second-review record](../review-2-fixes.md).
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-skill incomplete diagnostics and explicit partial discovery survive report/state readback. Final output-budget refusal cannot claim complete coverage. Manual stale-lock policy is unchanged, with actionable error guidance. See [second-review record](../history/review-2-fixes.md).
 
 ## Third-review evidence (2026-10-29)
 
-Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Valid hex hashes normalize in the in-memory comparison view. Published/current stored observation bytes remain unchanged, and invalid file manifests/fingerprints remain rejected. Overall report completeness survives serialization alongside independent discovery coverage. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Valid hex hashes normalize in the in-memory comparison view. Published/current stored observation bytes remain unchanged, and invalid file manifests/fingerprints remain rejected. Overall report completeness survives serialization alongside independent discovery coverage. See [third-review record](../history/review-3-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Fourth-review evidence (2026-10-29)
 
-Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Inventory, catalog and state readers canonicalize valid SHA-256 text in memory; hash bytes and original inputs remain unchanged. New observations store only observed_at. Older matching duplicate times are read and historical fields are retained; contradictory times are rejected as invalid state. See [fourth-review record](../review-4-fixes.md).
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Inventory, catalog and state readers canonicalize valid SHA-256 text in memory; hash bytes and original inputs remain unchanged. New observations store only observed_at. Older matching duplicate times are read and historical fields are retained; contradictory times are rejected as invalid state. See [fourth-review record](../history/review-4-fixes.md).
 
 ## Focused filename/scenario evidence (2026-10-29)
 
-Implementation `ce92175af520df9c8fb80e82195aadc81e5df5ce`. Host-local filename validation is shared with measurement and staging under ADR-0009 P5. Complete colon/backslash measurements now remain readable anchors; old valid files recover without migration or reset. The empty-scope B7 test also exercises readable state through the full operation. See [focused record](../host-paths-and-scenarios.md) and the [scenario map](scenario-tests.md).
+Implementation `ce92175af520df9c8fb80e82195aadc81e5df5ce`. Host-local filename validation is shared with measurement and staging under ADR-0009 P5. Complete colon/backslash measurements now remain readable anchors; old valid files recover without migration or reset. The empty-scope B7 test also exercises readable state through the full operation. See [focused record](../history/host-paths-and-scenarios.md) and the [scenario map](scenario-tests.md).

@@ -69,7 +69,7 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 
 V1–V7 are covered by published state/report/inventory/catalog/search representations, state/v2 refusal, read-only legacy append behavior and independently comparable discovery/content/scanner/catalog evidence. The embedded directory and reference-catalog fingerprints match the frozen binary. No published identifier was bumped or intentionally redefined; the publication freeze checklist is in VERIFICATION.md. Nothing was published.
 
-See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+See [rewrite comparison](../history/rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
 
 ## Accepted SA001 update (2026-10-29)
 
@@ -77,8 +77,8 @@ ADR-0012 explicitly changes receiver coverage and bumps SA001/evaluation to v3. 
 
 ## Third-review evidence (2026-10-29)
 
-Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Accepted ADR-0013 bumps search/v2 to search/v3 for input-batch provenance; v2 remains readable. Optional overall report/time fields use unpublished report/v2, and the lone-dash amendment uses unpublished SA001 v3. Published fingerprint domains, catalog shapes and scanner/API pins remain unchanged. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Accepted ADR-0013 bumps search/v2 to search/v3 for input-batch provenance; v2 remains readable. Optional overall report/time fields use unpublished report/v2, and the lone-dash amendment uses unpublished SA001 v3. Published fingerprint domains, catalog shapes and scanner/API pins remain unchanged. See [third-review record](../history/review-3-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Fourth-review evidence (2026-10-29)
 
-Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. The pre-publication checklist in VERIFICATION.md records current versus published identifiers. No new identifier is introduced: Q4 changes unpublished search/v3 in place; new observation timestamp cleanup uses unpublished state/v3/report/v2. Published readers, fingerprint encodings, scanner/API pins and pinned data/dependencies remain unchanged. Nothing was submitted or published. See [fourth-review record](../review-4-fixes.md).
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. The pre-publication checklist in VERIFICATION.md records current versus published identifiers. No new identifier is introduced: Q4 changes unpublished search/v3 in place; new observation timestamp cleanup uses unpublished state/v3/report/v2. Published readers, fingerprint encodings, scanner/API pins and pinned data/dependencies remain unchanged. Nothing was submitted or published. See [fourth-review record](../history/review-4-fixes.md).

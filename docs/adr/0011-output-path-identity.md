@@ -31,4 +31,4 @@ Accepted by the user on 2026-10-29 in this review thread. This supersedes README
 
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. O2/O3 hardlink/planned-alias tests pass on this macOS volume, preserving committed state. O1 is implemented but its native distinct-case-files test is explicitly skipped on this case-insensitive filesystem; native case-sensitive validation remains pending.
 
-See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+See [review fixes](../history/review-fixes.md) and [verification](../../VERIFICATION.md).

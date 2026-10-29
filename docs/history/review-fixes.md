@@ -2,7 +2,7 @@
 
 Reviewed starting revision: `7a84ccc0a4d2c910606e73239c3b343db96ed98c`, clean worktree. Fixed implementation: `f9200ee07f9a0f071c788a11de7467903ea44930`. The final documentation commit changes no production Go. Canonical `main` remains `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and was not edited, switched, merged, pushed or rewritten.
 
-All ten review items are addressed. Issues 1–3 first failed new regressions before their fixes. Issues 8 and 9 were implemented only after the user explicitly accepted [ADR-0010](adr/0010-inventory-output-budget.md) and [ADR-0011](adr/0011-output-path-identity.md) in this thread. This supplements the dated original rewrite comparison; it does not turn its earlier gap assessment into a current audit result.
+All ten review items are addressed. Issues 1–3 first failed new regressions before their fixes. Issues 8 and 9 were implemented only after the user explicitly accepted [ADR-0010](../adr/0010-inventory-output-budget.md) and [ADR-0011](../adr/0011-output-path-identity.md) in this thread. This supplements the dated original rewrite comparison; it does not turn its earlier gap assessment into a current audit result.
 
 | Review item | Contract | Change and evidence |
 | --- | --- | --- |

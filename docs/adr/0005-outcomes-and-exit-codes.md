@@ -64,18 +64,18 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 
 E1–E8 have a priority table plus actual CLI finding/recording/delivery checks. E9 now prints the actual requested recording outcome once on text stdout and once on stderr. JSON recording remains independent from stored observations; output-file delivery failure does not erase a committed recording or suppress an available stdout summary.
 
-See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+See [rewrite comparison](../history/rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
 
 ## Review follow-up evidence (2026-10-29)
 
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #1/E8: imported diagnostic names no longer control recording. The current operation context and private runtime interruption fact enforce B6. Complete anchors record alongside fake inventory/catalog interruption diagnostics; genuine cancellation still refuses recording.
 
-See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+See [review fixes](../history/review-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Third-review evidence (2026-10-29)
 
-Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Report JSON now explicitly includes overall complete and created_at. Scanner/drift/missing gaps can keep overall complete false while discovery.complete remains true. Complete scanner SARIF plus a normal non-zero exit retains its completion and exit evidence; security findings retain exit-1 priority. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Report JSON now explicitly includes overall complete and created_at. Scanner/drift/missing gaps can keep overall complete false while discovery.complete remains true. Complete scanner SARIF plus a normal non-zero exit retains its completion and exit evidence; security findings retain exit-1 priority. See [third-review record](../history/review-3-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Focused filename/scenario evidence (2026-10-29)
 
-Implementation `ce92175af520df9c8fb80e82195aadc81e5df5ce`. The focused CLI regression reproduces recorded-but-unreadable host filenames on 7031637 and verifies readable recording/readback after the fix. E9 now has a direct text-snapshot/stdout test. See [focused record](../host-paths-and-scenarios.md) and the [scenario map](scenario-tests.md).
+Implementation `ce92175af520df9c8fb80e82195aadc81e5df5ce`. The focused CLI regression reproduces recorded-but-unreadable host filenames on 7031637 and verifies readable recording/readback after the fix. E9 now has a direct text-snapshot/stdout test. See [focused record](../history/host-paths-and-scenarios.md) and the [scenario map](scenario-tests.md).

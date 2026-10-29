@@ -53,4 +53,4 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 
 S1–S4 use temporary home-global plugin, worktree/project and .github fixtures with duplicate names. Scope plus lexical absolute path remains the key. Current inventory identities are preserved during audit; no move/rename linkage or historical identity migration was added.
 
-See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+See [rewrite comparison](../history/rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.

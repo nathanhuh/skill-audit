@@ -61,22 +61,22 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 
 X1–X10 are exercised with injected process/deadline seams and a copied Go test executable. The shared CLI harness observes two baseline scan launches versus one rewrite launch after a hanging scan. Probe retries share the original deadline; no scan retry occurs. X3/X4 assert phase admission without hidden caps but do not spend real 45 s / 6 s wall time. Real Skill X-Ray/OpenGrep remains unverified, and Windows descendant cleanup is still pending.
 
-See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+See [rewrite comparison](../history/rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
 
 ## Review follow-up evidence (2026-10-29)
 
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #4/#6: capped logs retain their actual process exit and a per-package console cause. Exited processes are distinct from launch failure. The non-embedding buffer prevents io.Copy ReadFrom bypass. Real fake-process tests launch later packages after log overflow. Temp bases are checked against every audited package and package ancestors before probe/staging writes; unsafe TMPDIR is refused without mutation.
 
-See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+See [review fixes](../history/review-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Second-review implementation evidence (2026-10-29)
 
-Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-package hash/staging filesystem errors no longer set terminal scanner state; hash mismatch and overlong staging-name tests allow the next package scan. Initial package protection is prepared once. See [second-review record](../review-2-fixes.md).
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-package hash/staging filesystem errors no longer set terminal scanner state; hash mismatch and overlong staging-name tests allow the next package scan. Initial package protection is prepared once. See [second-review record](../history/review-2-fixes.md).
 
 ## Third-review evidence (2026-10-29)
 
-Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. The clean pinned source c89eacf returns 0 for complete scans including findings, and 2 for errors/incomplete high-severity analysis. Ordinary exits no longer override validated SARIF coverage; signal, I/O/log and measurement losses remain partial. Exit evidence is retained. Fake-process tests pass; real scanner runtime remains unverified. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. The clean pinned source c89eacf returns 0 for complete scans including findings, and 2 for errors/incomplete high-severity analysis. Ordinary exits no longer override validated SARIF coverage; signal, I/O/log and measurement losses remain partial. Exit evidence is retained. Fake-process tests pass; real scanner runtime remains unverified. See [third-review record](../history/review-3-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Fourth-review evidence (2026-10-29)
 
-Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. X8 coverage messages survive appended process exits/errors. A clean process over an incomplete measurement adds its cause without a dangling separator. Source inspection confirms exit 2 also covers errors; it is not an exact coverage predicate. Fake-process checks retain both coverage and exit 2. See [fourth-review record](../review-4-fixes.md).
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. X8 coverage messages survive appended process exits/errors. A clean process over an incomplete measurement adds its cause without a dangling separator. Source inspection confirms exit 2 also covers errors; it is not an exact coverage predicate. Fake-process checks retain both coverage and exit 2. See [fourth-review record](../history/review-4-fixes.md).

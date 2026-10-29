@@ -48,7 +48,7 @@ The directory-sync decision was checked against the installed Go 1.23.5 Windows 
 
 ## Isolated rewrite evidence (2026-10-29)
 
-The rewrite remains separate from canonical main; see docs/rewrite-comparison.md and VERIFICATION.md. Filesystem policy lives in fs_policy.go, Unix/Windows link and persistence behavior in fs_unix.go/fs_windows.go, and child-process behavior in process_unix.go/process_windows.go. Windows checks reparse attributes as well as ModeSymlink, but D7/P4 still require native junction evidence. P3 remains pending: Windows cancellation only kills the direct child, without Job Objects. The new Go fake scanner is compile-checked for Windows; this is not a native execution result. P1 remains a cross-host check, not established by same-host fixture hashes.
+The rewrite remains separate from canonical main; see docs/history/rewrite-comparison.md and VERIFICATION.md. Filesystem policy lives in fs_policy.go, Unix/Windows link and persistence behavior in fs_unix.go/fs_windows.go, and child-process behavior in process_unix.go/process_windows.go. Windows checks reparse attributes as well as ModeSymlink, but D7/P4 still require native junction evidence. P3 remains pending: Windows cancellation only kills the direct child, without Job Objects. The new Go fake scanner is compile-checked for Windows; this is not a native execution result. P1 remains a cross-host check, not established by same-host fixture hashes.
 
 ## Host-local path rule and native acceptance tests
 

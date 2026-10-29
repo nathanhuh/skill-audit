@@ -52,8 +52,8 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 
 Filesystem policy/discovery/link/persistence and process behavior are isolated in fs_* and process_* files. LF/CRLF and same-host fixture hashes pass; P1 cross-host agreement is still pending. Linux/Windows cross-builds and Windows test compilation pass. P3 Windows descendant cleanup, P4/D7 native junctions, NTFS durability, native Linux/Windows full tests/demo and a Windows-native demo remain pending. WSL is not native Windows evidence.
 
-See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+See [rewrite comparison](../history/rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
 
 ## Focused filename/scenario evidence (2026-10-29)
 
-Implementation `ce92175af520df9c8fb80e82195aadc81e5df5ce`. P5 record/read/compare/snapshot and staging/finding-path fixtures pass for host-valid names. Existing unreadable Unix baselines recover without a write. Native D7/P4 and P3 acceptance tests are present and compile; they remain unrun here, and P3 still requires the pending Windows descendant-cleanup implementation. See [focused record](../host-paths-and-scenarios.md) and the [scenario map](scenario-tests.md).
+Implementation `ce92175af520df9c8fb80e82195aadc81e5df5ce`. P5 record/read/compare/snapshot and staging/finding-path fixtures pass for host-valid names. Existing unreadable Unix baselines recover without a write. Native D7/P4 and P3 acceptance tests are present and compile; they remain unrun here, and P3 still requires the pending Windows descendant-cleanup implementation. See [focused record](../history/host-paths-and-scenarios.md) and the [scenario map](scenario-tests.md).

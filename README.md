@@ -9,9 +9,20 @@ go build -o ./bin/skill-audit ./cmd/skill-audit
 export PATH="$PWD/bin:$PATH"
 ```
 
-The document-driven rewrite is the implementation selected for canonical `main`, promoted locally at the user's request after review and fixture verification. The frozen reference `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` remains in Git history. See [host-local filename fix and scenario tests](docs/host-paths-and-scenarios.md) for the latest focused changes and [second-review record](docs/review-2-fixes.md) for promotion evidence, and [docs/rewrite-comparison.md](docs/rewrite-comparison.md) for the dated original comparison. There is one active CLI. Verify path, branch and revision before reviewing.
+## Brief coverage
 
-Binding decisions are in the [architecture decision records](docs/adr/README.md). All thirteen ADRs are accepted. The rewritten implementation and scenario tests follow those decisions; platform runtime checks and real Skill X-Ray remain explicitly pending. Gap tables retain their original revision context, with rewrite evidence appended. See VERIFICATION.md for commands, freeze checks and limitations.
+| Brief requirement | How | Shown by |
+| --- | --- | --- |
+| 1. Discover global and project-level Claude skills on the device | `inventory --device` (or `--root`) classifies every `SKILL.md` package as `global`, `project` or `machine` by installation ownership | `scripts/demo.sh`; [ADR-0002](docs/adr/0002-local-identity-and-installation-ownership.md), [ADR-0003](docs/adr/0003-discovery-and-exclusion-policy.md) |
+| 2. Correlate against 2–3 skills from anthropics/skills | Two skills pinned to commit `dbd4588` are embedded; `audit` reports `exact`, `possible_modified` (content similarity, names ignored), `ambiguous` or `unknown` | `scripts/demo.sh`; [Catalog fixtures and matching](DESIGN.md#catalog-fixtures-and-matching) |
+| 3. Track lineage: pulled from open source, then modified | Each modified candidate lists files changed relative to the pinned upstream reference, with no baseline needed; `--record baseline\|snapshot` adds changes relative to your own recorded observation | `scripts/demo.sh`; [ADR-0014](docs/adr/0014-upstream-file-comparison.md), [ADR-0004](docs/adr/0004-observations-and-baselines.md) |
+| 4. One security-relevant finding type | SA001: a downloaded script piped into `sh`/`bash` (`curl … \| bash`), parsed rather than executed, with file, line and evidence | `scripts/demo.sh`; [SA001 v3 coverage](#sa001-v3-coverage) |
+
+Everything else is optional: `search`/`sync` acquire more references, and `--xray` adds the external Skill X-Ray scanner. The core path above works offline with no flags beyond those shown.
+
+The document-driven rewrite is the implementation selected for canonical `main`, promoted locally at the user's request after review and fixture verification. The frozen reference `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` remains in Git history. See [host-local filename fix and scenario tests](docs/history/host-paths-and-scenarios.md) for the latest focused changes and [second-review record](docs/history/review-2-fixes.md) for promotion evidence, and [docs/history/rewrite-comparison.md](docs/history/rewrite-comparison.md) for the dated original comparison. There is one active CLI. Verify path, branch and revision before reviewing.
+
+Binding decisions are in the [architecture decision records](docs/adr/README.md). All fourteen ADRs are accepted. The rewritten implementation and scenario tests follow those decisions; platform runtime checks and real Skill X-Ray remain explicitly pending. Gap tables retain their original revision context, with rewrite evidence appended. See VERIFICATION.md for commands, freeze checks and limitations.
 
 ## Fixture demonstration and verification
 

@@ -1,6 +1,6 @@
 # Review guide for canonical main
 
-Start with [the filename fix and scenario map](docs/host-paths-and-scenarios.md), the reviewed revision and [docs/adr/README.md](docs/adr/README.md). The frozen reference is `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and remains in history; the rewrite is now canonical main. This is document-driven development followed by source-informed compatibility analysis, not a formal clean-room exercise.
+Start with [the filename fix and scenario map](docs/history/host-paths-and-scenarios.md), the reviewed revision and [docs/adr/README.md](docs/adr/README.md). The frozen reference is `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and remains in history; the rewrite is now canonical main. This is document-driven development followed by source-informed compatibility analysis, not a formal clean-room exercise.
 
 ## Entry points
 
@@ -41,8 +41,8 @@ Filesystem checks are best effort against ordinary changes, not protection from 
 
 ## Review follow-up
 
-The ten-item review at 7a84ccc is handled in docs/review-fixes.md. Read inventory_budget.go and json_size.go for bounded inventory evidence and incremental formatted-byte admission. Runtime cancellation cannot be forged by diagnostic names. State-location mismatches remain visible instead of retroactively changing saved discovery policy. Rejected roots cannot hide packages reached through an admitted root. The non-embedding scanner console buffer prevents io.Copy from bypassing its Write cap; console overflow is a per-package coverage cause, distinct from launch failure. All staging is checked before mutation. Accepted decisions for new policy are ADR-0010 and ADR-0011.
+The ten-item review at 7a84ccc is handled in docs/history/review-fixes.md. Read inventory_budget.go and json_size.go for bounded inventory evidence and incremental formatted-byte admission. Runtime cancellation cannot be forged by diagnostic names. State-location mismatches remain visible instead of retroactively changing saved discovery policy. Rejected roots cannot hide packages reached through an admitted root. The non-embedding scanner console buffer prevents io.Copy from bypassing its Write cap; console overflow is a per-package coverage cause, distinct from launch failure. All staging is checked before mutation. Accepted decisions for new policy are ADR-0010 and ADR-0011.
 
 ## Second review and promotion
 
-The latest focused record is docs/host-paths-and-scenarios.md; all accepted IDs map to tests in docs/adr/scenario-tests.json. Canonical main contains the rewrite and reviewed fixes. Search/v3 per-query provenance and the SA001 v3 lone-dash amendment were approved explicitly. The second-review record preserves the fast-forward promotion evidence; historical sections retain their named revisions.
+The latest focused record is docs/history/host-paths-and-scenarios.md; all accepted IDs map to tests in docs/adr/scenario-tests.json. Canonical main contains the rewrite and reviewed fixes. Search/v3 per-query provenance and the SA001 v3 lone-dash amendment were approved explicitly. The second-review record preserves the fast-forward promotion evidence; historical sections retain their named revisions.

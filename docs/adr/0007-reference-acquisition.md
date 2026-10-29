@@ -62,22 +62,22 @@ Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr
 
 C1–C8 use in-memory fake HTTP transports: cache misses, transient/permanent errors, pinned retry, repository grouping, complete admission with attribution and actual formatted-output headroom. Exhaustion tests inject smaller budgets while production 40 MiB raw / 64 MiB store constants stay pinned. No authenticated or live provider call was made. Earlier complete entries and required attribution survive budget exhaustion.
 
-See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
+See [rewrite comparison](../history/rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
 
 ## Review follow-up evidence (2026-10-29)
 
 Implementation `f9200ee07f9a0f071c788a11de7467903ea44930` on the isolated rewrite branch. Review #7/#10: repository grouping uses canonical case-insensitive GitHub keys; refs/paths keep their case. Incremental formatted-size accounting encodes only new records/attribution/diagnostics, matches actual bytes in mixed-addition tests, and preserves C7/C8 admission plus final write cap. The 8/16/32-entry benchmark scales approximately linearly.
 
-See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md).
+See [review fixes](../history/review-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Second-review implementation evidence (2026-10-29)
 
-Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. New imports omit declared fingerprint metadata consistently with local collection. Existing stores remain unchanged. The reachable late search-diagnostic budget path has a regression, one finalizer and shared attribution-key formatting. See [second-review record](../review-2-fixes.md).
+Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. New imports omit declared fingerprint metadata consistently with local collection. Existing stores remain unchanged. The reachable late search-diagnostic budget path has a regression, one finalizer and shared attribution-key formatting. See [second-review record](../history/review-2-fixes.md).
 
 ## Third-review evidence (2026-10-29)
 
-Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Admitted attribution is reused independently of the blob cache: the empty-cache 40-package/three-license fixture uses 46 requests, compared with exhaustion at 100 after 24 imports before the fix. The resolution cache is intentionally retained: a transient tree failure retries the tree on a later target while keeping metadata and commit resolution at one request each. ADR-0013 separately governs merged search provenance. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Admitted attribution is reused independently of the blob cache: the empty-cache 40-package/three-license fixture uses 46 requests, compared with exhaustion at 100 after 24 imports before the fix. The resolution cache is intentionally retained: a transient tree failure retries the tree on a later target while keeping metadata and commit resolution at one request each. ADR-0013 separately governs merged search provenance. See [third-review record](../history/review-3-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Fourth-review evidence (2026-10-29)
 
-Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Exact/equivalent acquisition targets and identical full diagnostic causes deduplicate separately from retained search provenance. Distinct missing targets/long causes retain evidence. Two 200-duplicate fixtures preserve a later valid import under an 8,000-byte output limit. C3 transient retries and immutable resolution remain covered on later distinct targets. See [fourth-review record](../review-4-fixes.md).
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Exact/equivalent acquisition targets and identical full diagnostic causes deduplicate separately from retained search provenance. Distinct missing targets/long causes retain evidence. Two 200-duplicate fixtures preserve a later valid import under an 8,000-byte output limit. C3 transient retries and immutable resolution remain covered on later distinct targets. See [fourth-review record](../history/review-4-fixes.md).

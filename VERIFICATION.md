@@ -1,3 +1,13 @@
+# Verification — repository tidy-up, 2026-10-29
+
+Behavior-preserving. Started at `6bfafe6`.
+
+- **Tests regrouped by area.** The five review-round files (`second_review_test.go`, `third_review_test.go`, `fourth_review_test.go`, `review_regression_test.go`, `scenario_gaps_test.go`) were split by declaration, unchanged, into `inventory_test.go`, `lineage_test.go`, `local_rule_test.go`, `inventory_budget_test.go`, `scanner_contracts_test.go` and `acquire_contracts_test.go`. Test names are unchanged, so `scenario-tests.json` is unchanged. `scenario-tests.md` links were regenerated to the new files and lines. A `go test -json` comparison before and after shows the identical set of (package, test, result): 196 passing, 3 skipped.
+- **Review records moved** from `docs/` to `docs/history/` (twelve files, with a new index), and every Markdown link and plain path mention was rewritten. `scripts/` is unchanged, because the smoke scripts resolve the repository from their own location and this file records their exact commands.
+- **README** now opens with a brief-coverage table mapping the four take-home requirements to commands, ADRs and the demo.
+
+Checks: `gofmt -l cmd internal` prints nothing; `go vet ./...` and `GOOS=windows go vet ./...` exit 0; `go test -count=1 ./...` passes; `sh scripts/demo.sh` exits 0; `git diff --check` exits 0; every relative Markdown link and heading anchor resolves.
+
 # Verification — behavior-preserving cleanup and upstream file comparison, 2026-10-29
 
 Started on clean canonical `main` at `cc795d6`. Two changes, both uncommitted:
@@ -46,7 +56,7 @@ git diff --check
 git diff --exit-code 7031637 -- go.mod go.sum vendor internal/audit/catalog .gitattributes
 ```
 
-No schema/rule/evaluation identifier changes. Host-local paths apply to local manifests and decoded local finding paths; acquisition/catalog transport paths keep their existing portable validation. Raw bytes and directory/reference-catalog encodings are unchanged, as are dependencies, catalog bytes, attribution/licenses, .gitattributes and scanner/API pins. Published state remains comparison-readable and append-read-only; nothing is migrated, reset, pushed or submitted. Compact outcomes are in docs/host-paths-results.json.
+No schema/rule/evaluation identifier changes. Host-local paths apply to local manifests and decoded local finding paths; acquisition/catalog transport paths keep their existing portable validation. Raw bytes and directory/reference-catalog encodings are unchanged, as are dependencies, catalog bytes, attribution/licenses, .gitattributes and scanner/API pins. Published state remains comparison-readable and append-read-only; nothing is migrated, reset, pushed or submitted. Compact outcomes are in docs/history/host-paths-results.json.
 
 Pending runtime evidence remains explicit: native Linux/Windows, a second host for P1, case-sensitive O1, native Windows junction/descendant/durability behavior, real Skill X-Ray/OpenGrep, live acquisition and exhaustive device discovery. Cross-compilation proves compilation only. The focused change does not settle SA001 per-file comparability or alter the other deferred review findings.
 
@@ -54,7 +64,7 @@ Pending runtime evidence remains explicit: native Linux/Windows, a second host f
 
 # Verification — fourth review on canonical main, 2026-10-29
 
-Started on clean main at **1518aa555940d6e42b30aa52adde966954c0cd0e**. Verified implementation: **145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40**. The following documentation commit changes no production Go bytes. ADR-0013 Q4 was explicitly approved before implementation. [Fourth-review record](docs/review-4-fixes.md) maps all ten items and [compact results](docs/review-4-results.json) record outcomes.
+Started on clean main at **1518aa555940d6e42b30aa52adde966954c0cd0e**. Verified implementation: **145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40**. The following documentation commit changes no production Go bytes. ADR-0013 Q4 was explicitly approved before implementation. [Fourth-review record](docs/history/review-4-fixes.md) maps all ten items and [compact results](docs/history/review-4-results.json) record outcomes.
 
 macOS arm64 / Go 1.23.5: **174 passing tests/subtests, zero failures, one skip** (TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity requires a case-sensitive filesystem). Initial regressions failed for 1–5 and cleanup 8–10. The 13-command compiled before/after smoke reproduces five failures on the reviewed revision and confirms their fixes. Host/Windows vet, scoped gofmt, builds, fixture demo, prior smoke/compatibility checks and the restored combined-sync test pass.
 
@@ -110,7 +120,7 @@ Pending: native Linux/Windows execution, case-sensitive O1, native Windows junct
 
 # Verification — third review on canonical main, 2026-10-29
 
-Started on clean canonical `main` at **573eed67f416aa4c01f260baecc297cb59e08897**. Verified implementation: **77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e**. The following documentation commit changes no production Go bytes. User-approved ADR-0012 R4 and ADR-0013 precede their implementation. [Third-review record](docs/review-3-fixes.md) maps all ten findings to the rules, fixes and source evidence; [machine results](docs/review-3-results.json) preserve outcomes.
+Started on clean canonical `main` at **573eed67f416aa4c01f260baecc297cb59e08897**. Verified implementation: **77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e**. The following documentation commit changes no production Go bytes. User-approved ADR-0012 R4 and ADR-0013 precede their implementation. [Third-review record](docs/history/review-3-fixes.md) maps all ten findings to the rules, fixes and source evidence; [machine results](docs/history/review-3-results.json) preserve outcomes.
 
 Native macOS arm64 / Go 1.23.5: **157 passing tests/subtests, zero failures, one skip** (`TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity`: this volume is case-insensitive). Initial fixture regressions failed for items 1–4, 7 and 8. Item 1's complete-SARIF/nonzero case is synthetic; source inspection disproves the claim that the pinned upstream exits 1 for security findings. Item 9's allegedly unused cache is reachable on transient tree failure, proven by a regression that passes before any code change. The lone-dash receiver regression also failed before the receiver correction. No live scanner or skill script was executed.
 
@@ -151,7 +161,7 @@ Pending: native Linux/Windows tests/demo, case-sensitive O1, native Windows junc
 
 Review started on clean `codex/adr-rewrite` at `d2242e0d4f0078a84213053add0921b621cb0c2c`. Verified implementation: **a59cddbc4c6b17940a249579131e71c31db95e5c**. The user explicitly approved ADR-0003 D13 (explicit roots before device roots), ADR-0012 (expanded receiver flags and SA001 v3) and promotion to canonical main. The documentation commit contains no further production Go changes. Canonical main is fast-forwarded from the preserved reference **8c6f3b83d725c716246bdbdecc8495bb9cedbccb** to the commit containing this record. No history is rewritten and nothing is pushed/published.
 
-[Second-review results](docs/review-2-fixes.md) map every item to its rule and evidence. [Machine summary](docs/review-2-results.json) preserves checks. Tests first reproduced items 1–5 and the missing lock guidance. Item 8 was reachable, not dead: a late search diagnostic can exhaust headroom. A regression proves this, and the finalizer is now one block. Metadata filtering applies to newly imported references; existing catalogs/state are not migrated. Dependency omissions still prevent exact local claims under D11.
+[Second-review results](docs/history/review-2-fixes.md) map every item to its rule and evidence. [Machine summary](docs/history/review-2-results.json) preserves checks. Tests first reproduced items 1–5 and the missing lock guidance. Item 8 was reachable, not dead: a late search diagnostic can exhaust headroom. A regression proves this, and the finalizer is now one block. Metadata filtering applies to newly imported references; existing catalogs/state are not migrated. Dependency omissions still prevent exact local claims under D11.
 
 Native macOS arm64, Go 1.23.5: **127 passing tests/subtests, no failures**, one skip (`TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity`, case-sensitive volume required). Scoped gofmt has no output; vendor remains untouched. Vet, offline tests, native build, demo and all existing fixture CLI harnesses pass. Linux/Windows builds and Windows test compilation pass; native runtime remains unverified.
 
@@ -189,7 +199,7 @@ Remaining limits: native case-sensitive O1, Linux/Windows runtime suites/demo, W
 
 Reviewed starting revision: `7a84ccc0a4d2c910606e73239c3b343db96ed98c`, clean worktree on `codex/adr-rewrite`. Fixed implementation: **f9200ee07f9a0f071c788a11de7467903ea44930**. The accompanying documentation commit changes no production Go. Canonical main remains `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and is preserved.
 
-All ten items are addressed, with [per-item changes and ADR citations](docs/review-fixes.md) and [machine evidence](docs/review-fixes-results.json). #1–#3 first failed new regressions. The user explicitly accepted ADR-0010 and ADR-0011 before #8–#9 behavior changed. No published schema/fingerprint/rule/scanner pin changed; new optional coverage fields use the still-unpublished inventory/v3/report/v2 contracts. Pinned assets/dependencies/licenses and .gitattributes have no diff.
+All ten items are addressed, with [per-item changes and ADR citations](docs/history/review-fixes.md) and [machine evidence](docs/history/review-fixes-results.json). #1–#3 first failed new regressions. The user explicitly accepted ADR-0010 and ADR-0011 before #8–#9 behavior changed. No published schema/fingerprint/rule/scanner pin changed; new optional coverage fields use the still-unpublished inventory/v3/report/v2 contracts. Pinned assets/dependencies/licenses and .gitattributes have no diff.
 
 Native macOS arm64 / Go 1.23.5: **103 passing tests/subtests, no failures, one skip** (`TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity`, requires a case-sensitive volume). Hardlink and planned case-alias state protection pass here. Native Linux/Windows runtime is still pending; their builds and Windows test compilation pass. Cross-compilation is not native runtime or WSL evidence.
 
@@ -227,7 +237,7 @@ Remaining limits: native case-sensitive O1 runtime, Linux/Windows full suites/de
 
 Reviewed implementation: **b7257a55c479501179e9a936f0d7cfffea11e751**, local branch `codex/adr-rewrite`, `/Users/nathanhuh/.codex/worktrees/2376/skill-audit`. The following documentation/verification commit changes no production Go bytes. Preserved reference/canonical main: **8c6f3b83d725c716246bdbdecc8495bb9cedbccb**. The worktree began clean at that revision; canonical main was not promoted, edited, switched or rewritten.
 
-See [docs/rewrite-comparison.md](docs/rewrite-comparison.md) for source-boundary history, scenario coverage and measured differences, and [docs/rewrite-results.json](docs/rewrite-results.json) for compact machine evidence. Prior verification records below describe the reference implementation at their named revisions; they are not claims about pending native runtimes.
+See [docs/history/rewrite-comparison.md](docs/history/rewrite-comparison.md) for source-boundary history, scenario coverage and measured differences, and [docs/history/rewrite-results.json](docs/history/rewrite-results.json) for compact machine evidence. Prior verification records below describe the reference implementation at their named revisions; they are not claims about pending native runtimes.
 
 ## Environment and isolation
 

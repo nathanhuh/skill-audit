@@ -28,7 +28,7 @@ Rejected alternative: disallow saved/live combinations. That is simpler but remo
 
 ## Third-review evidence (2026-10-29)
 
-Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Q1–Q3 pass with different-source batches, an opaque published-v2 query, failed/empty inputs, nested flat merges and deduplicated sync imports. CLI tests save merged v3, consume it in sync and preserve the v2 source file. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Q1–Q3 pass with different-source batches, an opaque published-v2 query, failed/empty inputs, nested flat merges and deduplicated sync imports. CLI tests save merged v3, consume it in sync and preserve the v2 source file. See [third-review record](../history/review-3-fixes.md) and [verification](../../VERIFICATION.md).
 
 ## Accepted amendment: one batch per new query (2026-10-29)
 
@@ -36,4 +36,4 @@ Explicitly approved by the user during the fourth review. Newly requested querie
 
 ## Fourth-review evidence (2026-10-29)
 
-Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Q4 passes for both providers with two successful queries, a failed query, an empty result and an invalid query. Older grouped inputs remain intact. Inputs are the only evidence fields; computed views agree with edited/saved/read inputs. Direct combined sync and merged-v3-file sync both have CLI coverage. See [fourth-review record](../review-4-fixes.md).
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Q4 passes for both providers with two successful queries, a failed query, an empty result and an invalid query. Older grouped inputs remain intact. Inputs are the only evidence fields; computed views agree with edited/saved/read inputs. Direct combined sync and merged-v3-file sync both have CLI coverage. See [fourth-review record](../history/review-4-fixes.md).

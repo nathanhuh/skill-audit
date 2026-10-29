@@ -14,7 +14,7 @@ The ten-command compiled CLI check builds the reviewed revision in a temporary e
 
 ## Scenario coverage
 
-All **87 accepted IDs** have registered Go tests, including new P5. The [readable map](adr/scenario-tests.md) links each ID to source assertions; [scenario-tests.json](adr/scenario-tests.json) is the machine contract. A normal Go test verifies that the ADR index, declared scenario rows and real test declarations agree. The result checker also verifies that mapped subtests executed or have an explicit native-only requirement.
+All **87 accepted IDs** have registered Go tests, including new P5. The [readable map](../adr/scenario-tests.md) links each ID to source assertions; [scenario-tests.json](../adr/scenario-tests.json) is the machine contract. A normal Go test verifies that the ADR index, declared scenario rows and real test declarations agree. The result checker also verifies that mapped subtests executed or have an explicit native-only requirement.
 
 Added coverage includes offline/no-credential audit evidence (T1/T4), the macOS alias rule key (D4), exact 50,000-entry exclusion cardinality (D8), genuinely empty readable baselines (B7), default cold-probe admission (X4), repository reload identity/accounting (C2), text snapshot stdout (E9), and native Windows junction/descendant acceptance tests (D7/P4/P3). X8 now explicitly asserts one package scan launch. Existing accepted amendment IDs D13/R4/Q4 have formal table rows; their policy is unchanged.
 
