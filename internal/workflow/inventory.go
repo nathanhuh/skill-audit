@@ -224,26 +224,37 @@ func agentDirectory(name string) bool {
 }
 
 func classify(p, home string) (string, string) {
-	// Prefer the nearest agent marker, so a project nested in an agent worktree
-	// does not inherit global scope from the outer home configuration directory.
+	// An installation at a home boundary owns its bundled packages, including
+	// nested agent markers. Worktree/project containers explicitly delegate to
+	// project installations. Nearest markers only supply the fallback agent hint.
+	nearest := ""
 	for dir := filepath.Clean(p); ; dir = filepath.Dir(dir) {
 		agent := filepath.Base(dir)
 		if agentDirectory(agent) {
+			if nearest == "" {
+				nearest = agent
+			}
 			parent := filepath.Dir(dir)
-			rel, _ := filepath.Rel(dir, p)
-			first := strings.Split(filepath.ToSlash(rel), "/")[0]
-			installation := first != "worktrees" && first != "projects"
-			if agent != ".github" && installation && ((home != "" && audit.Within(parent, home) && audit.Within(home, parent)) || conventionalHome(parent)) {
+			atHome := (home != "" && audit.Within(parent, home) && audit.Within(home, parent)) || conventionalHome(parent)
+			if atHome && agent != ".github" {
+				rel, _ := filepath.Rel(dir, p)
+				first := strings.Split(filepath.ToSlash(rel), "/")[0]
+				if first == "worktrees" || first == "projects" {
+					return "project", nearest
+				}
 				return "global", agent
 			}
-			return "project", agent
 		}
 		if filepath.Dir(dir) == dir {
 			break
 		}
 	}
+	if nearest != "" {
+		return "project", nearest
+	}
 	return "machine", "unknown"
 }
+
 func conventionalHome(p string) bool {
 	slash := filepath.ToSlash(p)
 	parts := strings.Split(strings.Trim(slash, "/"), "/")

@@ -1,3 +1,11 @@
+# Verification — ADR step 3: installation ownership, 2026-10-29
+
+Based on 4b5a86a. S1/S2 tests discover real temporary packages in global plugins (including nested .claude markers), global community layouts, direct global installs, managed worktrees and projects, plus .github project ownership. Duplicate names retain separate identities. Round-trip baseline comparison stays unchanged; an intentionally different historical scope remains missing alongside the current not_in_baseline identity, without rewriting history.
+
+Offline macOS arm64 / Go 1.23.5: gofmt applied; go vet ./... exit 0; go test -count=1 ./... exit 0 (cmd 0.820s, audit 6.322s, workflow 1.457s). Native build /private/tmp/skill-audit-adr-ownership exit 0; fixture-only sh scripts/demo.sh exit 0. No network service, installed skill or script execution. Native Linux/Windows and real Skill X-Ray remain unverified.
+
+## Prior verification
+
 # Verification — ADR step 2: observed anchors, 2026-10-29
 
 Based on 71e3cee. B1–B9 now have scenario tests: complete packages survive unrelated exclusions/link/budget/scanner gaps; partial observations without usable anchors and interrupted runs are refused; completed empty scopes are allowed; missing packages and initially incomplete measurements never fabricate deletions or new findings. A real CLI B2/B4/E5 fixture records one anchor while returning coverage exit 2. B9 appends a later complete observation and verifies the original anchor set remains unchanged. Legacy state/v1 is comparison-readable and append-read-only; corrupt anchors are rejected. State/v2 references first-observation measurements, report/v2 preserves discovery evidence, inventory/v3 carries policy/home/limits/exclusions. macOS alias exclusions are covered by a policy table, without scanning the device.
