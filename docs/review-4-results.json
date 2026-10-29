@@ -1,0 +1,156 @@
+{
+  "reviewed_revision": "1518aa555940d6e42b30aa52adde966954c0cd0e",
+  "fixed_implementation_revision": "145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40",
+  "branch": "main",
+  "passed_tests_and_subtests": 174,
+  "skipped_tests": [
+    "TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity"
+  ],
+  "failures": [],
+  "accepted_decision": "ADR-0013 Q4: one batch per new query; legacy groups remain intact",
+  "scanner_pin": "c89eacfdd643e50d5f8e3ed18cf3c4992d174ff2",
+  "scanner_source_checkout_clean": true,
+  "real_scanner_executed": false,
+  "checks": {
+    "project_gofmt": "pass",
+    "host_vet": "pass",
+    "windows_amd64_vet": "pass",
+    "offline_tests": "pass",
+    "native_build": "pass",
+    "linux_amd64_build": "pass",
+    "windows_amd64_build": "pass",
+    "windows_test_compilation": "pass",
+    "fixture_demo": "pass",
+    "combined_sync_cli": "pass",
+    "per_query_both_providers": "pass",
+    "distinct_transient_target_retry": "pass",
+    "invalid_hash_refusal": "pass",
+    "conflicting_time_refusal": "pass"
+  },
+  "compiled_before_after_cli": {
+    "checks": {
+      "uppercase_inventory": true,
+      "uppercase_catalog_and_identity": true,
+      "input_bytes_unchanged": true,
+      "scanner_causes_preserved": true,
+      "selected_provider": true,
+      "root_alias": true,
+      "single_stored_time": true
+    },
+    "commands": [
+      {
+        "name": "inventory",
+        "before": false,
+        "exit": 0
+      },
+      {
+        "name": "uppercase_inventory",
+        "before": true,
+        "exit": 2
+      },
+      {
+        "name": "uppercase_inventory",
+        "before": false,
+        "exit": 0
+      },
+      {
+        "name": "lowercase_catalog",
+        "before": false,
+        "exit": 0
+      },
+      {
+        "name": "uppercase_catalog",
+        "before": true,
+        "exit": 2
+      },
+      {
+        "name": "uppercase_catalog",
+        "before": false,
+        "exit": 0
+      },
+      {
+        "name": "partial_scanner",
+        "before": true,
+        "exit": 2
+      },
+      {
+        "name": "partial_scanner",
+        "before": false,
+        "exit": 2
+      },
+      {
+        "name": "rejected_registry_query",
+        "before": true,
+        "exit": 2
+      },
+      {
+        "name": "rejected_registry_query",
+        "before": false,
+        "exit": 2
+      },
+      {
+        "name": "root_alias",
+        "before": true,
+        "exit": 0
+      },
+      {
+        "name": "root_alias",
+        "before": false,
+        "exit": 0
+      },
+      {
+        "name": "stored_time",
+        "before": false,
+        "exit": 0
+      }
+    ]
+  },
+  "previous_smoke": {
+    "review3_commands": 9,
+    "earlier_commands": 10,
+    "production_inventory_budget": {
+      "bytes": 66010508,
+      "retained_whole_packages": 937,
+      "candidate_packages": 1000
+    }
+  },
+  "shared_harness": {
+    "commands_per_binary": 17,
+    "syntax_samples": 14,
+    "status": "pass"
+  },
+  "published_compatibility": {
+    "published_revision": "3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0",
+    "actual_inventory_v2": true,
+    "actual_report_v1": true,
+    "actual_state_v1": true,
+    "content_comparison": true,
+    "legacy_append_refused": true,
+    "findings_exit_priority": true,
+    "v2_evaluation_not_comparable_with_v3": true,
+    "no_state_migration": true
+  },
+  "freeze_checklist": {
+    "new_identifiers": [],
+    "search_writer": "skill-audit/search/v3",
+    "search_readers": [
+      "skill-audit/search/v2",
+      "skill-audit/search/v3"
+    ],
+    "legacy_group_membership": "preserved",
+    "state_writer": "skill-audit/state/v3",
+    "observation_time": "observed_at only for new observations",
+    "hash_domain_encodings": "unchanged",
+    "scanner_and_api_pins": "unchanged",
+    "dependencies_catalog_licenses_attributes": "unchanged",
+    "published_or_submitted": false
+  },
+  "limitations": [
+    "native Linux/Windows runtime",
+    "case-sensitive O1",
+    "native Windows junction/descendant/durability checks",
+    "real Skill X-Ray/OpenGrep",
+    "live acquisition",
+    "exhaustive device scan"
+  ]
+}

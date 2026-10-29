@@ -93,3 +93,7 @@ Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. D13 uses injected de
 ## Third-review evidence (2026-10-29)
 
 Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. D6: case-alias delegation now names the encountered path and separately selected root, using deterministic filesystem-identity confirmation. This is visible delegation under existing overlap rules, not a new exclusion. Its bounded informational evidence leaves covered discovery complete; omitted evidence still makes coverage partial under ADR-0010. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Fourth-review evidence (2026-10-29)
+
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. D6 now covers bounded delegation diagnostics for duplicate selected roots as well as nested aliases. The case-insensitive macOS fixture walks the package once and names both selected spellings. Scope and exclusions are unchanged. See [fourth-review record](../review-4-fixes.md).

@@ -72,3 +72,7 @@ Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-skill incomplete
 ## Third-review evidence (2026-10-29)
 
 Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Valid hex hashes normalize in the in-memory comparison view. Published/current stored observation bytes remain unchanged, and invalid file manifests/fingerprints remain rejected. Overall report completeness survives serialization alongside independent discovery coverage. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Fourth-review evidence (2026-10-29)
+
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Inventory, catalog and state readers canonicalize valid SHA-256 text in memory; hash bytes and original inputs remain unchanged. New observations store only observed_at. Older matching duplicate times are read and historical fields are retained; contradictory times are rejected as invalid state. See [fourth-review record](../review-4-fixes.md).

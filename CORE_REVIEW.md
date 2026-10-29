@@ -1,6 +1,6 @@
 # Review guide for canonical main
 
-Start with [docs/review-3-fixes.md](docs/review-3-fixes.md), the reviewed revision and [docs/adr/README.md](docs/adr/README.md). The frozen reference is `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and remains in history; the rewrite is now canonical main. This is document-driven development followed by source-informed compatibility analysis, not a formal clean-room exercise.
+Start with [docs/review-4-fixes.md](docs/review-4-fixes.md), the reviewed revision and [docs/adr/README.md](docs/adr/README.md). The frozen reference is `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and remains in history; the rewrite is now canonical main. This is document-driven development followed by source-informed compatibility analysis, not a formal clean-room exercise.
 
 ## Entry points
 
@@ -15,7 +15,7 @@ Start with [docs/review-3-fixes.md](docs/review-3-fixes.md), the reviewed revisi
 | `internal/audit/storage.go` | Bounded readers, placement/alias protection, state lock, atomic commit and independent durability outcome | B6/B10/B11, E1–E8, V1–V5 |
 | `internal/audit/wire.go` | Published JSON boundaries; preserve original stored observations when appending | V1–V7 |
 | `internal/audit/scanner.go` | Pinned static-only Skill X-Ray adapter, staged bytes, phase deadline/reserve, cached terminal causes | T3/T4, X1–X10 |
-| `internal/audit/search.go` | Versioned search input provenance, flat merge, published v2 reads and v3 writes | Q1–Q3, V1–V7 |
+| `internal/audit/search.go` | Per-query input provenance, computed views, flat merge, published v2 reads and v3 writes | Q1–Q4, V1–V7 |
 | `internal/audit/acquire.go` | Explicit public search/sync, repository grouping, pinned API and commits, separate cache/validation/request/output budgets | C1–C8 |
 | `internal/audit/fs_*`, `process_*` | OS-specific discovery/link/persistence and child-process handling | D7, P1–P4 |
 
@@ -45,4 +45,4 @@ The ten-item review at 7a84ccc is handled in docs/review-fixes.md. Read inventor
 
 ## Second review and promotion
 
-The latest record is docs/review-3-fixes.md. Canonical main contains the rewrite and reviewed fixes. Search/v3 provenance and the SA001 v3 lone-dash amendment were approved explicitly. The second-review record preserves the fast-forward promotion evidence; historical sections retain their named revisions.
+The latest record is docs/review-4-fixes.md. Canonical main contains the rewrite and reviewed fixes. Search/v3 per-query provenance and the SA001 v3 lone-dash amendment were approved explicitly. The second-review record preserves the fast-forward promotion evidence; historical sections retain their named revisions.

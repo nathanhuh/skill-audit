@@ -1,3 +1,59 @@
+# Verification — fourth review on canonical main, 2026-10-29
+
+Started on clean main at **1518aa555940d6e42b30aa52adde966954c0cd0e**. Verified implementation: **145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40**. The following documentation commit changes no production Go bytes. ADR-0013 Q4 was explicitly approved before implementation. [Fourth-review record](docs/review-4-fixes.md) maps all ten items and [compact results](docs/review-4-results.json) record outcomes.
+
+macOS arm64 / Go 1.23.5: **174 passing tests/subtests, zero failures, one skip** (TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity requires a case-sensitive filesystem). Initial regressions failed for 1–5 and cleanup 8–10. The 13-command compiled before/after smoke reproduces five failures on the reviewed revision and confirms their fixes. Host/Windows vet, scoped gofmt, builds, fixture demo, prior smoke/compatibility checks and the restored combined-sync test pass.
+
+All repository commands run from the original canonical checkout at `/Users/nathanhuh/Documents/Documents - Nathan’s MacBook Pro/Interview_Repos/skill-audit`. The baseline is built from a temporary export of 1518aa5. Nothing is installed, no live provider is called and skill scripts are never executed. The scanner is the portable Go test helper.
+
+```sh
+export GOPROXY=off GOSUMDB=off GOCACHE=/private/tmp/skill-audit-rewrite-gocache
+gofmt -l cmd internal
+go vet ./...
+GOOS=windows GOARCH=amd64 go vet ./...
+go test -json -count=1 ./... > /private/tmp/skill-audit-review4-tests.jsonl
+go build -o /private/tmp/skill-audit-review4 ./cmd/skill-audit
+go test -c -o /private/tmp/skill-audit-review4-helper.exe ./internal/audit
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-review4-linux ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-review4-windows.exe ./cmd/skill-audit
+GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review4-windows.test.exe ./internal/audit
+GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-review4-windows-cli.test.exe ./cmd/skill-audit
+review4_baseline_dir=$(mktemp -d /private/tmp/skill-audit-review4-baseline.XXXXXX)
+git archive 1518aa555940d6e42b30aa52adde966954c0cd0e | tar -x -C "$review4_baseline_dir"
+go -C "$review4_baseline_dir" build -o /private/tmp/skill-audit-review4-before ./cmd/skill-audit
+sh scripts/demo.sh > /private/tmp/skill-audit-review4-demo.log
+python3 scripts/review4-smoke.py /private/tmp/skill-audit-review4 /private/tmp/skill-audit-review4-helper.exe /private/tmp/skill-audit-review4-before /private/tmp/skill-audit-review4-cli.json
+python3 scripts/review3-smoke.py /private/tmp/skill-audit-review4 /private/tmp/skill-audit-review4-helper.exe /private/tmp/skill-audit-review4-prior-cli.json
+python3 scripts/review-smoke.py /private/tmp/skill-audit-review4 /private/tmp/skill-audit-review4-helper.exe /private/tmp/skill-audit-review4-smoke --large
+python3 scripts/acceptance.py /private/tmp/skill-audit-frozen /private/tmp/skill-audit-review4 /private/tmp/skill-audit-review4-shared /private/tmp/skill-audit-review4-helper.exe
+python3 scripts/verify-published.py /private/tmp/skill-audit-published /private/tmp/skill-audit-review4 /private/tmp/skill-audit-review4-published.json
+git diff --check
+git diff --exit-code 1518aa5 -- go.mod go.sum vendor internal/audit/catalog .gitattributes
+```
+
+The compiled smoke reports 13 commands, including five before/after failures, stable catalog identity, unchanged inventory/catalog input files and one newly stored observation timestamp. Two 200-duplicate-target tests preserve a later valid import under an injected 8,000-byte output budget. Per-query provenance uses fake HTTP transports for both providers, preserving successful, failed, invalid and empty queries. The direct sync --search saved-v2 --query fixture CLI path and saved-v3 sync both import the expected three references. Matching historical duplicate times remain readable; contradictory times fail explicitly.
+
+Previous smoke checks pass 9 and 10 commands. The latter saves 66,010,508 bytes and 937 whole measurements under the production 64 MiB limit. The shared workflow still passes 17 commands per binary and 14 syntax samples. Six real published-format checks pass against the locally recorded binary from **3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0**. The comparison reference remains **8c6f3b83d725c716246bdbdecc8495bb9cedbccb**. No files are migrated.
+
+## Pre-publication freeze checklist (ADR-0008)
+
+| Contract | Current / published | Evidence and disposition |
+| --- | --- | --- |
+| Report | v2 / v1 | Delivered complete/created_at remain; older v1 observations read without invented recording outcomes. v2 is unpublished. |
+| Inventory | v3 / v2 | Both read; equivalent valid SHA-256 spellings normalize only in memory. v3 output/budget behavior is unchanged. |
+| Discovery | v3 / none | New diagnostics expose existing root delegation; scope/exclusions are unchanged. v3 is unpublished. |
+| State | v3 / v1 | New observations use observed_at alone. Older matching duplicate times retain historical fields; conflicting times are invalid. Published v1 stays comparison-readable and append-read-only; unpublished v2 stays rejected. |
+| Search | v3 / v2 | Q4 explicitly accepts one batch per new query. Older grouped v3 and opaque-query v2 inputs stay intact. Unknown schemas fail. v3 is unpublished and changes in place. |
+| Rule/evaluation | SA001 v3 / v2 | No rule/evaluation changes this round. Older evaluations cannot establish comparable new findings. |
+| Fingerprints | directory/v1, reference-catalog/v1 / same | Encodings and raw content hashes are unchanged. Canonical valid lower-case input retains the same identity; upper-case catalog spelling reads as the same hash bytes. |
+| Catalog/API/scanner | catalog/v1, catalog-store/v2; GitHub 2022-11-28; X-Ray c89eacf / same | Shapes and pins are unchanged; dependencies, catalog bytes, licenses and .gitattributes have no diff. |
+
+This records the required checks before submission. No submission/archive or origin publication was authorized or performed; unpublished identifiers become frozen only at the ADR-0008 publication boundary. The pinned scanner source was inspected at a clean c89eacf checkout: exit 2 also covers preparation/ingest/write errors, so it cannot substitute for SARIF coverage.
+
+Pending: native Linux/Windows execution, case-sensitive O1, native Windows junctions/descendant cleanup/NTFS durability, real Skill X-Ray/OpenGrep, live acquisition and exhaustive device discovery. Cross-compilation is not runtime validation. Ordinary audit remains read-only, and filesystem/process limits remain best effort. No roadmap monitoring, enforcement or cloud integration was added.
+
+---
+
 # Verification — third review on canonical main, 2026-10-29
 
 Started on clean canonical `main` at **573eed67f416aa4c01f260baecc297cb59e08897**. Verified implementation: **77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e**. The following documentation commit changes no production Go bytes. User-approved ADR-0012 R4 and ADR-0013 precede their implementation. [Third-review record](docs/review-3-fixes.md) maps all ten findings to the rules, fixes and source evidence; [machine results](docs/review-3-results.json) preserve outcomes.

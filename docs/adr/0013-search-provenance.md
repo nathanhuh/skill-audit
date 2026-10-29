@@ -31,3 +31,7 @@ Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Q1â
 ## Accepted amendment: one batch per new query (2026-10-29)
 
 Explicitly approved by the user during the fourth review. Newly requested queries each produce one provenance batch, retaining the selected provider, that query's hits, completeness and diagnostics. Invalid, failed and empty-result queries keep their batch; selecting a provider is not proof of an HTTP request. Diagnostics identify their query. A multi-name invocation therefore preserves hit membership and independent failures for every requested name. This supersedes per-invocation grouping only for newly collected evidence. Published v2 and previously grouped unpublished v3 inputs remain intact; their query/hit membership cannot be recovered and must not be guessed. Merges preserve those groups while flattening the list. Unpublished search/v3 changes in place under ADR-0008. Q4 covers two successful queries plus failed/invalid/empty queries and legacy grouped-input readback.
+
+## Fourth-review evidence (2026-10-29)
+
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Q4 passes for both providers with two successful queries, a failed query, an empty result and an invalid query. Older grouped inputs remain intact. Inputs are the only evidence fields; computed views agree with edited/saved/read inputs. Direct combined sync and merged-v3-file sync both have CLI coverage. See [fourth-review record](../review-4-fixes.md).

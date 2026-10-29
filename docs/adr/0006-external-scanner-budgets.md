@@ -76,3 +76,7 @@ Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. Per-package hash/sta
 ## Third-review evidence (2026-10-29)
 
 Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. The clean pinned source c89eacf returns 0 for complete scans including findings, and 2 for errors/incomplete high-severity analysis. Ordinary exits no longer override validated SARIF coverage; signal, I/O/log and measurement losses remain partial. Exit evidence is retained. Fake-process tests pass; real scanner runtime remains unverified. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Fourth-review evidence (2026-10-29)
+
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. X8 coverage messages survive appended process exits/errors. A clean process over an incomplete measurement adds its cause without a dangling separator. Source inspection confirms exit 2 also covers errors; it is not an exact coverage predicate. Fake-process checks retain both coverage and exit 2. See [fourth-review record](../review-4-fixes.md).

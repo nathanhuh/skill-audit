@@ -77,3 +77,7 @@ Verified source `a59cddbc4c6b17940a249579131e71c31db95e5c`. New imports omit dec
 ## Third-review evidence (2026-10-29)
 
 Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Admitted attribution is reused independently of the blob cache: the empty-cache 40-package/three-license fixture uses 46 requests, compared with exhaustion at 100 after 24 imports before the fix. The resolution cache is intentionally retained: a transient tree failure retries the tree on a later target while keeping metadata and commit resolution at one request each. ADR-0013 separately governs merged search provenance. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Fourth-review evidence (2026-10-29)
+
+Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Exact/equivalent acquisition targets and identical full diagnostic causes deduplicate separately from retained search provenance. Distinct missing targets/long causes retain evidence. Two 200-duplicate fixtures preserve a later valid import under an 8,000-byte output limit. C3 transient retries and immutable resolution remain covered on later distinct targets. See [fourth-review record](../review-4-fixes.md).
