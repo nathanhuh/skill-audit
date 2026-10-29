@@ -1,0 +1,149 @@
+{
+  "reviewed_revision": "70316378c3407b62839d9c13c2146ef3818662dd",
+  "fixed_implementation_revision": "ce92175af520df9c8fb80e82195aadc81e5df5ce",
+  "scope": [
+    "host-local filename baseline/readback/staging consistency",
+    "accepted ADR scenario tests"
+  ],
+  "default_tests": {
+    "passing_tests_and_subtests": 192,
+    "failures": 0,
+    "skips": [
+      "TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity",
+      "TestP5NonUTF8FilenameCannotBecomeAnchor",
+      "TestD8FiftyThousandMetadataExclusions"
+    ]
+  },
+  "large_fixture": {
+    "scenario": "D8",
+    "count": 50000,
+    "omitted_examples": 49997,
+    "elapsed_seconds": 20.71,
+    "status": "pass"
+  },
+  "scenario_test_inventory": {
+    "accepted_ids": 87,
+    "map": "docs/adr/scenario-tests.json",
+    "human_map": "docs/adr/scenario-tests.md",
+    "guard": "TestAcceptedADRScenariosHaveTests",
+    "runtime_checker": "scripts/verify-scenarios.py",
+    "native_windows_not_run": [
+      "D7",
+      "P3",
+      "P4"
+    ],
+    "requirements": {
+      "P1": "Pinned golden bytes are checked on this host; cross-host validation still requires a second native host.",
+      "P3": "Native Windows only. Current direct-child cancellation is expected to fail this acceptance test until Job Objects are implemented.",
+      "P4": "Native Windows junction fixture; compilation is not runtime validation.",
+      "D7": "Native Windows junction fixture; compilation is not runtime validation.",
+      "D8": "The fast summary regression runs by default; exact 50,000-entry fixture uses SKILL_AUDIT_LARGE_FIXTURES=1.",
+      "O1": "Requires a case-sensitive filesystem; explicitly skipped on the current volume.",
+      "D4": "macOS-specific alias rule; no real device walk."
+    }
+  },
+  "cli": {
+    "before_revision": "70316378c3407b62839d9c13c2146ef3818662dd",
+    "checks": {
+      "old_bug_reproduced": true,
+      "existing_baseline_recovered_without_write": true,
+      "unchanged_and_changed_snapshots_readable": true,
+      "host_names_staged": true
+    },
+    "commands": [
+      {
+        "binary": "before",
+        "name": "inventory",
+        "exit": 0
+      },
+      {
+        "binary": "before",
+        "name": "record_unreadable_baseline",
+        "exit": 0
+      },
+      {
+        "binary": "before",
+        "name": "read_unreadable_baseline",
+        "exit": 2
+      },
+      {
+        "binary": "after",
+        "name": "recover_existing_baseline",
+        "exit": 0
+      },
+      {
+        "binary": "after",
+        "name": "append_unchanged_snapshot",
+        "exit": 0
+      },
+      {
+        "binary": "after",
+        "name": "refresh_inventory",
+        "exit": 0
+      },
+      {
+        "binary": "after",
+        "name": "append_changed_snapshot",
+        "exit": 0
+      },
+      {
+        "binary": "after",
+        "name": "read_three_observations",
+        "exit": 0
+      },
+      {
+        "binary": "before",
+        "name": "old_staging_refusal",
+        "exit": 2
+      },
+      {
+        "binary": "after",
+        "name": "new_staging_success",
+        "exit": 0
+      }
+    ]
+  },
+  "checks": {
+    "host_vet": "pass",
+    "windows_vet": "pass",
+    "project_gofmt": "pass",
+    "native_build": "pass",
+    "linux_amd64_build": "pass",
+    "windows_amd64_build": "pass",
+    "windows_test_compilation": "pass",
+    "fixture_demo": "pass",
+    "published_formats": "pass"
+  },
+  "published_compatibility": {
+    "published_revision": "3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0",
+    "actual_inventory_v2": true,
+    "actual_report_v1": true,
+    "actual_state_v1": true,
+    "content_comparison": true,
+    "legacy_append_refused": true,
+    "findings_exit_priority": true,
+    "v2_evaluation_not_comparable_with_v3": true,
+    "no_state_migration": true
+  },
+  "unchanged": [
+    "schema identifiers",
+    "directory/v1 encoding",
+    "reference-catalog/v1 encoding",
+    "SA001/evaluation",
+    "scanner/API pins",
+    "go.mod",
+    "go.sum",
+    "vendor",
+    "internal/audit/catalog",
+    ".gitattributes"
+  ],
+  "limits": [
+    "second native host for P1",
+    "native Windows D7/P3/P4",
+    "case-sensitive O1",
+    "real Skill X-Ray/OpenGrep",
+    "live acquisition",
+    "exhaustive device scan"
+  ],
+  "published_or_pushed": false
+}

@@ -49,3 +49,9 @@ The directory-sync decision was checked against the installed Go 1.23.5 Windows 
 ## Isolated rewrite evidence (2026-10-29)
 
 The rewrite remains separate from canonical main; see docs/rewrite-comparison.md and VERIFICATION.md. Filesystem policy lives in fs_policy.go, Unix/Windows link and persistence behavior in fs_unix.go/fs_windows.go, and child-process behavior in process_unix.go/process_windows.go. Windows checks reparse attributes as well as ModeSymlink, but D7/P4 still require native junction evidence. P3 remains pending: Windows cancellation only kills the direct child, without Job Objects. The new Go fake scanner is compile-checked for Windows; this is not a native execution result. P1 remains a cross-host check, not established by same-host fixture hashes.
+
+## Host-local path rule and native acceptance tests
+
+ADR-0009 P5 uses a shared host-local validator for measurement, state and staging. Unix colon/backslash filenames roundtrip; Windows unsafe/volume/device forms are rejected by the native path boundary. Non-UTF-8 filename gaps remain explicit. State is not a cross-OS interchange format; fingerprint content bytes are unchanged.
+
+D7/P4 now have a native Windows junction test, and P3 has an executable descendant-heartbeat test. Both compile; neither has run on native Windows here. The P3 test is expected to expose the existing direct-child-only cancellation gap until Job Objects are added. It uses a bounded trusted helper with a stop sentinel for cleanup. The scenario map records this as not run, not as passed. P1's golden fingerprint test must still run on a second native host. See docs/adr/scenario-tests.md and VERIFICATION.md.

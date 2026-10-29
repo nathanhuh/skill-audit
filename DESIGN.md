@@ -23,6 +23,8 @@ Local identity is `(scope, absolute lexical package path)`, independent of decla
 
 YAML frontmatter is parsed as data with a pinned YAML parser. Optional string name defaults to directory name; description/name type errors, duplicate fields, invalid YAML, and unterminated frontmatter are diagnostics. This is not a full Claude schema validator.
 
+Local manifest names use one host-local UTF-8 slash-relative path rule for measurement, state reading and staging (ADR-0009 P5). Colon and literal backslash are valid Unix names; traversal and unsafe native forms are refused. Remote acquisition/catalog paths retain their separate portable boundary.
+
 Hash raw bytes with SHA-256. Directory digest v1 hashes a domain separator followed by sorted records: uint64 big-endian path byte length, UTF-8 slash-relative path bytes, and the 32-byte file hash. No timestamps, permissions, empty directories, state files, or excluded metadata. Incomplete packages have observed file hashes but no authoritative directory digest and cannot be exact matches.
 
 ## Catalog fixtures and matching

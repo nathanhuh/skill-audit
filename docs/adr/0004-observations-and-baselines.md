@@ -76,3 +76,7 @@ Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Val
 ## Fourth-review evidence (2026-10-29)
 
 Implementation `145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40` on canonical main. Inventory, catalog and state readers canonicalize valid SHA-256 text in memory; hash bytes and original inputs remain unchanged. New observations store only observed_at. Older matching duplicate times are read and historical fields are retained; contradictory times are rejected as invalid state. See [fourth-review record](../review-4-fixes.md).
+
+## Focused filename/scenario evidence (2026-10-29)
+
+Implementation `ce92175af520df9c8fb80e82195aadc81e5df5ce`. Host-local filename validation is shared with measurement and staging under ADR-0009 P5. Complete colon/backslash measurements now remain readable anchors; old valid files recover without migration or reset. The empty-scope B7 test also exercises readable state through the full operation. See [focused record](../host-paths-and-scenarios.md) and the [scenario map](scenario-tests.md).

@@ -33,3 +33,7 @@ Accepted content from the former single ADR-0001 (`0001-observation-and-outcome-
 3. **An accepted rule changes only through a new decision.** That decision marks which part it supersedes. A review finding alone cannot change accepted policy.
 4. **Gap tables are dated evidence.** They describe the code at a named revision. Implementing a scenario updates the table and VERIFICATION.md; it does not change the rule.
 5. Historical review plans are in [docs/history/design-review-notes.md](../history/design-review-notes.md). Wherever they conflict with an ADR, the ADR wins.
+
+## Scenario test inventory
+
+Every accepted ID is registered in [scenario-tests.json](scenario-tests.json), with dated source/runtime evidence in [scenario-tests.md](scenario-tests.md). `TestAcceptedADRScenariosHaveTests` checks the index ranges, accepted scenario rows and real Go test declarations. Update the map when accepting a new ID or renaming a test. After `go test -json`, `scripts/verify-scenarios.py` checks the mapped runtime events, including subtests; native-only requirements are reported explicitly.

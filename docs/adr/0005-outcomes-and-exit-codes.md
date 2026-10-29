@@ -75,3 +75,7 @@ See [review fixes](../review-fixes.md) and [verification](../../VERIFICATION.md)
 ## Third-review evidence (2026-10-29)
 
 Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. Report JSON now explicitly includes overall complete and created_at. Scanner/drift/missing gaps can keep overall complete false while discovery.complete remains true. Complete scanner SARIF plus a normal non-zero exit retains its completion and exit evidence; security findings retain exit-1 priority. See [third-review record](../review-3-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Focused filename/scenario evidence (2026-10-29)
+
+Implementation `ce92175af520df9c8fb80e82195aadc81e5df5ce`. The focused CLI regression reproduces recorded-but-unreadable host filenames on 7031637 and verifies readable recording/readback after the fix. E9 now has a direct text-snapshot/stdout test. See [focused record](../host-paths-and-scenarios.md) and the [scenario map](scenario-tests.md).

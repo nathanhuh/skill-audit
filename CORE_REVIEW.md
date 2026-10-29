@@ -1,6 +1,6 @@
 # Review guide for canonical main
 
-Start with [docs/review-4-fixes.md](docs/review-4-fixes.md), the reviewed revision and [docs/adr/README.md](docs/adr/README.md). The frozen reference is `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and remains in history; the rewrite is now canonical main. This is document-driven development followed by source-informed compatibility analysis, not a formal clean-room exercise.
+Start with [the filename fix and scenario map](docs/host-paths-and-scenarios.md), the reviewed revision and [docs/adr/README.md](docs/adr/README.md). The frozen reference is `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` and remains in history; the rewrite is now canonical main. This is document-driven development followed by source-informed compatibility analysis, not a formal clean-room exercise.
 
 ## Entry points
 
@@ -45,4 +45,4 @@ The ten-item review at 7a84ccc is handled in docs/review-fixes.md. Read inventor
 
 ## Second review and promotion
 
-The latest record is docs/review-4-fixes.md. Canonical main contains the rewrite and reviewed fixes. Search/v3 per-query provenance and the SA001 v3 lone-dash amendment were approved explicitly. The second-review record preserves the fast-forward promotion evidence; historical sections retain their named revisions.
+The latest focused record is docs/host-paths-and-scenarios.md; all accepted IDs map to tests in docs/adr/scenario-tests.json. Canonical main contains the rewrite and reviewed fixes. Search/v3 per-query provenance and the SA001 v3 lone-dash amendment were approved explicitly. The second-review record preserves the fast-forward promotion evidence; historical sections retain their named revisions.

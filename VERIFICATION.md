@@ -1,3 +1,46 @@
+# Verification — host filenames and accepted scenario tests, 2026-10-29
+
+Focused user request: fix the unreadable-baseline filename bug and ensure every accepted scenario ID has a test. Started on clean canonical main at **70316378c3407b62839d9c13c2146ef3818662dd**. Verified implementation: **ce92175af520df9c8fb80e82195aadc81e5df5ce**. The following documentation commit changes no production Go bytes. ADR-0009 P5 records the chosen host-local path rule; other fifth-review behavior changes were not made.
+
+Default offline suite: **192 passing tests/subtests, no failures, three explicit skips** (case-sensitive O1; byte-invalid Unix filename rejected by this filesystem; opt-in D8 large fixture). D8 was then run with 50,000 metadata exclusions: **pass, 20.71 seconds**, one bounded summary, three examples and 49,997 omitted examples. Combining these runs verifies the runtime mappings for all available host tests. Native Windows D7/P3/P4 tests exist and compile, but were not run. P3 is a regression for the known direct-child-only cleanup gap and is expected to fail until Job Objects are implemented. P1 still requires another native host.
+
+All **87 accepted IDs** have real Go test references. The [JSON map](docs/adr/scenario-tests.json), [dated source/evidence table](docs/adr/scenario-tests.md), normal-suite declaration guard and runtime-event checker distinguish present tests, executed assertions, skips and native-only requirements. Missing mappings, missing declarations or missing applicable runtime events fail the relevant check. Existing amendment IDs D13/R4/Q4 now have formal scenario-table rows without changing policy.
+
+The ten-command compiled CLI smoke builds 7031637 from a temporary export, reproduces recorded/unreadable colon/backslash state, then verifies recovery without a write, readable snapshots and successful staging. New unit regressions first failed on both filenames. Host/Windows vet, scoped gofmt, native/Linux/Windows builds, Windows test compilation, fixture demo and six real published-format checks pass. No installed skill or skill script is executed; no real scanner, credential-dependent service or device sweep is used.
+
+Commands use the original canonical checkout `/Users/nathanhuh/Documents/Documents - Nathan’s MacBook Pro/Interview_Repos/skill-audit`:
+
+```sh
+export GOPROXY=off GOSUMDB=off GOCACHE=/private/tmp/skill-audit-rewrite-gocache
+gofmt -l cmd internal
+go vet ./...
+GOOS=windows GOARCH=amd64 go vet ./...
+go test -json -count=1 ./... > /private/tmp/skill-audit-focused-tests.jsonl
+SKILL_AUDIT_LARGE_FIXTURES=1 go test -json -count=1 ./internal/audit -run '^TestD8FiftyThousandMetadataExclusions$' > /private/tmp/skill-audit-large-scenario.jsonl
+cat /private/tmp/skill-audit-focused-tests.jsonl /private/tmp/skill-audit-large-scenario.jsonl > /private/tmp/skill-audit-all-scenarios.jsonl
+python3 scripts/verify-scenarios.py /private/tmp/skill-audit-all-scenarios.jsonl /private/tmp/skill-audit-scenarios-results.json
+go build -o /private/tmp/skill-audit-host-paths ./cmd/skill-audit
+go test -c -o /private/tmp/skill-audit-host-paths-helper.exe ./internal/audit
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-host-paths-linux ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-host-paths-windows.exe ./cmd/skill-audit
+GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-host-paths-windows.test.exe ./internal/audit
+GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-host-paths-windows-cli.test.exe ./cmd/skill-audit
+host_paths_before_dir=$(mktemp -d /private/tmp/skill-audit-host-paths-before.XXXXXX)
+git archive 70316378c3407b62839d9c13c2146ef3818662dd | tar -x -C "$host_paths_before_dir"
+go -C "$host_paths_before_dir" build -o /private/tmp/skill-audit-host-paths-before ./cmd/skill-audit
+python3 scripts/verify-host-paths.py /private/tmp/skill-audit-host-paths-before /private/tmp/skill-audit-host-paths /private/tmp/skill-audit-host-paths-helper.exe /private/tmp/skill-audit-host-paths-cli.json
+sh scripts/demo.sh > /private/tmp/skill-audit-host-paths-demo.log
+python3 scripts/verify-published.py /private/tmp/skill-audit-published /private/tmp/skill-audit-host-paths /private/tmp/skill-audit-host-paths-published.json
+git diff --check
+git diff --exit-code 7031637 -- go.mod go.sum vendor internal/audit/catalog .gitattributes
+```
+
+No schema/rule/evaluation identifier changes. Host-local paths apply to local manifests and decoded local finding paths; acquisition/catalog transport paths keep their existing portable validation. Raw bytes and directory/reference-catalog encodings are unchanged, as are dependencies, catalog bytes, attribution/licenses, .gitattributes and scanner/API pins. Published state remains comparison-readable and append-read-only; nothing is migrated, reset, pushed or submitted. Compact outcomes are in docs/host-paths-results.json.
+
+Pending runtime evidence remains explicit: native Linux/Windows, a second host for P1, case-sensitive O1, native Windows junction/descendant/durability behavior, real Skill X-Ray/OpenGrep, live acquisition and exhaustive device discovery. Cross-compilation proves compilation only. The focused change does not settle SA001 per-file comparability or alter the other deferred review findings.
+
+---
+
 # Verification — fourth review on canonical main, 2026-10-29
 
 Started on clean main at **1518aa555940d6e42b30aa52adde966954c0cd0e**. Verified implementation: **145b51e33a48fa1bfdbcbecb1eacfa72aaa44d40**. The following documentation commit changes no production Go bytes. ADR-0013 Q4 was explicitly approved before implementation. [Fourth-review record](docs/review-4-fixes.md) maps all ten items and [compact results](docs/review-4-results.json) record outcomes.

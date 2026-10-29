@@ -9,7 +9,7 @@ go build -o ./bin/skill-audit ./cmd/skill-audit
 export PATH="$PWD/bin:$PATH"
 ```
 
-The document-driven rewrite is the implementation selected for canonical `main`, promoted locally at the user's request after review and fixture verification. The frozen reference `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` remains in Git history. See [docs/review-4-fixes.md](docs/review-4-fixes.md) for the latest corrections and [second-review record](docs/review-2-fixes.md) for promotion evidence, and [docs/rewrite-comparison.md](docs/rewrite-comparison.md) for the dated original comparison. There is one active CLI. Verify path, branch and revision before reviewing.
+The document-driven rewrite is the implementation selected for canonical `main`, promoted locally at the user's request after review and fixture verification. The frozen reference `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` remains in Git history. See [host-local filename fix and scenario tests](docs/host-paths-and-scenarios.md) for the latest focused changes and [second-review record](docs/review-2-fixes.md) for promotion evidence, and [docs/rewrite-comparison.md](docs/rewrite-comparison.md) for the dated original comparison. There is one active CLI. Verify path, branch and revision before reviewing.
 
 Binding decisions are in the [architecture decision records](docs/adr/README.md). All thirteen ADRs are accepted. The rewritten implementation and scenario tests follow those decisions; platform runtime checks and real Skill X-Ray remain explicitly pending. Gap tables retain their original revision context, with rewrite evidence appended. See VERIFICATION.md for commands, freeze checks and limitations.
 
@@ -23,7 +23,7 @@ go vet ./...
 
 The demo creates a temporary Claude global skill and project skill. It inventories both scopes against the built-in catalog, records a baseline, changes a bundled script, refreshes inventory, and reports a modified upstream candidate plus new SA001 before appending a snapshot. It never contacts a registry or executes a skill script.
 
-See DESIGN.md for tradeoffs, VERIFICATION.md for exact checks, and PORTABILITY.md for platform gaps. Default tests use fake HTTP handlers and local fixtures; no credentials, network service, or installed Skill X-Ray is required. On restricted sandboxes, httptest needs permission to bind a loopback listener.
+See DESIGN.md for tradeoffs, VERIFICATION.md for exact checks, and PORTABILITY.md for platform gaps. All accepted ADR scenario IDs map to tests in [scenario-tests.json](docs/adr/scenario-tests.json), with a [source/evidence table](docs/adr/scenario-tests.md). The normal Go suite rejects missing mappings or renamed tests; native-only cases remain explicitly unverified. Default tests use fake HTTP handlers and local fixtures; no credentials, network service, or installed Skill X-Ray is required. On restricted sandboxes, httptest needs permission to bind a loopback listener.
 
 ## Machine discovery
 
