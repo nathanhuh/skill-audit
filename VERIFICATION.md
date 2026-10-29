@@ -1,3 +1,30 @@
+# Verification — accepted contract freeze, 2026-10-29
+
+This change records user-approved design in ADR-0001, domain language in CONTEXT.md, and pointers in AGENTS/DESIGN/README. It changes documentation only. All previously tracked non-documentation files were checked by SHA-256 against the clean `ed4c74f03cda5f916ce6ae5799160bef1c95ad63` checkout and remain identical, including Go source/tests, scripts, dependency/catalog bytes and licenses.
+
+ADR-0001 contains 21 planned acceptance scenarios and an explicit implementation-gap table. **The current runtime does not yet implement all accepted baseline, exit and ownership contracts.** Passing the existing suite below is regression evidence for unchanged code, not proof that the planned scenarios pass.
+
+Documentation validation: all new local Markdown links resolve, accepted status/date are present, all 21 scenario IDs are present, no trailing whitespace, and `git diff --check` exits 0.
+
+Repository-required checks ran from the original canonical checkout on macOS arm64, Go 1.23.5. Go commands used `GOCACHE=/private/tmp/skill-audit-gocache GOPROXY=off GOSUMDB=off`; the suite used approved loopback-only fake HTTP servers, with no live service calls or skill-script execution.
+
+- `gofmt -l cmd internal`: no output.
+- `go vet ./...`: exit 0.
+- `go test -count=1 ./...`: exit 0:
+
+```text
+ok  skill-audit/cmd/skill-audit    0.969s
+ok  skill-audit/internal/audit    6.770s
+ok  skill-audit/internal/workflow 1.751s
+```
+
+- `go build -o /private/tmp/skill-audit-contract-freeze ./cmd/skill-audit`: exit 0.
+- `sh scripts/demo.sh`: exit 0; its finding-producing audit returned expected exit 1 under current behavior.
+
+Cross-builds were not repeated for this documentation-only change; prior results are preserved below. Native Linux/Windows, real scanner/runtime and real device-wide discovery remain unverified. No code or schema migration, publishing, pushing or submission occurred.
+
+## Prior verification records
+
 # Verification — import limits and persistence outcomes, 2026-10-29
 
 Reviewed canonical original `main` at `2b6fc1f274a6d2ff54c6272466274885d6a30eae`. The supplied findings were hypotheses. The table separates executed reproductions, injected fault evidence and source qualifications.

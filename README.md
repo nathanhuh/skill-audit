@@ -11,6 +11,8 @@ export PATH="$PWD/bin:$PATH"
 
 The original project checkout on `main` is the canonical repository. The former V2 implementation has been promoted here; there is one active CLI. Before reviewing, verify the checkout path, branch and revision so findings refer to the current source.
 
+The [accepted observation contracts](docs/adr/0001-observation-and-outcome-contracts.md) freeze the intended baseline, exit, ownership and cache policies. They are **not yet fully implemented**; the ADR lists current-code gaps and required acceptance scenarios. The command reference below describes the existing implementation until it is aligned.
+
 ## Fixture demonstration and verification
 
 ```sh

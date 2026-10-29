@@ -15,3 +15,5 @@
 - PRODUCT.md separates implemented capabilities from proposed company-facing work. Keep the take-home focused; do not imply runtime monitoring, response enforcement or a Traceforce cloud integration exists.
 
 - The original project checkout on `main` is the canonical codebase. Before a review, confirm `pwd`, `git branch --show-current`, and `git status --short`; include the reviewed revision and any local changes in the review context. The former detached V2 checkout is not a second active implementation. Unless the user explicitly selects another checkout, resolve the primary path with `git worktree list` and run edits, tests and reviews there even if this chat remains attached to a detached worktree.
+
+- Frozen behavior contracts are in docs/adr/0001-observation-and-outcome-contracts.md; read it and CONTEXT.md before behavior changes. It supersedes conflicting historical review plans. Baseline eligibility, exit priority, installation ownership and cache/import semantics must follow the accepted matrix; do not redefine them as incidental review fixes. The ADR lists implementation gaps and does not imply those behaviors are shipped.

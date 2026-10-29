@@ -1,5 +1,14 @@
 # Design: inventory, acquire references, audit
 
+## Accepted contracts — 2026-10-29
+
+[ADR-0001](docs/adr/0001-observation-and-outcome-contracts.md) freezes baseline eligibility, independent outcomes and exit priority, installation ownership, and cache/import semantics. [CONTEXT.md](CONTEXT.md) defines the vocabulary. The ADR supersedes conflicting policies in the historical review notes below; its acceptance matrix is the implementation target. Acceptance is a documentation change only. Current-code gaps are listed explicitly in the ADR.
+
+## Historical design and review notes
+
+The following sections preserve prior decisions and implementation history; conflicting policies are superseded by ADR-0001.
+
+
 ## Import/write-outcome review (2026-10-29)
 
 Keep per-file (1 MiB), per-package (16 MiB), entry and operation request limits independent of the active blob cache's 16 MiB memory budget. Reloading an evicted repository must not consume a stale import ledger; uncached validated bytes may still be imported. Cache only permanent resolution errors (404, explicit private status, truncated/structurally invalid tree), leaving 403/5xx/transport failures retryable on later targets.
