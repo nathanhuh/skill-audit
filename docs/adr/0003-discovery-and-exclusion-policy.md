@@ -53,6 +53,8 @@ Whether a skipped symlink counts as a coverage gap flipped twice across reviews.
 | D10 | Explicit `--root /project/node_modules` | Routine dependency exclusion is overridden for the selected root; protected OS exclusions and no-follow checks still apply with visible diagnostics. |
 | D11 | Relevant content inside a discovered skill cannot be measured | Package measurement is incomplete; no exact match or baseline anchor, regardless of discovery completeness. |
 | D12 | Only declared fingerprint metadata, such as `.git`, is omitted inside a package | Metadata omission alone does not make the package fingerprint incomplete. |
+| D13 | Explicit agent subtree plus an injected device root under a small entry budget | Explicit root is reached before device work; rejected roots never delegate. |
+
 
 ## Implementation gaps (at 5fed934)
 

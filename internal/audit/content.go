@@ -30,6 +30,17 @@ func Digest(files []File) string {
 	}
 	return hex.EncodeToString(h.Sum(nil))
 }
+
+// LocalRelative validates the slash-relative names represented by this host's
+// filesystem boundary. Acquisition paths use their separate portable validator.
+func LocalRelative(p string) bool {
+	if p == "." {
+		return false
+	}
+	_, err := filepath.Localize(p)
+	return err == nil
+}
+
 func Within(parent, child string) bool {
 	r, e := filepath.Rel(parent, child)
 	return e == nil && r != ".." && !strings.HasPrefix(r, ".."+string(filepath.Separator)) && !filepath.IsAbs(r)
@@ -231,8 +242,12 @@ func Measure(ctx context.Context, path, home string) Package {
 			}
 			rel, _ := filepath.Rel(p.Path, full)
 			rel = filepath.ToSlash(rel)
-			if !utf8.ValidString(rel) {
-				fail("invalid_path_encoding", dir, fmt.Errorf("non-UTF-8 path skipped: %q", rel))
+			if !LocalRelative(rel) {
+				code, reason := "invalid_local_path", "unsafe host-relative path"
+				if !utf8.ValidString(rel) {
+					code, reason = "invalid_path_encoding", "non-UTF-8 path"
+				}
+				fail(code, dir, fmt.Errorf("%s skipped: %q", reason, rel))
 				continue
 			}
 			p.Files = append(p.Files, File{rel, Sum(b), int64(len(b))})

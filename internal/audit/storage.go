@@ -217,7 +217,7 @@ func ReadState(path string) (State, error) {
 			files := map[string]bool{}
 			for fi := range x.Files {
 				f := &x.Files[fi]
-				if !SafeRelative(f.Path) || files[f.Path] || f.Size < 0 {
+				if !LocalRelative(f.Path) || files[f.Path] || f.Size < 0 {
 					return s, fmt.Errorf("invalid state file manifest")
 				}
 				files[f.Path] = true

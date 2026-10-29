@@ -29,6 +29,14 @@ Linux and native Windows are future targets. Only macOS arm64 has runtime eviden
 | P3 | Native Windows scanner cancellation | No descendant process survives. |
 | P4 | Native Windows junction in a skills directory | Not followed and reported as a coverage gap (= D7). |
 
+## Accepted amendment: host-local manifest paths (2026-10-29)
+
+The user asked to pick this rule while focusing the fifth review on the unreadable-baseline bug. Local manifests use host-local, canonical slash-relative UTF-8 paths: accept names the host represents (including : and literal backslash on Unix), reject absolute/volume paths, empty/dot/dot-dot components, NUL and traversal. Measurement, state reading, scanner staging and decoded local scanner finding paths apply the same host-local validator. Existing non-UTF-8-name gaps remain: the JSON/fingerprint contract cannot preserve those names losslessly. Git acquisition/catalog transport paths retain their separate existing portable boundary; this decision does not relax remote target validation. Local state remains host-specific, never a cross-OS migration format. No content bytes or fingerprint encoding changes.
+
+| ID | Scenario | Required result |
+| --- | --- | --- |
+| P5 | A host-valid UTF-8 filename, including a:b.md or a literal backslash on Unix | Complete measurement can record a readable baseline, compare unchanged, append a snapshot and stage exact bytes. Traversal/absolute/unsafe host forms are refused consistently. |
+
 ## Implementation gaps (at 5fed934)
 
 | Area | State |

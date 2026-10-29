@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -97,7 +98,7 @@ func TestX3X4VisibleBudget(t *testing.T) {
 func TestX6SharedProbeDeadlineAndX8NoScanRetry(t *testing.T) {
 	s := scannerFixture(t)
 	defer s.Close()
-	attempts := 0
+	attempts, scans := 0, 0
 	var deadline time.Time
 	s.process = func(ctx context.Context, _ string, args []string) (string, int, error) {
 		if args[0] == "version" {
@@ -112,13 +113,14 @@ func TestX6SharedProbeDeadlineAndX8NoScanRetry(t *testing.T) {
 			}
 			return "skill-xray 0.1.0", 0, nil
 		}
+		scans++
 		if err := os.WriteFile(args[2], []byte(cleanSARIF), 0600); err != nil {
 			t.Fatal(err)
 		}
 		return "", 75, errors.New("temporary scan failure")
 	}
 	e, _ := s.Scan(context.Background(), measuredFixture(t))
-	if attempts != 2 || e.Status != "partial" {
+	if attempts != 2 || scans != 1 || e.Status != "partial" {
 		t.Fatal(e, attempts)
 	}
 }
@@ -191,6 +193,20 @@ func TestT3T4RealProcessStagingAndSARIF(t *testing.T) {
 	}
 }
 func TestMain(m *testing.M) {
+	if len(os.Args) == 4 && os.Args[1] == "scanner-child" {
+
+		until := time.Now().Add(10 * time.Second)
+		for time.Now().Before(until) {
+			if _, e := os.Stat(os.Args[3]); e == nil {
+				os.WriteFile(os.Args[2]+".done", []byte("done"), 0600)
+				os.Exit(0)
+			}
+			os.WriteFile(os.Args[2], []byte(fmt.Sprint(time.Now().UnixNano())), 0600)
+			time.Sleep(25 * time.Millisecond)
+		}
+		os.Exit(0)
+	}
+
 	if len(os.Args) > 1 && (os.Args[1] == "version" || os.Args[1] == "scan") {
 		exe, _ := os.Executable()
 		f, _ := os.OpenFile(exe+".log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
@@ -205,6 +221,16 @@ func TestMain(m *testing.M) {
 		if os.Args[1] == "version" {
 			fmt.Println("skill-xray 0.1.0")
 			os.Exit(0)
+		}
+
+		if strings.Contains(filepath.Base(exe), "scan-descendant") {
+			child := exec.Command(exe, "scanner-child", exe+".heartbeat", exe+".stopchild")
+			if e := child.Start(); e != nil {
+				os.Exit(97)
+			}
+			child.Process.Release()
+			time.Sleep(5 * time.Second)
+			os.Exit(98)
 		}
 		if strings.Contains(filepath.Base(exe), "scan-hang") {
 			time.Sleep(5 * time.Second)

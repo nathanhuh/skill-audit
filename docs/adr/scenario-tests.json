@@ -1,0 +1,289 @@
+{
+  "scenarios": {
+    "B1": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "B2": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "B3": [
+      "internal/audit:TestX1X2B3StopAndAnchor"
+    ],
+    "B4": [
+      "internal/audit:TestD5AndB4"
+    ],
+    "B5": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "B6": [
+      "internal/audit:TestB6E4E6E8V5",
+      "internal/audit:TestReviewB6RuntimeInterruptionSurvivesChangedRecordingContext"
+    ],
+    "B7": [
+      "internal/audit:TestB7CompletedEmptyScopeRecords"
+    ],
+    "B8": [
+      "internal/audit:TestV6V7B8B9IndependentEvidence"
+    ],
+    "B9": [
+      "internal/audit:TestV6V7B8B9IndependentEvidence"
+    ],
+    "B10": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "B11": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "C1": [
+      "internal/audit:TestC1C2C5GroupingCacheAdmissionAndReload"
+    ],
+    "C2": [
+      "internal/audit:TestC2EvictedRepositoryReloadKeepsIdentity",
+      "internal/audit:TestC1C2C5GroupingCacheAdmissionAndReload"
+    ],
+    "C3": [
+      "internal/audit:TestC3C4ErrorClasses"
+    ],
+    "C4": [
+      "internal/audit:TestC3C4ErrorClasses"
+    ],
+    "C5": [
+      "internal/audit:TestC1C2C5GroupingCacheAdmissionAndReload"
+    ],
+    "C6": [
+      "internal/audit:TestC6C7C8CompleteAdmissionAndSharedAttribution"
+    ],
+    "C7": [
+      "internal/audit:TestC6C7C8CompleteAdmissionAndSharedAttribution"
+    ],
+    "C8": [
+      "internal/audit:TestC6C7C8CompleteAdmissionAndSharedAttribution"
+    ],
+    "D1": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "D2": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "D3": [
+      "internal/audit:TestD8BoundedExclusionsAndD3Links",
+      "internal/audit:TestReviewD3D6RejectedAliasCannotHideValidRoot"
+    ],
+    "D4": [
+      "internal/audit:TestD4ImplicitMacAliasRuleKey"
+    ],
+    "D5": [
+      "internal/audit:TestD5AndB4"
+    ],
+    "D6": [
+      "internal/audit:TestD6OverlappingRootsAndCaseIdentity",
+      "internal/audit:TestReview4DuplicateSelectedRootHasEvidence"
+    ],
+    "D7": [
+      "internal/audit:TestD7P4NativeWindowsJunctionIsNotFollowed"
+    ],
+    "D8": [
+      "internal/audit:TestD8BoundedExclusionsAndD3Links",
+      "internal/audit:TestD8FiftyThousandMetadataExclusions"
+    ],
+    "D9": [
+      "internal/audit:TestT2S1S2S3S4D9"
+    ],
+    "D10": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "D11": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "D12": [
+      "internal/audit:TestD1D2D10D11D12B1B2B5B7B10B11"
+    ],
+    "D13": [
+      "internal/audit:TestD13ExplicitRootsBeforeInjectedDeviceRoot"
+    ],
+    "E1": [
+      "internal/audit:TestE1ThroughE8PriorityTable/E1"
+    ],
+    "E2": [
+      "internal/audit:TestE1ThroughE8PriorityTable/E2"
+    ],
+    "E3": [
+      "internal/audit:TestE1ThroughE8PriorityTable/E3"
+    ],
+    "E4": [
+      "internal/audit:TestE1ThroughE8PriorityTable/E4"
+    ],
+    "E5": [
+      "internal/audit:TestE1ThroughE8PriorityTable/E5"
+    ],
+    "E6": [
+      "internal/audit:TestE1ThroughE8PriorityTable/E6"
+    ],
+    "E7": [
+      "internal/audit:TestE1ThroughE8PriorityTable/E7"
+    ],
+    "E8": [
+      "internal/audit:TestE1ThroughE8PriorityTable/E8"
+    ],
+    "E9": [
+      "cmd/skill-audit:TestE9TextSnapshotStdout"
+    ],
+    "I1": [
+      "internal/audit:TestI1GapDetailCapPreservesReadablePartialInventory",
+      "internal/audit:TestI1TruncationEvidenceSurvivesAuditAndStoredObservation"
+    ],
+    "I2": [
+      "internal/audit:TestI2FileManifestIsNeverPartiallyAdmitted",
+      "internal/audit:TestI2I4WholePackageAdmissionStopsWithinFormattedBound"
+    ],
+    "I3": [
+      "internal/audit:TestI3MandatoryEnvelopeFailureNeverWrites"
+    ],
+    "I4": [
+      "internal/audit:TestI2I4WholePackageAdmissionStopsWithinFormattedBound"
+    ],
+    "O1": [
+      "internal/audit:TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity"
+    ],
+    "O2": [
+      "internal/audit:TestO2ConfirmedAliasesStillRefused"
+    ],
+    "O3": [
+      "cmd/skill-audit:TestO3PlannedCaseAliasesCannotOverwriteCommittedState"
+    ],
+    "P1": [
+      "internal/audit:TestFingerprintsFrozenDomains"
+    ],
+    "P2": [
+      "internal/audit:TestP2LocalRuleAndWorkflow"
+    ],
+    "P3": [
+      "internal/audit:TestP3NativeWindowsCancellationStopsDescendants"
+    ],
+    "P4": [
+      "internal/audit:TestD7P4NativeWindowsJunctionIsNotFollowed"
+    ],
+    "P5": [
+      "internal/audit:TestP5HostFilenamesRecordReadAndAppend",
+      "internal/audit:TestP5HostFilenamesStageAndKeepFindingPaths",
+      "internal/audit:TestP5LocalPathsRejectTraversalAndUnsafeHostForms",
+      "internal/audit:TestP5NonUTF8FilenameCannotBecomeAnchor"
+    ],
+    "Q1": [
+      "internal/audit:TestQ1Q2Q3SearchProvenanceRoundtrip",
+      "cmd/skill-audit:TestSearchSyncSavedAndExplicitScopesCLI"
+    ],
+    "Q2": [
+      "internal/audit:TestQ1Q2Q3SearchProvenanceRoundtrip",
+      "cmd/skill-audit:TestSearchSyncSavedAndExplicitScopesCLI"
+    ],
+    "Q3": [
+      "internal/audit:TestQ1Q2Q3SearchProvenanceRoundtrip",
+      "cmd/skill-audit:TestSearchSyncSavedAndExplicitScopesCLI"
+    ],
+    "Q4": [
+      "internal/audit:TestQ4PerQueryProvenance"
+    ],
+    "R1": [
+      "internal/audit:TestR1R2SA001ReceiverOptions"
+    ],
+    "R2": [
+      "internal/audit:TestR1R2SA001ReceiverOptions"
+    ],
+    "R3": [
+      "internal/audit:TestR3V2BaselineCannotEstablishNewV3Finding"
+    ],
+    "R4": [
+      "internal/audit:TestR4SA001LoneDash"
+    ],
+    "S1": [
+      "internal/audit:TestT2S1S2S3S4D9"
+    ],
+    "S2": [
+      "internal/audit:TestT2S1S2S3S4D9"
+    ],
+    "S3": [
+      "internal/audit:TestT2S1S2S3S4D9"
+    ],
+    "S4": [
+      "internal/audit:TestT2S1S2S3S4D9"
+    ],
+    "T1": [
+      "internal/audit:TestT1T4OfflineAuditWithoutRequestsOrCredentials"
+    ],
+    "T2": [
+      "internal/audit:TestT2NeverExecuteSkillData"
+    ],
+    "T3": [
+      "internal/audit:TestT3T4RealProcessStagingAndSARIF"
+    ],
+    "T4": [
+      "internal/audit:TestT1T4OfflineAuditWithoutRequestsOrCredentials",
+      "internal/audit:TestT3T4RealProcessStagingAndSARIF",
+      "internal/audit:TestT1T4AcquisitionRejectsUnsafeAndAttributionFailure"
+    ],
+    "T5": [
+      "internal/audit:TestT5NameOptInBeforeRequests"
+    ],
+    "V1": [
+      "cmd/skill-audit:TestV1V2V3V4CLI"
+    ],
+    "V2": [
+      "cmd/skill-audit:TestV1V2V3V4CLI"
+    ],
+    "V3": [
+      "cmd/skill-audit:TestV1V2V3V4CLI"
+    ],
+    "V4": [
+      "cmd/skill-audit:TestV1V2V3V4CLI"
+    ],
+    "V5": [
+      "internal/audit:TestB6E4E6E8V5"
+    ],
+    "V6": [
+      "internal/audit:TestV6V7B8B9IndependentEvidence"
+    ],
+    "V7": [
+      "internal/audit:TestV6V7B8B9IndependentEvidence"
+    ],
+    "X1": [
+      "internal/audit:TestX1X2B3StopAndAnchor"
+    ],
+    "X2": [
+      "internal/audit:TestX1X2B3StopAndAnchor"
+    ],
+    "X3": [
+      "internal/audit:TestX3X4VisibleBudget"
+    ],
+    "X4": [
+      "internal/audit:TestX4DefaultProbeAllowsColdStart"
+    ],
+    "X5": [
+      "internal/audit:TestX5CausePrecedence"
+    ],
+    "X6": [
+      "internal/audit:TestX6SharedProbeDeadlineAndX8NoScanRetry"
+    ],
+    "X7": [
+      "internal/audit:TestX7LaunchOnceAndX9Reserve"
+    ],
+    "X8": [
+      "internal/audit:TestX6SharedProbeDeadlineAndX8NoScanRetry"
+    ],
+    "X9": [
+      "internal/audit:TestX7LaunchOnceAndX9Reserve"
+    ],
+    "X10": [
+      "internal/audit:TestX10OperationTimeoutRefusesRecording"
+    ]
+  },
+  "requirements": {
+    "P1": "Pinned golden bytes are checked on this host; cross-host validation still requires a second native host.",
+    "P3": "Native Windows only. Current direct-child cancellation is expected to fail this acceptance test until Job Objects are implemented.",
+    "P4": "Native Windows junction fixture; compilation is not runtime validation.",
+    "D7": "Native Windows junction fixture; compilation is not runtime validation.",
+    "D8": "The fast summary regression runs by default; exact 50,000-entry fixture uses SKILL_AUDIT_LARGE_FIXTURES=1.",
+    "O1": "Requires a case-sensitive filesystem; explicitly skipped on the current volume.",
+    "D4": "macOS-specific alias rule; no real device walk."
+  }
+}

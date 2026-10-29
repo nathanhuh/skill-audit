@@ -186,7 +186,7 @@ func (s *Scanner) Scan(ctx context.Context, p Package) (Evaluation, []Finding) {
 		return packageScannerFailure("scanner staging failed"), nil
 	}
 	for _, f := range p.Files {
-		if !SafeRelative(f.Path) {
+		if !LocalRelative(f.Path) {
 			return packageScannerFailure("unsafe staged path"), nil
 		}
 		b := p.Data[f.Path]
@@ -342,7 +342,7 @@ func parseSARIF(b []byte, e *Evaluation) ([]Finding, error) {
 		if len(result.Locations) > 0 {
 			l := result.Locations[0].Physical
 			relative, err := url.PathUnescape(l.Artifact.URI)
-			if err != nil || !SafeRelative(relative) {
+			if err != nil || !LocalRelative(relative) {
 				return bad("unsafe result location")
 			}
 			f.File = relative

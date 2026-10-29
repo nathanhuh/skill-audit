@@ -318,3 +318,20 @@ func TestO3PlannedCaseAliasesCannotOverwriteCommittedState(t *testing.T) {
 		t.Fatal(s, e)
 	}
 }
+
+func TestE9TextSnapshotStdout(t *testing.T) {
+	root := testRoot(t)
+	pkg := filepath.Join(root, "p")
+	writeFixture(t, filepath.Join(pkg, "SKILL.md"), "# fixture")
+	inv, state := filepath.Join(root, "inventory.json"), filepath.Join(root, "state.json")
+	if c, o, e := invoke("inventory", "--root", pkg, "--out", inv); c != 0 {
+		t.Fatal(c, o, e)
+	}
+	if c, o, e := invoke("audit", "--inventory", inv, "--state", state, "--record", "baseline"); c != 0 {
+		t.Fatal(c, o, e)
+	}
+	c, stdout, stderr := invoke("audit", "--inventory", inv, "--state", state, "--record", "snapshot")
+	if c != 0 || strings.Count(stdout, "recording=recorded") != 1 || strings.Count(stderr, "recording=recorded") != 1 {
+		t.Fatal(c, stdout, stderr)
+	}
+}

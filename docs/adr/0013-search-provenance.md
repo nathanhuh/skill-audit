@@ -23,6 +23,8 @@ Rejected alternative: disallow saved/live combinations. That is simpler but remo
 | Q1 | Published v2 saved hit plus a fresh query from another source | Each input keeps its source, query, hit membership and diagnostics in v3. |
 | Q2 | Merge an already merged search, with overlapping hits and a failed/empty input | Inputs stay flat; all evidence survives; sync imports each deduplicated reference once. |
 | Q3 | Read v2 or v3, then ordinary sync | Both are accepted; source files stay byte-for-byte unchanged; unknown schemas are rejected. |
+| Q4 | Multiple new queries, including failed/invalid/empty results, plus older grouped inputs | One batch per new query; old hit membership remains intact without guessing. |
+
 
 ## Third-review evidence (2026-10-29)
 

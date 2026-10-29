@@ -21,6 +21,8 @@ This changes published SA001 behavior. Bump the rule from v2 to v3 and the evalu
 | R1 | curl HTTP(S) into bash -e / sh -ux / bash -se | Finding under the new rule/evaluation version. |
 | R2 | Receiver has -c, -o value, unknown flags or filename without -s | No finding from this bounded rule. |
 | R3 | v2 baseline versus new option coverage | Content comparison works; no comparable new finding claim. |
+| R4 | Lone-dash receiver option termination | Stdin forms qualify; subsequent filenames require an earlier -s; a dash after -- remains a filename. |
+
 
 Accepted explicitly by the user in this review thread on 2026-10-29.
 
