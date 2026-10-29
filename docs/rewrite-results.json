@@ -1,0 +1,288 @@
+{
+  "baseline_revision": "8c6f3b83d725c716246bdbdecc8495bb9cedbccb",
+  "rewrite_implementation_revision": "b7257a55c479501179e9a936f0d7cfffea11e751",
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "verification_date": "2026-10-29",
+  "pinned_files_unchanged": 45,
+  "cli_acceptance_invocations_per_binary": 17,
+  "shared_syntax_samples": 14,
+  "results": {
+    "baseline": {
+      "catalog_version": "f58437d5b9196bef29a13a53948b0e40d0b4b7a311ae586192342c4368ff813b",
+      "initial_packages": [
+        [
+          "global",
+          "exact",
+          "7e75ce93823c082566f01d5d7945b8d4039227ac4257681dad8fa5e53a56200d"
+        ],
+        [
+          "project",
+          "exact",
+          "a9a97235ac20c3eaabd67c082c367a4321b5bf661f8fb6f1599dbceaef157fc7"
+        ]
+      ],
+      "external_catalog_statuses": [
+        "exact",
+        "unknown"
+      ],
+      "legacy_readonly": true,
+      "edit_findings": [
+        [
+          "skill-audit",
+          "SA001",
+          "scripts/bundle-artifact.sh",
+          "new"
+        ]
+      ],
+      "stdout_recording_summary": false,
+      "immutable_observation": true,
+      "partial_complete_anchor": true,
+      "explicit_dependency_packages": 1,
+      "home_global_root_priority": true,
+      "incomplete_anchor_refused": true,
+      "scanner_scan_launches": 2
+    },
+    "rewrite": {
+      "catalog_version": "f58437d5b9196bef29a13a53948b0e40d0b4b7a311ae586192342c4368ff813b",
+      "initial_packages": [
+        [
+          "global",
+          "exact",
+          "7e75ce93823c082566f01d5d7945b8d4039227ac4257681dad8fa5e53a56200d"
+        ],
+        [
+          "project",
+          "exact",
+          "a9a97235ac20c3eaabd67c082c367a4321b5bf661f8fb6f1599dbceaef157fc7"
+        ]
+      ],
+      "external_catalog_statuses": [
+        "exact",
+        "unknown"
+      ],
+      "legacy_readonly": true,
+      "edit_findings": [
+        [
+          "skill-audit",
+          "SA001",
+          "scripts/bundle-artifact.sh",
+          "new"
+        ]
+      ],
+      "stdout_recording_summary": true,
+      "immutable_observation": true,
+      "partial_complete_anchor": true,
+      "explicit_dependency_packages": 1,
+      "home_global_root_priority": true,
+      "incomplete_anchor_refused": true,
+      "scanner_scan_launches": 1
+    }
+  },
+  "resources": {
+    "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "fixture": {
+      "packages": 100,
+      "files": 900,
+      "content_bytes": 28227490
+    },
+    "samples": {
+      "baseline": [
+        {
+          "repeat": 1,
+          "phase": "inventory",
+          "exit": 0,
+          "wall_ms": 113.824,
+          "max_rss_bytes": 18137088
+        },
+        {
+          "repeat": 1,
+          "phase": "audit",
+          "exit": 0,
+          "wall_ms": 181.156,
+          "max_rss_bytes": 18710528
+        },
+        {
+          "repeat": 2,
+          "phase": "inventory",
+          "exit": 0,
+          "wall_ms": 106.703,
+          "max_rss_bytes": 17612800
+        },
+        {
+          "repeat": 2,
+          "phase": "audit",
+          "exit": 0,
+          "wall_ms": 171.581,
+          "max_rss_bytes": 18743296
+        },
+        {
+          "repeat": 3,
+          "phase": "inventory",
+          "exit": 0,
+          "wall_ms": 107.305,
+          "max_rss_bytes": 17842176
+        },
+        {
+          "repeat": 3,
+          "phase": "audit",
+          "exit": 0,
+          "wall_ms": 182.65,
+          "max_rss_bytes": 18923520
+        }
+      ],
+      "rewrite": [
+        {
+          "repeat": 1,
+          "phase": "inventory",
+          "exit": 0,
+          "wall_ms": 112.744,
+          "max_rss_bytes": 17645568
+        },
+        {
+          "repeat": 1,
+          "phase": "audit",
+          "exit": 0,
+          "wall_ms": 195.124,
+          "max_rss_bytes": 19005440
+        },
+        {
+          "repeat": 2,
+          "phase": "inventory",
+          "exit": 0,
+          "wall_ms": 110.072,
+          "max_rss_bytes": 17809408
+        },
+        {
+          "repeat": 2,
+          "phase": "audit",
+          "exit": 0,
+          "wall_ms": 184.14,
+          "max_rss_bytes": 18956288
+        },
+        {
+          "repeat": 3,
+          "phase": "inventory",
+          "exit": 0,
+          "wall_ms": 110.702,
+          "max_rss_bytes": 17858560
+        },
+        {
+          "repeat": 3,
+          "phase": "audit",
+          "exit": 0,
+          "wall_ms": 196.687,
+          "max_rss_bytes": 19382272
+        }
+      ]
+    }
+  },
+  "structure": {
+    "baseline": {
+      "production_files": 24,
+      "production_lines": 3379,
+      "production_bytes": 102907,
+      "test_files": 26,
+      "test_lines": 3900
+    },
+    "rewrite": {
+      "production_files": 16,
+      "production_lines": 3393,
+      "production_bytes": 96024,
+      "test_files": 5,
+      "test_lines": 1340
+    }
+  },
+  "published_format_compatibility": {
+    "published_revision": "3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0",
+    "actual_inventory_v2": true,
+    "actual_report_v1": true,
+    "actual_state_v1": true,
+    "content_comparison": true,
+    "legacy_append_refused": true,
+    "findings_exit_priority": true,
+    "no_state_migration": true,
+    "commands": [
+      {
+        "binary": "skill-audit-published",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-published",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "baseline",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-rewrite",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-rewrite",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "snapshot",
+          "--json"
+        ],
+        "exit": 3
+      },
+      {
+        "binary": "skill-audit-rewrite",
+        "args": [
+          "inventory",
+          "--root",
+          "<fixture>/selected/p",
+          "--out",
+          "<fixture>/inventory.json"
+        ],
+        "exit": 0
+      },
+      {
+        "binary": "skill-audit-rewrite",
+        "args": [
+          "audit",
+          "--inventory",
+          "<fixture>/inventory.json",
+          "--state",
+          "<fixture>/state.json",
+          "--record",
+          "snapshot",
+          "--json"
+        ],
+        "exit": 1
+      }
+    ]
+  },
+  "test_log": {
+    "passed_tests_and_subtests": 76,
+    "skipped_tests": [],
+    "failed_tests": []
+  }
+}

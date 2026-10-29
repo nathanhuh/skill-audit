@@ -55,3 +55,11 @@ Cache capacity controls retained memory, not whether a valid import is eligible.
 | C1–C4 | Implemented in 2b6fc1f and ed4c74f with tests. |
 | C5 | **Gap.** Targets are sorted explicit-full-first, then by repository (`cmd/skill-audit/main.go:236`), so explicit repos' path hits are revisited after other repos and their trees are fetched again. |
 | C6–C8 | **Gap.** There is no operation byte budget or per-import serialized-size admission check. An oversized store fails as a whole in `WriteJSON` (`internal/workflow/storage.go:98`). Complete-import admission, diagnostic headroom and attribution accounting are accepted but remain to be implemented and fixture-tested. |
+
+## Isolated rewrite evidence (2026-10-29)
+
+Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr-rewrite`, separate from canonical main. This supplements the dated gap table above; it does not change the accepted decision.
+
+C1–C8 use in-memory fake HTTP transports: cache misses, transient/permanent errors, pinned retry, repository grouping, complete admission with attribution and actual formatted-output headroom. Exhaustion tests inject smaller budgets while production 40 MiB raw / 64 MiB store constants stay pinned. No authenticated or live provider call was made. Earlier complete entries and required attribution survive budget exhaustion.
+
+See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.

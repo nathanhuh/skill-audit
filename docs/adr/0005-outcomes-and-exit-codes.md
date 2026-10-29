@@ -57,3 +57,11 @@ When recording is requested, text-mode stdout includes one `recording=<status> p
 | --- | --- |
 | E1–E8 | Implemented in 71e3cee with tests (`cmd/skill-audit/outcome_test.go`). |
 | E9 | **Gap.** `audit.Print` no longer prints a recording line, so text stdout never shows the recording outcome. E9 is now accepted; implementation remains pending. |
+
+## Isolated rewrite evidence (2026-10-29)
+
+Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr-rewrite`, separate from canonical main. This supplements the dated gap table above; it does not change the accepted decision.
+
+E1–E8 have a priority table plus actual CLI finding/recording/delivery checks. E9 now prints the actual requested recording outcome once on text stdout and once on stderr. JSON recording remains independent from stored observations; output-file delivery failure does not erase a committed recording or suppress an available stdout summary.
+
+See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.

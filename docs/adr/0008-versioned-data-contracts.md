@@ -62,3 +62,11 @@ Reviews raised two opposite complaints: schemas bumped where the change could ha
 | V5 | **Gap.** The state/v2 reader (`AnchorStateSchema`) still exists and validates explicit anchors. |
 | V6–V7 | Evidence-specific compatibility is accepted; implementation and fixture coverage have not been fully reviewed or verified in this documentation pass. |
 | Freeze | Not yet run. Must run before the take-home is submitted. |
+
+## Isolated rewrite evidence (2026-10-29)
+
+Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr-rewrite`, separate from canonical main. This supplements the dated gap table above; it does not change the accepted decision.
+
+V1–V7 are covered by published state/report/inventory/catalog/search representations, state/v2 refusal, read-only legacy append behavior and independently comparable discovery/content/scanner/catalog evidence. The embedded directory and reference-catalog fingerprints match the frozen binary. No published identifier was bumped or intentionally redefined; the publication freeze checklist is in VERIFICATION.md. Nothing was published.
+
+See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.

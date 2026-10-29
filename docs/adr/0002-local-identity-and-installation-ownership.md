@@ -46,3 +46,11 @@ A conventional home counts even when it is not the selected `--home`. So "global
 | S1–S2 | Implemented in 64d3524 with tests. |
 | S3–S4 | Behavior is in `classify` and the existing identity tests. Not re-verified for this ADR. |
 | Machine scope | Exists in the code; accepted during ADR review on 2026-10-29. Not re-verified for this ADR. |
+
+## Isolated rewrite evidence (2026-10-29)
+
+Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr-rewrite`, separate from canonical main. This supplements the dated gap table above; it does not change the accepted decision.
+
+S1–S4 use temporary home-global plugin, worktree/project and .github fixtures with duplicate names. Scope plus lexical absolute path remains the key. Current inventory identities are preserved during audit; no move/rename linkage or historical identity migration was added.
+
+See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.

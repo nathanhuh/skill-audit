@@ -54,3 +54,11 @@ The reserve is best effort: scanner phase deadlines leave time for local measure
 | Stop after failure | Probe failures are cached. Scan timeouts are not, so X2 fails: the remaining time shrinks about 3/4 per package until local inspection is canceled. |
 | X5, X7 | Cause preservation and launch-failure caching implemented in 5fed934. Not re-tested during this documentation review. |
 | X6, X8–X10 | Probe exit-75 retry exists, but each attempt currently creates a new deadline. Shared-deadline retry, the explicit reserve and revised scenarios remain to be implemented or verified. |
+
+## Isolated rewrite evidence (2026-10-29)
+
+Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr-rewrite`, separate from canonical main. This supplements the dated gap table above; it does not change the accepted decision.
+
+X1–X10 are exercised with injected process/deadline seams and a copied Go test executable. The shared CLI harness observes two baseline scan launches versus one rewrite launch after a hanging scan. Probe retries share the original deadline; no scan retry occurs. X3/X4 assert phase admission without hidden caps but do not spend real 45 s / 6 s wall time. Real Skill X-Ray/OpenGrep remains unverified, and Windows descendant cleanup is still pending.
+
+See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.

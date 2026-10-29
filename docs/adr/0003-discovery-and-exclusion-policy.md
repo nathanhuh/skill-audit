@@ -65,3 +65,11 @@ Whether a skipped symlink counts as a coverage gap flipped twice across reviews.
 | D9 | **Gap.** The CLI currently refuses inventory without `--root` or `--device`; default-device scope selection is accepted but not shipped. |
 | D10–D12 | Accepted during this review; implementation and fixture coverage have not been re-verified in this pass. |
 | Policy identity | `skill-audit/discovery/v3` changed behavior in place across 207a4f5 and 5fed934. That is allowed because v3 is unpublished ([0008](0008-versioned-data-contracts.md)). It must be frozen before publication. |
+
+## Isolated rewrite evidence (2026-10-29)
+
+Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr-rewrite`, separate from canonical main. This supplements the dated gap table above; it does not change the accepted decision.
+
+Fixture tests cover D1/D2/D3/D5/D6/D8–D12, including injected device defaults, explicit dependency-root selection, case-alias identity confirmation, bounded examples and separate package completeness. D8 exercises eight exclusions, not a 50,000-entry workload. D4 OS-alias keys are source checked. The Windows reparse-attribute gate compiles; D7 still needs native junction execution. Exact state-file exclusion uses inventory --state PATH, rejects directories and does not exclude a parent subtree.
+
+See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.

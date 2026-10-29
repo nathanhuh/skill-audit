@@ -1,3 +1,89 @@
+# Verification — isolated document-driven rewrite, 2026-10-29
+
+Reviewed implementation: **b7257a55c479501179e9a936f0d7cfffea11e751**, local branch `codex/adr-rewrite`, `/Users/nathanhuh/.codex/worktrees/2376/skill-audit`. The following documentation/verification commit changes no production Go bytes. Preserved reference/canonical main: **8c6f3b83d725c716246bdbdecc8495bb9cedbccb**. The worktree began clean at that revision; canonical main was not promoted, edited, switched or rewritten.
+
+See [docs/rewrite-comparison.md](docs/rewrite-comparison.md) for source-boundary history, scenario coverage and measured differences, and [docs/rewrite-results.json](docs/rewrite-results.json) for compact machine evidence. Prior verification records below describe the reference implementation at their named revisions; they are not claims about pending native runtimes.
+
+## Environment and isolation
+
+macOS 27.0.1 arm64, Go 1.23.5. Commands use `GOCACHE=/private/tmp/skill-audit-rewrite-gocache GOPROXY=off GOSUMDB=off` with existing vendored dependencies. All tests/demos use temporary fixtures, injected device roots and in-memory fake HTTP transports. No real device sweep, installed-skill mutation, credential-dependent test, live API, network listener, external scanner installation or skill-script execution occurred. The fake scanner is a copied/compiled Go test executable; supplied scanner code is still trusted, not sandboxed.
+
+## Exact checks
+
+All commands below exited 0. `gofmt -l` produced no output. Security-finding CLI checks inside the demo/harness intentionally return 1; gap/refusal/legacy checks assert their required 2/3 outcomes.
+
+```sh
+export GOCACHE=/private/tmp/skill-audit-rewrite-gocache GOPROXY=off GOSUMDB=off
+gofmt -l cmd internal/audit
+go vet ./...
+go test -count=1 ./...
+go build -o /private/tmp/skill-audit-rewrite ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /private/tmp/skill-audit-rewrite-linux ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /private/tmp/skill-audit-rewrite-windows.exe ./cmd/skill-audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-rewrite-windows-audit.test.exe ./internal/audit
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go test -c -o /private/tmp/skill-audit-rewrite-windows-cli.test.exe ./cmd/skill-audit
+go test -c -o /private/tmp/skill-audit-fake-scanner.exe ./internal/audit
+sh scripts/demo.sh
+python3 scripts/acceptance.py /private/tmp/skill-audit-frozen /private/tmp/skill-audit-rewrite /private/tmp/skill-audit-acceptance-results /private/tmp/skill-audit-fake-scanner.exe
+python3 scripts/measure-fixtures.py /private/tmp/skill-audit-frozen /private/tmp/skill-audit-rewrite /private/tmp/skill-audit-fixture-resources.json
+git diff --check
+git diff --exit-code 8c6f3b83d725c716246bdbdecc8495bb9cedbccb -- .gitattributes go.mod go.sum vendor internal/audit/catalog
+```
+
+The frozen binary was built in a temporary export, using the same offline environment:
+
+```sh
+mkdir -p /private/tmp/skill-audit-rewrite-baseline
+git archive 8c6f3b83d725c716246bdbdecc8495bb9cedbccb | tar -x -C /private/tmp/skill-audit-rewrite-baseline
+(cd /private/tmp/skill-audit-rewrite-baseline && go build -o /private/tmp/skill-audit-frozen ./cmd/skill-audit)
+```
+
+The JSON test log `/private/tmp/skill-audit-rewrite-tests.jsonl` records 76 passing tests/subtests, no failed tests and no runtime skips. It was produced with `go test -json -count=1 ./...`; Windows-only code was excluded from the native run as intended.
+
+Native tests passed in `skill-audit/cmd/skill-audit` and `skill-audit/internal/audit`. The shared harness passed 17 commands per binary, including an audit of a 14-sample shell corpus, matching hashes/catalog identity, scope, content changes, finding transitions and immutable observations. Expected differences include E9 text stdout and X2 stop-after-timeout (two baseline scan launches, one rewrite launch). D10 explicit dependency-root selection already passed in the reference. Full normalized commands/reports are in `/private/tmp/skill-audit-acceptance-results/`.
+
+The resource fixture measured 100 packages / 900 files / 28,227,490 raw bytes, three samples per phase/binary. Baseline vs rewrite medians: inventory 107.305 vs 110.702 ms; audit 181.156 vs 195.124 ms. Maximum observed RSS is approximately 17.9–19.4 MB for both. These are small macOS fixture observations, not general performance or constant-memory claims. Direct-child `wait4` replaces an unavailable sandbox-restricted `/usr/bin/time -l` sysctl measurement.
+
+The local remote-tracking `origin/main` revision was **3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0**. Its published schema definitions, catalog fingerprint encoding and unchanged local rule were inspected without fetching. An additional temporary export built `/private/tmp/skill-audit-published`, then emitted real older-format fixtures for this check:
+
+```sh
+mkdir -p /private/tmp/skill-audit-published-reference
+git archive 3974a313ffdecd2a82d9e0b8699d9d61c47c9cc0 | tar -x -C /private/tmp/skill-audit-published-reference
+(cd /private/tmp/skill-audit-published-reference && go build -o /private/tmp/skill-audit-published ./cmd/skill-audit)
+python3 scripts/verify-published.py /private/tmp/skill-audit-published /private/tmp/skill-audit-rewrite /private/tmp/skill-audit-published-compat.json
+```
+
+All six CLI invocations passed: real inventory/v2, report/v1 and state/v1 readback/comparison; refused legacy append without mutation; new finding plus failed requested append exits 1. This validates the pinned locally recorded publication, not live remote freshness.
+
+## Publication freeze check (no publication performed)
+
+| Contract | Result |
+| --- | --- |
+| `skill-audit/catalog/v1`, `catalog-store/v2`, `search/v2` | Published shapes/field meanings retained; external store and saved search round-trips tested. No bump. |
+| `directory/v1`, `reference-catalog/v1` | Raw-byte domain encodings retained; exact pinned directory hashes and catalog ID match the frozen binary. No bump. |
+| SA001 rule v2 / `SA001/v2;sh/v3.10.0;scope/v2` | Conservative eligibility/options and finding identity retained; shared syntax/status/evidence projections agree. No bump. |
+| report/v1, state/v1, inventory/v2 readers | Published older evidence remains readable without migration or fabricated recording. Legacy state append refused. |
+| report/v2, inventory/v3, discovery/v3, state/v3 | Unpublished identifiers retained under ADR-0008. Additions include explicit state-location/coverage evidence. Writers emit current formats. |
+| state/v2 | Unpublished intermediate reader removed; unsupported schema diagnostic. |
+| Catalog/dependencies/licenses/notices/checkout bytes | 45 pre-edit SHA-256 values match; git diff for pinned assets is empty. `.gitattributes` remains byte-preserving. |
+
+Each kind of evidence is compared independently: policy change does not disable compatible complete content comparison; scanner evaluation change does not establish a new finding; catalog change keeps historical correlation separate.
+
+## Remaining limitations and evidence levels
+
+- Native Linux/Windows full tests, demos, permissions, process cancellation and persistence are **not run**. Cross-builds/test compilation only prove compilation. Windows-only `TestNativeWindowsStateReplacement` is compiled, not executed. WSL is not native Windows evidence.
+- P1 cross-host fingerprint agreement, P3 Windows descendant cleanup/Job Objects, P4/D7 native junction behavior and NTFS replacement/crash durability remain pending. Windows skips directory fsync and makes no crash-durability promise.
+- Real Skill X-Ray/OpenGrep, authenticated GitHub/registry integration, real device discovery, arbitrary mounts, OS Ctrl-C and crash/interrupted-write behavior remain unverified. The POSIX demo still needs a native Windows counterpart.
+- X3/X4 use injected phase-deadline admission assertions, not actual 45 s scans or 6 s cold starts. Acquisition exhaustion tests use smaller injected limits while the production constants remain 40/64 MiB. D8 uses eight exclusion fixtures to exercise bounded examples; D4 alias keys are source checked. Distinct case-sensitive directories were not exercised on this case-insensitive volume.
+- Filesystem operations can block beyond cooperative deadlines; checks do not prevent hostile concurrent mutation. Directory listing materialization, accumulated catalog/report content and JSON serialization are not constant-memory operations. No automatic stale-lock removal, state migration, move linkage or linked-skill traversal was added.
+- Findings, coverage and recording remain independent. A stream failure can prevent delivery, but cannot undo a committed state write.
+
+No push, publication, submission, contact, scanner download, service/database/UI or cloud integration occurred.
+
+---
+
+## Preserved earlier verification records
+
 # Verification — committed comparison baseline, 2026-10-29
 
 Prepared the canonical `main` checkout from parent revision `5fed934` as the frozen reference for a separate document-driven rewrite. All nine ADRs are accepted; their pending implementation gaps remain explicit. Corrected stale README wording that still called accepted ADRs proposed, and aligned the move-tracking roadmap's state-placement wording with ADR-0004. The sole Go-file change remains an ADR reference in a test comment.

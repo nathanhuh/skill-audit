@@ -50,3 +50,11 @@ Baseline eligibility first required a fully complete report. That made baselines
 | B1–B9 | Implemented in 4b5a86a with tests. In 5fed934, state/v3 derives anchors from the first observation and stops storing recording outcomes in observations. |
 | B10–B11 | State-location amendment accepted during this review; designated exclusion and fixture coverage require implementation review. No runtime verification performed in this pass. |
 | B3 vs scanner budgets | **At risk.** A hung scanner can use up the operation deadline, so B6 then refuses recording. The accepted [0006](0006-external-scanner-budgets.md) X2/X9 reserve and stop-after-timeout rules mitigate this; implementation is pending. The reserve is best effort and B6 still applies if the operation deadline expires. |
+
+## Isolated rewrite evidence (2026-10-29)
+
+Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr-rewrite`, separate from canonical main. This supplements the dated gap table above; it does not change the accepted decision.
+
+B1–B11 have scenario-oriented fixture coverage for complete per-package anchors under unrelated gaps, empty and unusable observations, scanner failure, immutable observations, lock/recording refusal, missing/unanchored identities, designated state exclusion and placement. Final-sync uncertainty is injected at the persistence boundary; it is not a crash-durability experiment. Ordinary audit remains read-only.
+
+See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.

@@ -42,3 +42,11 @@ Every other ADR assumes these boundaries. Until now they were spread across AGEN
 ## Implementation gaps
 
 Not re-audited against the code in this pass. Existing tests cover T3–T5 according to DESIGN.md. T1 and T2 have no dedicated test that this pass confirmed.
+
+## Isolated rewrite evidence (2026-10-29)
+
+Implementation revision `b7257a55c479501179e9a936f0d7cfffea11e751` on `codex/adr-rewrite`, separate from canonical main. This supplements the dated gap table above; it does not change the accepted decision.
+
+T1–T5 are covered by fixture non-execution, offline command boundaries, explicit name-search opt-in/cap, pinned fake scanner argument/environment checks and credential-free output tests. No scanner installation, skill-script execution, content-derived URL retrieval or live service call occurred. ADR-0006 is separately accepted; the earlier wording about its review is historical context.
+
+See [rewrite comparison](../rewrite-comparison.md) and [verification](../../VERIFICATION.md) for exact commands and limits.
