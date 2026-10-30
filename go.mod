@@ -1,4 +1,4 @@
-module skill-audit
+module github.com/nathanhuh/skill-audit
 
 go 1.23.0
 

@@ -8,11 +8,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/nathanhuh/skill-audit/internal/audit"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"skill-audit/internal/audit"
 	"strings"
 	"testing"
 )
@@ -333,5 +333,19 @@ func TestE9TextSnapshotStdout(t *testing.T) {
 	c, stdout, stderr := invoke("audit", "--inventory", inv, "--state", state, "--record", "snapshot")
 	if c != 0 || strings.Count(stdout, "recording=recorded") != 1 || strings.Count(stderr, "recording=recorded") != 1 {
 		t.Fatal(c, stdout, stderr)
+	}
+}
+
+func TestVersionCommand(t *testing.T) {
+	for _, arg := range []string{"--version", "version"} {
+		code, out, errOut := invoke(arg)
+		if code != 0 || out != "skill-audit dev\n" || errOut != "" {
+			t.Fatal(arg, code, out, errOut)
+		}
+	}
+	version = "v0.1.0"
+	defer func() { version = "" }()
+	if _, out, _ := invoke("--version"); out != "skill-audit v0.1.0\n" {
+		t.Fatal(out)
 	}
 }

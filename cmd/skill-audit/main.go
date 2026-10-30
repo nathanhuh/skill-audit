@@ -8,11 +8,27 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 	"time"
 
-	"skill-audit/internal/audit"
+	"github.com/nathanhuh/skill-audit/internal/audit"
 )
+
+// version is set by release builds with -ldflags "-X main.version=v0.1.0".
+var version string
+
+// buildVersion prefers the release stamp, then the module version recorded by
+// `go install …@version`, and reports "dev" for local builds.
+func buildVersion() string {
+	if version != "" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		return bi.Main.Version
+	}
+	return "dev"
+}
 
 type stringsFlag []string
 
@@ -33,6 +49,10 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	command := args[0]
 	if command == "--help" || command == "help" {
 		fmt.Fprintln(out, "usage: skill-audit inventory|search|sync|audit [options]")
+		return 0
+	}
+	if command == "--version" || command == "version" {
+		fmt.Fprintln(out, "skill-audit", buildVersion())
 		return 0
 	}
 	f := flag.NewFlagSet(command, flag.ContinueOnError)
