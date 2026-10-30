@@ -170,3 +170,7 @@ The current evaluation identity is `SA001/v3;sh/v3.10.0;scope/v2`. V2 and older 
 ### ADR runtime alignment: independent outcomes
 
 Reports now use `skill-audit/report/v2`. The `recording` object carries `status`, optional `path` and `message`: `not_requested`, `recorded`, `not_recorded`, or `committed_durability_unconfirmed`. Requested recording prints its outcome once on text stdout and once on stderr; ordinary audits stay quiet there and retain recording.status=not_requested in JSON. Priority is **1 > 3 > 2 > 0**; automation needing persistence must inspect this object. A post-replacement directory-sync warning means the state is saved: inspect before retrying. Historical report/v1 observations remain readable, with no fabricated recording field. Per-package anchors, installation ownership and bounded discovery exclusions follow ADRs [0002](docs/adr/0002-local-identity-and-installation-ownership.md), [0003](docs/adr/0003-discovery-and-exclusion-policy.md) and [0004](docs/adr/0004-observations-and-baselines.md). State/v1 is read-only and state/v2 is unsupported; create a new baseline path to adopt state/v3.
+
+## License
+
+skill-audit is licensed under the [Apache License 2.0](LICENSE). The bundled catalog fixtures from `anthropics/skills` keep their own Apache-2.0 license and attribution under `internal/audit/catalog/`, and vendored dependencies keep their own licenses under `vendor/`.
