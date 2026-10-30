@@ -1,3 +1,11 @@
+# Verification — evaluator README, version flag and module path, 2026-10-30
+
+- `05007bb`: the module path is `github.com/nathanhuh/skill-audit` (only `cmd/skill-audit` imported the old path; schema strings such as `skill-audit/report/v2` are data and unchanged). `skill-audit --version`/`version` prints the `-ldflags "-X main.version=…"` stamp, else the `go install` module version, else `dev`; `TestVersionCommand` covers both spellings and the stamp. A real binary printed `skill-audit dev`, and one built with `-ldflags "-X main.version=v0.1.0"` printed `skill-audit v0.1.0`. This adds a command; it changes no accepted ADR rule or data contract.
+- README rewritten for evaluators (107 lines): build, demo with real trimmed output, running on your own skills, brief coverage, exit codes, limitations, testing and pointers. The previous detailed sections moved unchanged to `docs/reference.md`, with links re-resolved. CORE_REVIEW.md now opens with a reading order; its review-history sections and the README promotion paragraph moved to `docs/history/README.md`. AGENTS.md now points at `docs/reference.md` too.
+- The "your own skills" commands were run against a temporary fixture home: `--root <home>/.claude --root <home>/code` classified the skill and plugin skill under `.claude` as `global`, the project skill as `project`, and reported `upstream_modified="SKILL.md"` for an edited copy; inventory and audit exited 0. No real installed skills were read.
+
+Checks: `gofmt -l cmd internal` prints nothing; `go vet ./...` and `GOOS=windows go vet ./...` exit 0; `go test -count=1 ./...` passes with 197 passing and 3 skipped; `sh scripts/demo.sh` exits 0; every relative Markdown link and heading anchor outside `vendor/` resolves; `git diff --check` exits 0.
+
 # Verification — freeze checklist re-run before submission, 2026-10-30
 
 ADR-0008 rule 6, re-run on clean canonical `main` at `c9edc3c` against the last recorded checklist (fourth review, `145b51e`, below). Source evidence: `git diff 145b51e..c9edc3c` over non-test Go, `vendor/`, `go.mod`, `go.sum`, `internal/audit/catalog/` and `.gitattributes`.
