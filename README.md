@@ -20,6 +20,8 @@ export PATH="$PWD/bin:$PATH"
 
 Everything else is optional: `search`/`sync` acquire more references, and `--xray` adds the external Skill X-Ray scanner. The core path above works offline with no flags beyond those shown.
 
+**Why there are fourteen ADRs for a small CLI.** Early review rounds kept redefining the same rules: what counts as complete coverage, when a baseline may be compared, which exit code wins and what may be cached. The ADRs freeze those decisions, each with acceptance scenarios that map to named tests, so later changes argue against a written rule instead of reopening it. They are the contract, not extra features; `docs/history/` keeps the superseded review records and is not policy.
+
 The document-driven rewrite is the implementation selected for canonical `main`, promoted locally at the user's request after review and fixture verification. The frozen reference `8c6f3b83d725c716246bdbdecc8495bb9cedbccb` remains in Git history. See [host-local filename fix and scenario tests](docs/history/host-paths-and-scenarios.md) for the latest focused changes and [second-review record](docs/history/review-2-fixes.md) for promotion evidence, and [docs/history/rewrite-comparison.md](docs/history/rewrite-comparison.md) for the dated original comparison. There is one active CLI. Verify path, branch and revision before reviewing.
 
 Binding decisions are in the [architecture decision records](docs/adr/README.md). All fourteen ADRs are accepted. The rewritten implementation and scenario tests follow those decisions; platform runtime checks and real Skill X-Ray remain explicitly pending. Gap tables retain their original revision context, with rewrite evidence appended. See VERIFICATION.md for commands, freeze checks and limitations.

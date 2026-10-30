@@ -1,3 +1,20 @@
+# Verification — freeze checklist re-run before submission, 2026-10-30
+
+ADR-0008 rule 6, re-run on clean canonical `main` at `c9edc3c` against the last recorded checklist (fourth review, `145b51e`, below). Source evidence: `git diff 145b51e..c9edc3c` over non-test Go, `vendor/`, `go.mod`, `go.sum`, `internal/audit/catalog/` and `.gitattributes`.
+
+| Contract | Current / published | Change since the fourth-review checklist |
+| --- | --- | --- |
+| Report | v2 / v1 | ADR-0014 adds optional `upstream_comparison` and `upstream_changes` on candidates. Additive and optional (rule 2); v2 is unpublished. No bump. |
+| State | v3 / v1 | Stored origins carry the same optional candidate fields. Additive; v3 is unpublished. v1 readers unchanged. No bump. |
+| Inventory, discovery, search | v3 / v2, v3 / none, v3 / v2 | Unchanged. The removed search-schema recheck was unreachable; `Search.UnmarshalJSON` still refuses other schemas. |
+| Rule/evaluation | SA001 v3 / v2 | Unchanged. The `Compare` refactor computes the same comparability once per skill. |
+| Fingerprints | directory/v1, reference-catalog/v1 / same | Unchanged; ADR-0014 reads existing reference file hashes and adds no fingerprint input. |
+| Catalog/API/scanner | catalog/v1, catalog-store/v2; GitHub 2022-11-28; X-Ray c89eacf / same | No diff in catalog bytes, licenses, dependencies or `.gitattributes`. |
+
+Result: every changed identifier is unpublished or changed additively; nothing needs a bump. Unpublished identifiers freeze at the ADR-0008 publication boundary.
+
+Checks at `c9edc3c`: `gofmt -l cmd internal` prints nothing; `go vet ./...` and `GOOS=windows go vet ./...` exit 0; `go test -count=1 ./...` exits 0 with 196 passing and 3 skipped; `go build ./cmd/skill-audit` and `sh scripts/demo.sh` exit 0; `git diff --check` exits 0. Pending items are unchanged from the fourth-review checklist.
+
 # Verification — repository tidy-up, 2026-10-29
 
 Behavior-preserving. Started at `6bfafe6`.
