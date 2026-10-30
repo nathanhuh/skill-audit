@@ -11,7 +11,9 @@ results = {}
 for line in Path(sys.argv[1]).read_text().splitlines():
     event = json.loads(line)
     if event.get('Test') and event['Action'] in ('pass', 'fail', 'skip'):
-        key = event['Package'].removeprefix('skill-audit/') + ':' + event['Test']
+        # Current module path, plus the pre-v0.1.0 one for older recorded logs.
+        package = event['Package'].removeprefix('github.com/nathanhuh/skill-audit/').removeprefix('skill-audit/')
+        key = package + ':' + event['Test']
         results[key] = event['Action']
 native_windows = set()
 for source in repo.glob('**/*_windows_test.go'):

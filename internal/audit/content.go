@@ -67,11 +67,25 @@ func NoLinks(p string) error {
 			return e
 		}
 		if isLink(stat) {
-			resolved, _ := filepath.EvalSymlinks(p)
-			return fmt.Errorf("link path %q is not followed; use resolved path %q", q, resolved)
+			return fmt.Errorf("link path %q is not followed; use resolved path %q", q, resolvedPath(p))
 		}
 	}
 	return nil
+}
+
+// resolvedPath resolves the deepest existing ancestor of p and appends the
+// rest, so a not-yet-created output still gets a usable suggestion.
+func resolvedPath(p string) string {
+	rest := ""
+	for q := p; ; q = filepath.Dir(q) {
+		if r, e := filepath.EvalSymlinks(q); e == nil {
+			return filepath.Join(r, rest)
+		}
+		if filepath.Dir(q) == q {
+			return p
+		}
+		rest = filepath.Join(filepath.Base(q), rest)
+	}
 }
 func Metadata(n string) bool { return n == ".git" || n == ".hg" || n == ".svn" || n == ".DS_Store" }
 func Dependency(n string) bool {
