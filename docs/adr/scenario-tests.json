@@ -190,6 +190,12 @@
     "N5": [
       "cmd/skill-audit:TestN5ScanRefusesCustomOptions"
     ],
+    "N6": [
+      "cmd/skill-audit:TestN6SymlinkedReportFolderIsRefusedFirst"
+    ],
+    "N7": [
+      "cmd/skill-audit:TestN7DanglingClaudeLinkIsACoverageGap"
+    ],
     "O1": [
       "internal/audit:TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity"
     ],

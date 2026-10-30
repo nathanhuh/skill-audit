@@ -32,3 +32,12 @@ Rejected alternatives: making bare `skill-audit` run the scan, which would chang
 ## Implementation gaps
 
 None at acceptance. Implemented together with this ADR; see [scenario-tests.json](scenario-tests.json).
+
+## Review follow-up (2026-10-30)
+
+An external review of `e61670c`, reported by the user, found two cases where scan broke rules 1 and 4. Both are fixed without changing any rule. These rows make the cases explicit.
+
+| ID | Scenario | Required result |
+| --- | --- | --- |
+| N6 | `~/.skill-audit` is a link to a skill folder | Refused with exit 2 before anything is created; the message names the link and says to remove it; the skill folder is unchanged. |
+| N7 | `~/.claude` is a dangling link | It stays a scan root, so inventory reports the `link_path` gap naming the unresolved target; the result is `complete=false` with exit 2, as with explicit `inventory --root ~/.claude`. Only a truly absent `~/.claude` is skipped. |

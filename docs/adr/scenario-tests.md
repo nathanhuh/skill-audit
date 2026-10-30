@@ -67,6 +67,8 @@ This table records executed fixture assertions, not a blanket support claim. D7/
 | N3 | [TestN3ScanRunsNeverOverwrite](../../cmd/skill-audit/main_test.go#L559) | Mapped assertions pass. |
 | N4 | [TestN4ScanIsReadOnly](../../cmd/skill-audit/main_test.go#L576) | Mapped assertions pass. |
 | N5 | [TestN5ScanRefusesCustomOptions](../../cmd/skill-audit/main_test.go#L599) | Mapped assertions pass. |
+| N6 | [TestN6SymlinkedReportFolderIsRefusedFirst](../../cmd/skill-audit/main_test.go#L676) | Mapped assertions pass. |
+| N7 | [TestN7DanglingClaudeLinkIsACoverageGap](../../cmd/skill-audit/main_test.go#L695) | Mapped assertions pass. |
 | O1 | [TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity](../../internal/audit/lineage_test.go#L353) | Skipped: case-sensitive volume required. |
 | O2 | [TestO2ConfirmedAliasesStillRefused](../../internal/audit/lineage_test.go#L369) | Mapped assertions pass. |
 | O3 | [TestO3PlannedCaseAliasesCannotOverwriteCommittedState](../../cmd/skill-audit/main_test.go#L289) | Mapped assertions pass. |

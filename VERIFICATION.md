@@ -1,3 +1,14 @@
+# Verification — v0.1.3: scan review follow-up, 2026-10-30
+
+An external review of `e61670c`, reported by the user, found two scan bugs. Both break accepted rules, and neither needed a new decision.
+
+- **A report folder was created through a symlink** (ADR-0016 rule 4 read-only; AGENTS "never modify real installed skills"). With `~/.skill-audit` linked to a skill folder, scan created `reports/<timestamp>` inside that skill before the later output check refused it. `reportDir` now runs `NoLinks` on the whole report path before creating anything, and refuses with a message that names the link and says to remove it. It no longer suggests the resolved path, which would point into the skill. N6.
+- **A dangling `~/.claude` link was silently dropped** (ADR-0003 "explicit roots are never excluded silently"; ADR-0016 rule 1). `scanRoots` used `os.Stat`, which follows links, so a dangling link looked absent. It now uses `os.Lstat`: only a truly absent `~/.claude` is skipped, and anything else stays a root. The run reports a `link_path` gap with `complete=false` and exits 2. `NoLinks` now names a dangling link's unresolved target instead of suggesting the same path back. N7 and `TestNoLinksNamesDanglingTarget`.
+
+Regression evidence: copied into a temporary worktree at `e61670c`, `TestN6SymlinkedReportFolderIsRefusedFirst` failed ("scan created a folder inside the linked skill") and `TestN7DanglingClaudeLinkIsACoverageGap` failed (exit 0, `~/.claude` missing from the roots). Both pass here. Both cases were also replayed with the built binary on a fixture home.
+
+Freeze checklist: no versioned identifier changed.
+
 # Verification — v0.1.2: compact text output, 2026-10-30
 
 Started on canonical `main` at `428d5ac`, published as `v0.1.1`. Prompted by the user's first `skill-audit scan` on their own machine: 63 skills, 61 of them clean `unknown`, printed about 75 lines.

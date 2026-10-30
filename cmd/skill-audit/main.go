@@ -371,8 +371,10 @@ func runScan(ctx context.Context, args []string, out, errOut io.Writer) int {
 // scanRoots selects ~/.claude and the current folder (ADR-0016 rule 2).
 func scanRoots(home, cwd string) ([]string, string) {
 	var roots []string
+	// Only a truly absent ~/.claude is skipped. A link, file or unreadable
+	// entry stays a root so inventory reports the gap (ADR-0016 N7).
 	claude := filepath.Join(home, ".claude")
-	if s, e := os.Stat(claude); e == nil && s.IsDir() {
+	if _, e := os.Lstat(claude); !os.IsNotExist(e) {
 		roots = append(roots, claude)
 	}
 	if real, e := filepath.EvalSymlinks(home); e == nil {
@@ -394,9 +396,21 @@ func inside(parent, child string) bool {
 }
 
 // reportDir creates a new owner-only folder named by UTC time; it never
-// reuses an existing one.
+// reuses an existing one. Symlinks on the path are refused before anything is
+// created, so a linked ~/.skill-audit cannot write into what it points at
+// (ADR-0016 N6).
 func reportDir(home string, now time.Time) (string, error) {
 	base := filepath.Join(home, ".skill-audit", "reports")
+	if audit.NoLinks(base) != nil {
+		link := filepath.Join(home, ".skill-audit")
+		for q := base; filepath.Dir(q) != q; q = filepath.Dir(q) {
+			if s, e := os.Lstat(q); e == nil && s.Mode()&os.ModeSymlink != 0 {
+				link = q
+				break
+			}
+		}
+		return "", fmt.Errorf("%q is a link; scan saves reports only in real folders, so remove the link or run inventory and audit with --out", link)
+	}
 	if e := os.MkdirAll(base, 0700); e != nil {
 		return "", e
 	}

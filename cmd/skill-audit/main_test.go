@@ -672,3 +672,45 @@ func TestK4ShortCandidateLineKeepsUpstreamChanges(t *testing.T) {
 		t.Fatal(o, e)
 	}
 }
+
+func TestN6SymlinkedReportFolderIsRefusedFirst(t *testing.T) {
+	home, project := scanEnv(t)
+	skill := filepath.Join(project, ".claude", "skills", "p")
+	if e := os.Symlink(skill, filepath.Join(home, ".skill-audit")); e != nil {
+		t.Skip("symlinks unavailable:", e)
+	}
+	before := treeBytes(t, skill)
+	c, o, e := invoke("scan")
+	if c != 2 || !strings.Contains(e, fmt.Sprintf("%q is a link; scan saves reports only in real folders", filepath.Join(home, ".skill-audit"))) || strings.Contains(e, skill) || strings.Contains(o, "saved ") {
+		t.Fatal(c, o, e)
+	}
+	if _, err := os.Lstat(filepath.Join(skill, "reports")); !os.IsNotExist(err) {
+		t.Fatal("scan created a folder inside the linked skill", err)
+	}
+	if fmt.Sprint(treeBytes(t, skill)) != fmt.Sprint(before) {
+		t.Fatal("skill contents changed")
+	}
+}
+
+func TestN7DanglingClaudeLinkIsACoverageGap(t *testing.T) {
+	home, _ := scanEnv(t)
+	claude := filepath.Join(home, ".claude")
+	if e := os.RemoveAll(claude); e != nil {
+		t.Fatal(e)
+	}
+	if e := os.Symlink(filepath.Join(home, "missing"), claude); e != nil {
+		t.Skip("symlinks unavailable:", e)
+	}
+	c, o, e := invoke("scan")
+	if c != 2 || !strings.Contains(o, fmt.Sprintf("%q", claude)) || !strings.Contains(o, "complete=false") {
+		t.Fatal(c, o, e)
+	}
+	lines := strings.Split(strings.TrimSpace(o), "\n")
+	gap := false
+	for _, l := range lines[1:] {
+		gap = gap || (strings.HasPrefix(l, `"`) && strings.Contains(l, claude))
+	}
+	if !gap {
+		t.Fatal("dangling ~/.claude must produce a diagnostic", o)
+	}
+}

@@ -67,6 +67,10 @@ func NoLinks(p string) error {
 			return e
 		}
 		if isLink(stat) {
+			if _, e := filepath.EvalSymlinks(q); e != nil {
+				target, _ := os.Readlink(q)
+				return fmt.Errorf("link path %q is not followed; its target %q cannot be resolved", q, target)
+			}
 			return fmt.Errorf("link path %q is not followed; use resolved path %q", q, resolvedPath(p))
 		}
 	}
