@@ -128,6 +128,15 @@
     "E9": [
       "cmd/skill-audit:TestE9TextSnapshotStdout"
     ],
+    "F1": [
+      "internal/audit:TestF1LongCommandChangedAfterEvidenceCapIsNew"
+    ],
+    "F2": [
+      "internal/audit:TestF2UnchangedLongCommandIsExisting"
+    ],
+    "F3": [
+      "internal/audit:TestF3PreviousIdentityBaselineMakesNoFindingLabel"
+    ],
     "I1": [
       "internal/audit:TestI1GapDetailCapPreservesReadablePartialInventory",
       "internal/audit:TestI1TruncationEvidenceSurvivesAuditAndStoredObservation"
@@ -153,6 +162,21 @@
     ],
     "L4": [
       "cmd/skill-audit:TestL4TextChangesLeaveContractsAlone"
+    ],
+    "N1": [
+      "cmd/skill-audit:TestN1ScanFromProjectFolder"
+    ],
+    "N2": [
+      "cmd/skill-audit:TestN2ScanFromHomeScansOnlyClaude"
+    ],
+    "N3": [
+      "cmd/skill-audit:TestN3ScanRunsNeverOverwrite"
+    ],
+    "N4": [
+      "cmd/skill-audit:TestN4ScanIsReadOnly"
+    ],
+    "N5": [
+      "cmd/skill-audit:TestN5ScanRefusesCustomOptions"
     ],
     "O1": [
       "internal/audit:TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity"

@@ -19,6 +19,8 @@ Each ADR records one decision: its rule, consequences, acceptance scenarios with
 | [0013](0013-search-provenance.md) | Search provenance across merged inputs | accepted | Q1–Q4 |
 | [0014](0014-upstream-file-comparison.md) | File-level comparison with the matched upstream reference | accepted | U1–U4 |
 | [0015](0015-text-output-summary.md) | Text output is a summary; JSON is the evidence | accepted | L1–L4 |
+| [0016](0016-one-command-scan.md) | One-command scan | accepted | N1–N5 |
+| [0017](0017-finding-identity.md) | Finding identity uses the full matched command | accepted | F1–F3 |
 
 ## Status
 

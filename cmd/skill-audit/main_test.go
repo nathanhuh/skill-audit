@@ -140,7 +140,7 @@ func TestV1V2V3V4CLI(t *testing.T) {
 	}
 }
 func TestPreflightNoAcquisitionAndPartialOutput(t *testing.T) {
-	for _, args := range [][]string{{"sync", "--repo", "a/x"}, {"inventory", "--root", "unused", "--max-entries", "0"}, {"audit", "--inventory", "missing", "--scan-timeout", "0"}, {"search", "--inventory", "missing"}, {"scan"}} {
+	for _, args := range [][]string{{"sync", "--repo", "a/x"}, {"inventory", "--root", "unused", "--max-entries", "0"}, {"audit", "--inventory", "missing", "--scan-timeout", "0"}, {"search", "--inventory", "missing"}, {"scan", "extra"}} {
 		if c, _, _ := invoke(args...); c != 2 {
 			t.Fatal(args, c)
 		}
@@ -466,5 +466,145 @@ func TestAuditUsageErrorsNameTheProblem(t *testing.T) {
 		if c != 2 || o != "" || strings.TrimSpace(e) != tc.want {
 			t.Fatal(tc.args, c, o, e)
 		}
+	}
+}
+
+// scanEnv makes a fixture home with one global skill and a project folder
+// with one project skill, points the home at it and enters the project.
+func scanEnv(t *testing.T) (home, project string) {
+	t.Helper()
+	root := testRoot(t)
+	home, project = filepath.Join(root, "home"), filepath.Join(root, "home", "code", "app")
+	writeFixture(t, filepath.Join(home, ".claude", "skills", "g", "SKILL.md"), "---\nname: g\n---\nGlobal.\n")
+	writeFixture(t, filepath.Join(project, ".claude", "skills", "p", "SKILL.md"), "---\nname: p\n---\nProject.\n")
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	chdir(t, project)
+	return home, project
+}
+func chdir(t *testing.T, dir string) {
+	t.Helper()
+	old, e := os.Getwd()
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = os.Chdir(dir); e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { _ = os.Chdir(old) })
+}
+func reportFolders(t *testing.T, home string) []string {
+	t.Helper()
+	entries, e := os.ReadDir(filepath.Join(home, ".skill-audit", "reports"))
+	if os.IsNotExist(e) {
+		return nil
+	}
+	if e != nil {
+		t.Fatal(e)
+	}
+	var dirs []string
+	for _, x := range entries {
+		dirs = append(dirs, filepath.Join(home, ".skill-audit", "reports", x.Name()))
+	}
+	return dirs
+}
+func treeBytes(t *testing.T, root string) map[string]string {
+	t.Helper()
+	files := map[string]string{}
+	e := filepath.WalkDir(root, func(p string, d os.DirEntry, e error) error {
+		if e != nil || d.IsDir() {
+			return e
+		}
+		b, e := os.ReadFile(p)
+		files[p] = string(b)
+		return e
+	})
+	if e != nil {
+		t.Fatal(e)
+	}
+	return files
+}
+
+func TestN1ScanFromProjectFolder(t *testing.T) {
+	home, project := scanEnv(t)
+	c, o, e := invoke("scan")
+	lines := strings.Split(strings.TrimSpace(o), "\n")
+	dirs := reportFolders(t, home)
+	if c != 0 || len(dirs) != 1 || !strings.HasPrefix(lines[0], "scan roots=") || !strings.Contains(lines[0], filepath.Join(home, ".claude")) || !strings.Contains(lines[0], project) {
+		t.Fatal(c, o, e, dirs)
+	}
+	inv, rep := filepath.Join(dirs[0], "inventory.json"), filepath.Join(dirs[0], "report.json")
+	if lines[len(lines)-1] != fmt.Sprintf("saved inventory=%q report=%q", inv, rep) || !strings.HasPrefix(lines[len(lines)-2], "summary skills=2 global=1 project=1 ") {
+		t.Fatal(o)
+	}
+	if c2, _, _ := invoke("audit", "--inventory", inv); c2 != c {
+		t.Fatal("exit must equal the audit's", c, c2)
+	}
+	if _, err := os.Stat(rep); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestN2ScanFromHomeScansOnlyClaude(t *testing.T) {
+	home, _ := scanEnv(t)
+	chdir(t, home)
+	for run := 0; run < 2; run++ {
+		c, o, e := invoke("scan")
+		if c != 0 || !strings.Contains(o, fmt.Sprintf("scan roots=[%q]", filepath.Join(home, ".claude"))) || !strings.Contains(o, "note: the current folder contains your home folder") || !strings.Contains(o, "summary skills=1 global=1 project=0 ") {
+			t.Fatal(run, c, o, e)
+		}
+	}
+}
+
+func TestN3ScanRunsNeverOverwrite(t *testing.T) {
+	home, _ := scanEnv(t)
+	if c, o, e := invoke("scan"); c != 0 {
+		t.Fatal(c, o, e)
+	}
+	first := reportFolders(t, home)
+	before := treeBytes(t, first[0])
+	c, o, e := invoke("scan", "--json")
+	dirs := reportFolders(t, home)
+	if c != 0 || len(dirs) != 2 || !json.Valid([]byte(o)) || !strings.Contains(e, "saved inventory=") || !strings.Contains(e, "scan roots=") {
+		t.Fatal(c, o, e, dirs)
+	}
+	if after := treeBytes(t, first[0]); fmt.Sprint(after) != fmt.Sprint(before) {
+		t.Fatal("first run's files changed")
+	}
+}
+
+func TestN4ScanIsReadOnly(t *testing.T) {
+	home, project := scanEnv(t)
+	claude, skills := treeBytes(t, filepath.Join(home, ".claude")), treeBytes(t, filepath.Join(project, ".claude"))
+	if c, o, e := invoke("scan"); c != 0 {
+		t.Fatal(c, o, e)
+	}
+	if fmt.Sprint(treeBytes(t, filepath.Join(home, ".claude"))) != fmt.Sprint(claude) || fmt.Sprint(treeBytes(t, filepath.Join(project, ".claude"))) != fmt.Sprint(skills) {
+		t.Fatal("skill files changed")
+	}
+	saved := treeBytes(t, filepath.Join(home, ".skill-audit"))
+	if len(saved) != 2 {
+		t.Fatal("scan must write only inventory.json and report.json", saved)
+	}
+	var r struct {
+		Recording struct {
+			Status string `json:"status"`
+		} `json:"recording"`
+	}
+	if e := json.Unmarshal([]byte(saved[filepath.Join(reportFolders(t, home)[0], "report.json")]), &r); e != nil || r.Recording.Status != "not_requested" {
+		t.Fatal(e, r)
+	}
+}
+
+func TestN5ScanRefusesCustomOptions(t *testing.T) {
+	home, _ := scanEnv(t)
+	for _, args := range [][]string{{"scan", "--out", "x.json"}, {"scan", "extra"}, {"scan", "--record", "baseline"}} {
+		c, o, e := invoke(args...)
+		if c != 2 || o != "" || !strings.Contains(e, "use inventory and audit") {
+			t.Fatal(args, c, o, e)
+		}
+	}
+	if dirs := reportFolders(t, home); len(dirs) != 0 {
+		t.Fatal("no report folder may be created", dirs)
 	}
 }

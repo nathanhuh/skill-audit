@@ -1,17 +1,17 @@
 # Code walkthrough
 
-Read the entry points in order: `main.go` dispatches the four commands, `inventory.go` and `content.go` find and measure packages, `catalog.go` correlates them, `local.go` holds SA001, and `observe.go` and `storage.go` compare and record lineage. The contract column names the [ADR scenarios](docs/adr/README.md) each file implements; [scenario-tests.json](docs/adr/scenario-tests.json) maps every scenario to its test.
+Read the entry points in order: `main.go` dispatches the commands, including the one-step `scan`, `inventory.go` and `content.go` find and measure packages, `catalog.go` correlates them, `local.go` holds SA001, and `observe.go` and `storage.go` compare and record lineage. The contract column names the [ADR scenarios](docs/adr/README.md) each file implements; [scenario-tests.json](docs/adr/scenario-tests.json) maps every scenario to its test.
 
 ## Entry points
 
 | File | Responsibility | Main contracts |
 | --- | --- | --- |
-| `cmd/skill-audit/main.go` | Four command-specific flag sets, preflight, explicit network selection, delivery, exit priority and summary text output | T1/T5, E1–E9, L1–L4 |
+| `cmd/skill-audit/main.go` | Four command-specific flag sets, preflight, explicit network selection, delivery, exit priority and summary text output, one-command `scan` | T1/T5, E1–E9, L1–L4, N1–N5 |
 | `internal/audit/inventory.go` | Injected device selection, deterministic traversal, bounded exclusion summaries, separate discovery coverage | D1–D13 |
 | `internal/audit/content.go` | Scope/path identity, no-follow reads, raw-byte package measurement and YAML metadata | S1–S4, D11/D12, P2 |
 | `internal/audit/catalog.go` | Verify embedded/external content, frozen fingerprints, prepare reference features once, retain every qualifying candidate | T1, V6 |
-| `internal/audit/local.go` | SA001 v3 shell AST pattern, conservative options, evidence and detection coverage | T2, V7 |
-| `internal/audit/observe.go` | Re-read saved identities, detect drift, correlate and scan one package at a time, compare independent evidence | B1–B9, V6/V7 |
+| `internal/audit/local.go` | SA001 v3 shell AST pattern, conservative options, capped evidence, full-match fingerprint and detection coverage | T2, V7, F1 |
+| `internal/audit/observe.go` | Re-read saved identities, detect drift, correlate and scan one package at a time, compare independent evidence by full-match finding identity | B1–B9, V6/V7, F1–F3 |
 | `internal/audit/storage.go` | Bounded readers, placement/alias protection, state lock, atomic commit and independent durability outcome | B6/B10/B11, E1–E8, V1–V5 |
 | `internal/audit/wire.go` | Published JSON boundaries; preserve original stored observations when appending | V1–V7 |
 | `internal/audit/scanner.go` | Pinned static-only Skill X-Ray adapter, staged bytes, phase deadline/reserve, cached terminal causes | T3/T4, X1–X10 |

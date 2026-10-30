@@ -16,7 +16,7 @@ const (
 	SearchSchema       = "skill-audit/search/v3"
 	LegacySearchSchema = "skill-audit/search/v2"
 	LocalRuleVersion   = "3"
-	EvaluationVersion  = "SA001/v3;sh/v3.10.0;scope/v2"
+	EvaluationVersion  = "SA001/v3;sh/v3.10.0;scope/v2;identity/v2"
 	FileLimit          = 1 << 20
 	PackageLimit       = 16 << 20
 	PackageEntries     = 1000
@@ -124,6 +124,7 @@ type Finding struct {
 	File           string          `json:"path,omitempty"`
 	Line           int             `json:"line"`
 	Evidence       string          `json:"evidence,omitempty"`
+	MatchSHA256    string          `json:"match_sha256,omitempty"`
 	Message        string          `json:"explanation"`
 	Limitations    string          `json:"limitations,omitempty"`
 	Change         string          `json:"change,omitempty"`

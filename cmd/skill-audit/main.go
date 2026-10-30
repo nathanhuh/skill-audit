@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -30,6 +31,9 @@ func buildVersion() string {
 	return "dev"
 }
 
+const usage = "usage: skill-audit scan | inventory|search|sync|audit [options]\n" +
+	"quick start: run skill-audit scan from a project folder (scans ~/.claude and that folder, saves reports under ~/.skill-audit/reports)"
+
 type stringsFlag []string
 
 func (s *stringsFlag) String() string     { return strings.Join(*s, ",") }
@@ -43,17 +47,20 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	delivery := &checkedWriter{w: out}
 	out = delivery
 	if len(args) == 0 {
-		fmt.Fprintln(out, "usage: skill-audit inventory|search|sync|audit [options]")
+		fmt.Fprintln(out, usage)
 		return 2
 	}
 	command := args[0]
 	if command == "--help" || command == "help" {
-		fmt.Fprintln(out, "usage: skill-audit inventory|search|sync|audit [options]")
+		fmt.Fprintln(out, usage)
 		return 0
 	}
 	if command == "--version" || command == "version" {
 		fmt.Fprintln(out, "skill-audit", buildVersion())
 		return 0
+	}
+	if command == "scan" {
+		return runScan(parent, args[1:], out, errOut)
 	}
 	f := flag.NewFlagSet(command, flag.ContinueOnError)
 	f.SetOutput(errOut)
@@ -290,6 +297,124 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	}
 	return 2
 }
+
+// runScan inventories ~/.claude and the current folder, then audits offline,
+// saving both files in a new folder under ~/.skill-audit/reports (ADR-0016).
+func runScan(ctx context.Context, args []string, out, errOut io.Writer) int {
+	f := flag.NewFlagSet("scan", flag.ContinueOnError)
+	f.SetOutput(errOut)
+	timeout := f.Duration("timeout", 2*time.Minute, "deadline for each step")
+	asJSON := f.Bool("json", false, "print the report JSON instead of text")
+	if e := f.Parse(args); e != nil {
+		if e == flag.ErrHelp {
+			return 0
+		}
+		fmt.Fprintln(errOut, "scan takes only --timeout and --json; use inventory and audit for custom roots, outputs or recording")
+		return 2
+	}
+	if f.NArg() != 0 {
+		fmt.Fprintln(errOut, "scan takes no arguments; use inventory and audit for custom roots, outputs or recording")
+		return 2
+	}
+	home, e := os.UserHomeDir()
+	if e != nil {
+		fmt.Fprintln(errOut, "scan needs a home folder:", e)
+		return 2
+	}
+	cwd, e := os.Getwd()
+	if e == nil {
+		cwd, e = filepath.EvalSymlinks(cwd)
+	}
+	if e != nil {
+		fmt.Fprintln(errOut, "scan cannot resolve the current folder:", e)
+		return 2
+	}
+	roots, note := scanRoots(home, cwd)
+	notes := out
+	if *asJSON {
+		notes = errOut
+	}
+	if len(roots) == 0 {
+		fmt.Fprintln(errOut, "nothing to scan:", note)
+		return 2
+	}
+	fmt.Fprintf(notes, "scan roots=%q\n", roots)
+	if note != "" {
+		fmt.Fprintln(notes, "note:", note)
+	}
+	dir, e := reportDir(home, time.Now().UTC())
+	if e != nil {
+		fmt.Fprintln(errOut, "scan cannot create its report folder:", e)
+		return 2
+	}
+	inv, rep := filepath.Join(dir, "inventory.json"), filepath.Join(dir, "report.json")
+	inventoryArgs := []string{"inventory", "--home", home, "--timeout", timeout.String(), "--out", inv}
+	for _, r := range roots {
+		inventoryArgs = append(inventoryArgs, "--root", r)
+	}
+	run(ctx, inventoryArgs, io.Discard, errOut)
+	if _, e := os.Stat(inv); e != nil {
+		return 2
+	}
+	auditArgs := []string{"audit", "--inventory", inv, "--timeout", timeout.String(), "--out", rep}
+	if *asJSON {
+		auditArgs = append(auditArgs, "--json")
+	}
+	code := run(ctx, auditArgs, out, errOut)
+	if _, e := os.Stat(rep); e == nil {
+		fmt.Fprintf(notes, "saved inventory=%q report=%q\n", inv, rep)
+	}
+	return code
+}
+
+// scanRoots selects ~/.claude and the current folder (ADR-0016 rule 2).
+func scanRoots(home, cwd string) ([]string, string) {
+	var roots []string
+	claude := filepath.Join(home, ".claude")
+	if s, e := os.Stat(claude); e == nil && s.IsDir() {
+		roots = append(roots, claude)
+	}
+	if real, e := filepath.EvalSymlinks(home); e == nil {
+		home = real
+	}
+	switch {
+	case inside(cwd, home):
+		return roots, "the current folder contains your home folder; run scan from a project folder to include its project skills"
+	case inside(filepath.Join(home, ".claude"), cwd), inside(filepath.Join(home, ".skill-audit"), cwd):
+		return roots, "the current folder is inside ~/.claude or ~/.skill-audit; run scan from a project folder to include its project skills"
+	}
+	return append(roots, cwd), ""
+}
+
+// inside reports whether child is parent or lies below it.
+func inside(parent, child string) bool {
+	r, e := filepath.Rel(parent, child)
+	return e == nil && r != ".." && !strings.HasPrefix(r, ".."+string(filepath.Separator)) && !filepath.IsAbs(r)
+}
+
+// reportDir creates a new owner-only folder named by UTC time; it never
+// reuses an existing one.
+func reportDir(home string, now time.Time) (string, error) {
+	base := filepath.Join(home, ".skill-audit", "reports")
+	if e := os.MkdirAll(base, 0700); e != nil {
+		return "", e
+	}
+	name := now.Format("20060102T150405Z")
+	for i := 1; ; i++ {
+		dir := filepath.Join(base, name)
+		if i > 1 {
+			dir = fmt.Sprintf("%s-%d", dir, i)
+		}
+		e := os.Mkdir(dir, 0700)
+		if e == nil {
+			return dir, nil
+		}
+		if !os.IsExist(e) || i == 100 {
+			return "", e
+		}
+	}
+}
+
 func printRecording(w io.Writer, r *audit.Recording) {
 	fmt.Fprintf(w, "recording=%s path=%q message=%q\n", r.Status, r.Path, r.Message)
 }

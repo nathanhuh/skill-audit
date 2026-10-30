@@ -37,3 +37,7 @@ The user explicitly approved this amendment in the third review thread. Before o
 ## Third-review evidence (2026-10-29)
 
 Implementation `77deb5b2eeceda97f5fa22614abf6f3c6e5acc7e` on canonical main. R4 passes for sh -, bash -e -, grouped supported flags with a lone dash, and excluded following filenames and a dash after --. The compiled CLI emits SA001 v3 for curl HTTP(S) piped to sh -. See [third-review record](../history/review-3-fixes.md) and [verification](../../VERIFICATION.md).
+
+## Later amendment
+
+[ADR-0017](0017-finding-identity.md) (2026-10-30) keeps SA001 v3 detection unchanged and bumps the evaluation identity to `SA001/v3;sh/v3.10.0;scope/v2;identity/v2`, so findings compare by a fingerprint of the full matched command instead of the 240-byte evidence.

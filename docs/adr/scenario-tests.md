@@ -47,6 +47,9 @@ This table records executed fixture assertions, not a blanket support claim. D7/
 | E7 | [TestE1ThroughE8PriorityTable/E7](../../internal/audit/contracts_test.go#L432) | Mapped assertions pass. |
 | E8 | [TestE1ThroughE8PriorityTable/E8](../../internal/audit/contracts_test.go#L432) | Mapped assertions pass. |
 | E9 | [TestE9TextSnapshotStdout](../../cmd/skill-audit/main_test.go#L322) | Mapped assertions pass. |
+| F1 | [TestF1LongCommandChangedAfterEvidenceCapIsNew](../../internal/audit/finding_identity_test.go#L28) | Mapped assertions pass. |
+| F2 | [TestF2UnchangedLongCommandIsExisting](../../internal/audit/finding_identity_test.go#L45) | Mapped assertions pass. |
+| F3 | [TestF3PreviousIdentityBaselineMakesNoFindingLabel](../../internal/audit/finding_identity_test.go#L57) | Mapped assertions pass. |
 | I1 | [TestI1GapDetailCapPreservesReadablePartialInventory](../../internal/audit/inventory_budget_test.go#L13); [TestI1TruncationEvidenceSurvivesAuditAndStoredObservation](../../internal/audit/inventory_budget_test.go#L154) | Mapped assertions pass. |
 | I2 | [TestI2FileManifestIsNeverPartiallyAdmitted](../../internal/audit/inventory_budget_test.go#L136); [TestI2I4WholePackageAdmissionStopsWithinFormattedBound](../../internal/audit/inventory_budget_test.go#L53) | Mapped assertions pass. |
 | I3 | [TestI3MandatoryEnvelopeFailureNeverWrites](../../internal/audit/inventory_budget_test.go#L74) | Mapped assertions pass. |
@@ -55,6 +58,11 @@ This table records executed fixture assertions, not a blanket support claim. D7/
 | L2 | [TestL2ScannerLinesOnlyWhenInformative](../../cmd/skill-audit/main_test.go#L410) | Mapped assertions pass. |
 | L3 | [TestL3AuditSummaryLine](../../cmd/skill-audit/main_test.go#L418) | Mapped assertions pass. |
 | L4 | [TestL4TextChangesLeaveContractsAlone](../../cmd/skill-audit/main_test.go#L428) | Mapped assertions pass. |
+| N1 | [TestN1ScanFromProjectFolder](../../cmd/skill-audit/main_test.go#L528) | Mapped assertions pass. |
+| N2 | [TestN2ScanFromHomeScansOnlyClaude](../../cmd/skill-audit/main_test.go#L548) | Mapped assertions pass. |
+| N3 | [TestN3ScanRunsNeverOverwrite](../../cmd/skill-audit/main_test.go#L559) | Mapped assertions pass. |
+| N4 | [TestN4ScanIsReadOnly](../../cmd/skill-audit/main_test.go#L576) | Mapped assertions pass. |
+| N5 | [TestN5ScanRefusesCustomOptions](../../cmd/skill-audit/main_test.go#L599) | Mapped assertions pass. |
 | O1 | [TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity](../../internal/audit/lineage_test.go#L353) | Skipped: case-sensitive volume required. |
 | O2 | [TestO2ConfirmedAliasesStillRefused](../../internal/audit/lineage_test.go#L369) | Mapped assertions pass. |
 | O3 | [TestO3PlannedCaseAliasesCannotOverwriteCommittedState](../../cmd/skill-audit/main_test.go#L289) | Mapped assertions pass. |

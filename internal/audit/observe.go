@@ -216,6 +216,13 @@ func upstreamChanges(ref, local []File) []WireChange {
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Path < out[j].Path })
 	return out
 }
+
+// findingKey identifies a finding by the full matched text (ADR-0017); the
+// display evidence is truncated and only stands in when no fingerprint exists.
 func findingKey(f Finding) string {
-	return fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s", f.Scanner, f.RuleID, f.RuleVersion, f.File, f.Evidence)
+	match := f.MatchSHA256
+	if match == "" {
+		match = f.Evidence
+	}
+	return fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%s", f.Scanner, f.RuleID, f.RuleVersion, f.File, match)
 }

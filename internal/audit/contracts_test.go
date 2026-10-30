@@ -344,7 +344,7 @@ func TestT2NeverExecuteSkillData(t *testing.T) {
 	}
 }
 func TestFingerprintsFrozenDomains(t *testing.T) {
-	if FileLimit != 1<<20 || PackageLimit != 16<<20 || StoreLimit != 64<<20 || StateLimit != 32<<20 || EvaluationVersion != "SA001/v3;sh/v3.10.0;scope/v2" || LocalRuleVersion != "3" {
+	if FileLimit != 1<<20 || PackageLimit != 16<<20 || StoreLimit != 64<<20 || StateLimit != 32<<20 || EvaluationVersion != "SA001/v3;sh/v3.10.0;scope/v2;identity/v2" || LocalRuleVersion != "3" {
 		t.Fatal("contract identifiers or limits changed")
 	}
 	c, e := BuiltinCatalog()

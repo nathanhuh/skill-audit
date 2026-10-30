@@ -2,6 +2,8 @@ package audit
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/url"
 	"path"
 	"strconv"
@@ -262,11 +264,12 @@ func LocalScan(p Package) (Evaluation, []Finding) {
 				return true
 			}
 			ev := b[offset:end]
+			sum := sha256.Sum256(ev)
 			if len(ev) > 240 {
 				ev = utf8Prefix(ev, 240)
 				ev = append(append([]byte(nil), ev...), []byte("…")...)
 			}
-			findings = append(findings, Finding{Scanner: "skill-audit", ScannerVersion: EvaluationVersion, Kind: "security", RuleID: "SA001", RuleVersion: LocalRuleVersion, Severity: "high", File: f.Path, Line: int(left.Pos().Line()), Evidence: string(ev), Message: "Literal HTTP(S) download piped to a shell", Limitations: "Static syntax only; no execution, expansion, command resolution or general dataflow", Change: "not_compared"})
+			findings = append(findings, Finding{Scanner: "skill-audit", ScannerVersion: EvaluationVersion, Kind: "security", RuleID: "SA001", RuleVersion: LocalRuleVersion, Severity: "high", File: f.Path, Line: int(left.Pos().Line()), Evidence: string(ev), MatchSHA256: hex.EncodeToString(sum[:]), Message: "Literal HTTP(S) download piped to a shell", Limitations: "Static syntax only; no execution, expansion, command resolution or general dataflow", Change: "not_compared"})
 			return true
 		})
 	}

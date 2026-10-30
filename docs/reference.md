@@ -131,7 +131,7 @@ ADR-0012 expands receiver flags to `-e`, `-u`, `-x`, `-v`, `-s` and grouped form
 
 Shebang eligibility recognizes sh/bash interpreter tokens, optional whitespace/CRLF, flag-only arguments such as `-e`/`-eux`, `env sh/bash`, and unquoted `env -S sh/bash` forms. Unknown flags, command/option values, environment assignments and quoted split strings remain unsupported with partial coverage. The pinned parser handles CRLF while hashes and evidence refer to raw bytes; evidence is capped at 240 bytes on a UTF-8 boundary, plus an ellipsis. This is static pattern analysis, not a prediction that an OS will execute a particular shebang.
 
-The current evaluation identity is `SA001/v3;sh/v3.10.0;scope/v2`. V2 and older evaluations cannot justify `new` labels under v3; compatible package-content comparisons remain available. Windows state writes skip unsupported directory syncing; file flushing still precedes replacement, but crash durability/atomic replacement remain unverified on native Windows. See PORTABILITY.md.
+The current evaluation identity is `SA001/v3;sh/v3.10.0;scope/v2;identity/v2`: findings compare by a SHA-256 of the full matched command (`match_sha256`), not the 240-byte display evidence ([ADR-0017](adr/0017-finding-identity.md)). Evaluations under the v0.1.0 identity `SA001/v3;sh/v3.10.0;scope/v2`, and v2 or older, cannot justify `new` or `existing` labels; compatible package-content comparisons remain available. Windows state writes skip unsupported directory syncing; file flushing still precedes replacement, but crash durability/atomic replacement remain unverified on native Windows. See PORTABILITY.md.
 
 ### ADR runtime alignment: independent outcomes
 
