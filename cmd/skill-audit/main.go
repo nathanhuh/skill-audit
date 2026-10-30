@@ -170,9 +170,11 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 			for _, p := range i.Packages {
 				fmt.Fprintf(out, "%s %q name=%q complete=%t\n", p.Scope, p.Path, p.Name, p.Complete)
 			}
+			var packageDiagnostics []audit.Diagnostic
 			for _, p := range i.Packages {
-				printDiagnostics(out, p.Diagnostics)
+				packageDiagnostics = append(packageDiagnostics, p.Diagnostics...)
 			}
+			printDiagnostics(out, packageDiagnostics)
 			if i.DiagnosticsTruncated {
 				printOmissions(out, i.OmittedDiagnostics)
 			}
@@ -189,8 +191,15 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		}
 		return 0
 	case "audit":
-		if inventory == "" || scanTimeout <= 0 || (record != "" && record != "baseline" && record != "snapshot") || (record != "" && state == "") {
-			return bad(fmt.Errorf("audit requires --inventory; recording requires --state and baseline|snapshot; scan timeout must be positive"))
+		switch {
+		case inventory == "":
+			return bad(fmt.Errorf("audit requires --inventory FILE (create it with skill-audit inventory --out FILE)"))
+		case record != "" && record != "baseline" && record != "snapshot":
+			return bad(fmt.Errorf("--record must be baseline or snapshot, not %q", record))
+		case record != "" && state == "":
+			return bad(fmt.Errorf("--record %s requires --state FILE", record))
+		case scanTimeout <= 0:
+			return bad(fmt.Errorf("--scan-timeout must be positive"))
 		}
 		i, e := audit.ReadInventory(inventory)
 		observed = i.Packages
@@ -284,10 +293,48 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 func printRecording(w io.Writer, r *audit.Recording) {
 	fmt.Fprintf(w, "recording=%s path=%q message=%q\n", r.Status, r.Path, r.Message)
 }
+
+// printDiagnostics prints one line per code in first-seen order (ADR-0015 L1).
+// A lone diagnostic keeps its path and message; a repeated code shows a count,
+// up to three example paths and the first message. JSON keeps every record.
 func printDiagnostics(w io.Writer, ds []audit.Diagnostic) {
+	var order []string
+	groups := map[string][]audit.Diagnostic{}
 	for _, d := range ds {
-		fmt.Fprintf(w, "%q path=%q message=%q\n", d.Code, d.Path, d.Message)
+		if _, ok := groups[d.Code]; !ok {
+			order = append(order, d.Code)
+		}
+		groups[d.Code] = append(groups[d.Code], d)
 	}
+	for _, code := range order {
+		g := groups[code]
+		if len(g) == 1 {
+			fmt.Fprintf(w, "%q path=%q message=%q\n", code, g[0].Path, g[0].Message)
+			continue
+		}
+		examples := []string{}
+		for _, d := range g[:min(3, len(g))] {
+			examples = append(examples, d.Path)
+		}
+		fmt.Fprintf(w, "%q count=%d examples=%q omitted_examples=%d message=%q\n", code, len(g), examples, len(g)-len(examples), g[0].Message)
+	}
+}
+
+// informative reports whether an evaluation earns a text line (ADR-0015 L2).
+func informative(e audit.Evaluation) bool {
+	return e.Status != "disabled" && !(e.Scanner == "skill-audit" && e.Status == "completed_without_findings")
+}
+
+// printSummary ends audit text with one counting line (ADR-0015 L3).
+func printSummary(w io.Writer, r audit.Report) {
+	scopes, statuses, findings := map[string]int{}, map[string]int{}, 0
+	for _, s := range r.Skills {
+		scopes[s.Scope]++
+		statuses[s.Correlation.Status]++
+		findings += len(s.Findings)
+	}
+	fmt.Fprintf(w, "summary skills=%d global=%d project=%d machine=%d exact=%d possible_modified=%d ambiguous=%d unknown=%d findings=%d complete=%t\n",
+		len(r.Skills), scopes["global"], scopes["project"], scopes["machine"], statuses["exact"], statuses["possible_modified"], statuses["ambiguous"], statuses["unknown"], findings, r.Complete)
 }
 func printReport(w io.Writer, r audit.Report) {
 	if r.DiagnosticsTruncated {
@@ -318,6 +365,9 @@ func printReport(w io.Writer, r audit.Report) {
 			fmt.Fprintf(w, "modified=%q\n", p)
 		}
 		for _, e := range s.Evaluations {
+			if !informative(e) {
+				continue
+			}
 			fmt.Fprintf(w, "scanner=%s version=%q status=%s message=%q analyzed=%d outside_scope=%d\n", e.Scanner, e.Version, e.Status, e.Message, len(e.Analyzed), len(e.OutsideScope))
 		}
 		for _, f := range s.Findings {
@@ -327,6 +377,7 @@ func printReport(w io.Writer, r audit.Report) {
 	}
 	printExclusions(w, r.Exclusions)
 	printDiagnostics(w, r.Diagnostics)
+	printSummary(w, r)
 }
 
 func printExclusions(w io.Writer, xs []audit.Exclusion) {

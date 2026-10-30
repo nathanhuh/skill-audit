@@ -51,6 +51,10 @@ This table records executed fixture assertions, not a blanket support claim. D7/
 | I2 | [TestI2FileManifestIsNeverPartiallyAdmitted](../../internal/audit/inventory_budget_test.go#L136); [TestI2I4WholePackageAdmissionStopsWithinFormattedBound](../../internal/audit/inventory_budget_test.go#L53) | Mapped assertions pass. |
 | I3 | [TestI3MandatoryEnvelopeFailureNeverWrites](../../internal/audit/inventory_budget_test.go#L74) | Mapped assertions pass. |
 | I4 | [TestI2I4WholePackageAdmissionStopsWithinFormattedBound](../../internal/audit/inventory_budget_test.go#L53) | Mapped assertions pass. |
+| L1 | [TestL1DiagnosticsGroupedByCode](../../cmd/skill-audit/main_test.go#L381) | Mapped assertions pass. |
+| L2 | [TestL2ScannerLinesOnlyWhenInformative](../../cmd/skill-audit/main_test.go#L410) | Mapped assertions pass. |
+| L3 | [TestL3AuditSummaryLine](../../cmd/skill-audit/main_test.go#L418) | Mapped assertions pass. |
+| L4 | [TestL4TextChangesLeaveContractsAlone](../../cmd/skill-audit/main_test.go#L428) | Mapped assertions pass. |
 | O1 | [TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity](../../internal/audit/lineage_test.go#L353) | Skipped: case-sensitive volume required. |
 | O2 | [TestO2ConfirmedAliasesStillRefused](../../internal/audit/lineage_test.go#L369) | Mapped assertions pass. |
 | O3 | [TestO3PlannedCaseAliasesCannotOverwriteCommittedState](../../cmd/skill-audit/main_test.go#L289) | Mapped assertions pass. |

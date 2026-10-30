@@ -1,3 +1,19 @@
+# Verification — v0.1.1: text output summary, error messages and README fixes, 2026-10-30
+
+Started on clean canonical `main` at `d9956e0` (`v0.1.0`). Prompted by the user's first run of `v0.1.0` on their own machine.
+
+- **ADR-0015 (accepted, L1–L4).** Text output groups diagnostics by code with a count and up to three example paths; prints scanner lines only for findings, partial, failed or actually-run Skill X-Ray evaluations; and ends audit text with one `summary` line before the requested recording line. JSON is unchanged and keeps every record. `TestL1DiagnosticsGroupedByCode`, `TestL2ScannerLinesOnlyWhenInformative`, `TestL3AuditSummaryLine` and `TestL4TextChangesLeaveContractsAlone` map L1–L4 in `scenario-tests.json`.
+- **Symlink refusal message.** `NoLinks` suggested `""` for a not-yet-created output under a symlinked folder, because it resolved the full missing path. It now resolves the deepest existing ancestor and appends the rest: from a `mktemp -d` folder the message names `/private/var/folders/…/inventory.json`. The refusal itself is unchanged (ADR-0011). `TestNoLinksSuggestsResolvedPathForMissingOutput`.
+- **`audit` usage errors** name the one problem (`--inventory`, `--record` value, `--record` without `--state`, `--scan-timeout`) instead of one combined sentence; exit 2 is unchanged (ADR-0005). `TestAuditUsageErrorsNameTheProblem`.
+- **`scripts/verify-scenarios.py`** stripped only the old `skill-audit/` package prefix, so after the `v0.1.0` module rename every mapped test looked "not run". It now strips `github.com/nathanhuh/skill-audit/` as well.
+- **README.** The run section used `/tmp/inventory.json`, which macOS refuses because `/tmp` is a symlink. It now works from `~/skill-audit-run`, writes `--out report.json`, shows `jq` views, and the demo sample is regenerated from real output. `docs/reference.md` notes the macOS `/tmp` caveat and the grouped text diagnostics.
+
+Regression evidence: the six new tests were copied into a temporary worktree at `d9956e0` and all six failed there; they pass here.
+
+Freeze checklist (ADR-0008 rule 6): no versioned identifier changed. Report, inventory, state, search, catalog and fingerprint encodings, SA001/v3 and the scanner/API pins are unchanged; text output is not a versioned contract (ADR-0015 rule 4).
+
+Checks: `gofmt -l cmd internal` prints nothing; `go vet ./...` and `GOOS=windows go vet ./...` exit 0; Linux and Windows cross-builds succeed; `go test -count=1 ./...` passes with 203 passing and 3 skipped (`TestP5NonUTF8FilenameCannotBecomeAnchor`, `TestD8FiftyThousandMetadataExclusions`, `TestO1DistinctCaseOnlyPathsNeedFilesystemIdentity`, as before); `scripts/verify-scenarios.py` maps 95 accepted scenarios with D7/P3/P4 native-Windows-only; `sh scripts/demo.sh` exits 0; every relative Markdown link and heading anchor outside `vendor/` resolves; `git diff --check` exits 0. The README `jq` commands were run against a fixture report.
+
 # Verification — evaluator README, version flag and module path, 2026-10-30
 
 - `05007bb`: the module path is `github.com/nathanhuh/skill-audit` (only `cmd/skill-audit` imported the old path; schema strings such as `skill-audit/report/v2` are data and unchanged). `skill-audit --version`/`version` prints the `-ldflags "-X main.version=…"` stamp, else the `go install` module version, else `dev`; `TestVersionCommand` covers both spellings and the stamp. A real binary printed `skill-audit dev`, and one built with `-ldflags "-X main.version=v0.1.0"` printed `skill-audit v0.1.0`. This adds a command; it changes no accepted ADR rule or data contract.

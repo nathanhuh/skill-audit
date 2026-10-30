@@ -6,7 +6,7 @@ Read the entry points in order: `main.go` dispatches the four commands, `invento
 
 | File | Responsibility | Main contracts |
 | --- | --- | --- |
-| `cmd/skill-audit/main.go` | Four command-specific flag sets, preflight, explicit network selection, delivery and exit priority | T1/T5, E1–E9 |
+| `cmd/skill-audit/main.go` | Four command-specific flag sets, preflight, explicit network selection, delivery, exit priority and summary text output | T1/T5, E1–E9, L1–L4 |
 | `internal/audit/inventory.go` | Injected device selection, deterministic traversal, bounded exclusion summaries, separate discovery coverage | D1–D13 |
 | `internal/audit/content.go` | Scope/path identity, no-follow reads, raw-byte package measurement and YAML metadata | S1–S4, D11/D12, P2 |
 | `internal/audit/catalog.go` | Verify embedded/external content, frozen fingerprints, prepare reference features once, retain every qualifying candidate | T1, V6 |
