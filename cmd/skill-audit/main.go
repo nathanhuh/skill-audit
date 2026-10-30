@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime/debug"
+	"sort"
 	"strings"
 	"time"
 
@@ -421,7 +422,7 @@ func printRecording(w io.Writer, r *audit.Recording) {
 
 // printDiagnostics prints one line per code in first-seen order (ADR-0015 L1).
 // A lone diagnostic keeps its path and message; a repeated code shows a count,
-// up to three example paths and the first message. JSON keeps every record.
+// the first path and its message (ADR-0018 K2). JSON keeps every record.
 func printDiagnostics(w io.Writer, ds []audit.Diagnostic) {
 	var order []string
 	groups := map[string][]audit.Diagnostic{}
@@ -437,11 +438,7 @@ func printDiagnostics(w io.Writer, ds []audit.Diagnostic) {
 			fmt.Fprintf(w, "%q path=%q message=%q\n", code, g[0].Path, g[0].Message)
 			continue
 		}
-		examples := []string{}
-		for _, d := range g[:min(3, len(g))] {
-			examples = append(examples, d.Path)
-		}
-		fmt.Fprintf(w, "%q count=%d examples=%q omitted_examples=%d message=%q\n", code, len(g), examples, len(g)-len(examples), g[0].Message)
+		fmt.Fprintf(w, "%q count=%d example=%q message=%q\n", code, len(g), g[0].Path, g[0].Message)
 	}
 }
 
@@ -450,16 +447,37 @@ func informative(e audit.Evaluation) bool {
 	return e.Status != "disabled" && !(e.Scanner == "skill-audit" && e.Status == "completed_without_findings")
 }
 
-// printSummary ends audit text with one counting line (ADR-0015 L3).
+// listed reports whether a skill earns text lines: it matched upstream,
+// changed against a baseline, has findings or gaps, or a scanner has something
+// to say (ADR-0018 K1). Everything else is counted in the summary only.
+func listed(s audit.Skill) bool {
+	if s.Correlation.Status != "unknown" || len(s.Findings) > 0 || !s.Complete || len(s.Diagnostics) > 0 {
+		return true
+	}
+	if s.Lineage.Status != "not_compared" && s.Lineage.Status != "unchanged" {
+		return true
+	}
+	for _, e := range s.Evaluations {
+		if informative(e) {
+			return true
+		}
+	}
+	return false
+}
+
+// printSummary ends audit text with one counting line (ADR-0015 L3, ADR-0018 K1).
 func printSummary(w io.Writer, r audit.Report) {
-	scopes, statuses, findings := map[string]int{}, map[string]int{}, 0
+	scopes, statuses, findings, shown := map[string]int{}, map[string]int{}, 0, 0
 	for _, s := range r.Skills {
+		if listed(s) {
+			shown++
+		}
 		scopes[s.Scope]++
 		statuses[s.Correlation.Status]++
 		findings += len(s.Findings)
 	}
-	fmt.Fprintf(w, "summary skills=%d global=%d project=%d machine=%d exact=%d possible_modified=%d ambiguous=%d unknown=%d findings=%d complete=%t\n",
-		len(r.Skills), scopes["global"], scopes["project"], scopes["machine"], statuses["exact"], statuses["possible_modified"], statuses["ambiguous"], statuses["unknown"], findings, r.Complete)
+	fmt.Fprintf(w, "summary skills=%d listed=%d global=%d project=%d machine=%d exact=%d possible_modified=%d ambiguous=%d unknown=%d findings=%d complete=%t\n",
+		len(r.Skills), shown, scopes["global"], scopes["project"], scopes["machine"], statuses["exact"], statuses["possible_modified"], statuses["ambiguous"], statuses["unknown"], findings, r.Complete)
 }
 func printReport(w io.Writer, r audit.Report) {
 	if r.DiagnosticsTruncated {
@@ -470,9 +488,16 @@ func printReport(w io.Writer, r audit.Report) {
 	}
 	fmt.Fprintf(w, "audit skills=%d complete=%t discovery_complete=%t\n", len(r.Skills), r.Complete, r.DiscoveryComplete)
 	for _, s := range r.Skills {
+		if !listed(s) {
+			continue
+		}
 		fmt.Fprintf(w, "%s %q correlation=%s lineage=%s\n", s.Scope, s.Path, s.Correlation.Status, s.Lineage.Status)
 		for _, c := range s.Correlation.Candidates {
-			fmt.Fprintf(w, "candidate=%q repository=%q commit=%q upstream_path=%q basis=%q score=%.3f shared=%d union=%d\n", c.Reference.ID, c.Reference.Repository, c.Reference.Commit, c.Reference.UpstreamPath, c.Basis, c.Score, c.Shared, c.Union)
+			commit := c.Reference.Commit
+			if len(commit) > 12 {
+				commit = commit[:12]
+			}
+			fmt.Fprintf(w, "candidate=%q repository=%q commit=%q basis=%q score=%.3f\n", c.Reference.ID, c.Reference.Repository, commit, c.Basis, c.Score)
 			if c.UpstreamComparison == "unavailable" {
 				fmt.Fprintln(w, "upstream_comparison=unavailable")
 			}
@@ -505,10 +530,25 @@ func printReport(w io.Writer, r audit.Report) {
 	printSummary(w, r)
 }
 
+// printExclusions collapses routine exclusions into one line of counts,
+// largest first (ADR-0018 K2); JSON keeps the rules and examples.
 func printExclusions(w io.Writer, xs []audit.Exclusion) {
-	for _, x := range xs {
-		fmt.Fprintf(w, "exclusion=%q count=%d examples=%q omitted_examples=%d\n", x.Rule, x.Count, x.Examples, x.OmittedExamples)
+	if len(xs) == 0 {
+		return
 	}
+	xs = append([]audit.Exclusion(nil), xs...)
+	sort.SliceStable(xs, func(i, j int) bool {
+		if xs[i].Count != xs[j].Count {
+			return xs[i].Count > xs[j].Count
+		}
+		return xs[i].Rule < xs[j].Rule
+	})
+	parts := make([]string, 0, len(xs))
+	for _, x := range xs {
+		name := strings.TrimPrefix(strings.TrimPrefix(x.Rule, "metadata/"), "dependency/")
+		parts = append(parts, fmt.Sprintf("%s=%d", name, x.Count))
+	}
+	fmt.Fprintln(w, "excluded", strings.Join(parts, " "))
 }
 
 type checkedWriter struct {

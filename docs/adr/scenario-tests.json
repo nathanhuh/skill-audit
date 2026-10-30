@@ -151,6 +151,18 @@
     "I4": [
       "internal/audit:TestI2I4WholePackageAdmissionStopsWithinFormattedBound"
     ],
+    "K1": [
+      "cmd/skill-audit:TestK1TextListsOnlySkillsNeedingAttention"
+    ],
+    "K2": [
+      "cmd/skill-audit:TestK2ExclusionsAndGapsCollapse"
+    ],
+    "K3": [
+      "cmd/skill-audit:TestK3BaselineChangesAreListed"
+    ],
+    "K4": [
+      "cmd/skill-audit:TestK4ShortCandidateLineKeepsUpstreamChanges"
+    ],
     "L1": [
       "cmd/skill-audit:TestL1DiagnosticsGroupedByCode"
     ],

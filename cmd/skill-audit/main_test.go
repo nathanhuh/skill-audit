@@ -419,7 +419,7 @@ func TestL3AuditSummaryLine(t *testing.T) {
 	_, inv := textFixture(t)
 	_, o, e := invoke("audit", "--inventory", inv)
 	lines := strings.Split(strings.TrimSpace(o), "\n")
-	want := "summary skills=3 global=2 project=1 machine=0 exact=1 possible_modified=0 ambiguous=0 unknown=2 findings=1 complete=true"
+	want := "summary skills=3 listed=2 global=2 project=1 machine=0 exact=1 possible_modified=0 ambiguous=0 unknown=2 findings=1 complete=true"
 	if lines[len(lines)-1] != want {
 		t.Fatal(o, e)
 	}
@@ -534,7 +534,7 @@ func TestN1ScanFromProjectFolder(t *testing.T) {
 		t.Fatal(c, o, e, dirs)
 	}
 	inv, rep := filepath.Join(dirs[0], "inventory.json"), filepath.Join(dirs[0], "report.json")
-	if lines[len(lines)-1] != fmt.Sprintf("saved inventory=%q report=%q", inv, rep) || !strings.HasPrefix(lines[len(lines)-2], "summary skills=2 global=1 project=1 ") {
+	if lines[len(lines)-1] != fmt.Sprintf("saved inventory=%q report=%q", inv, rep) || !strings.HasPrefix(lines[len(lines)-2], "summary skills=2 listed=0 global=1 project=1 ") {
 		t.Fatal(o)
 	}
 	if c2, _, _ := invoke("audit", "--inventory", inv); c2 != c {
@@ -550,7 +550,7 @@ func TestN2ScanFromHomeScansOnlyClaude(t *testing.T) {
 	chdir(t, home)
 	for run := 0; run < 2; run++ {
 		c, o, e := invoke("scan")
-		if c != 0 || !strings.Contains(o, fmt.Sprintf("scan roots=[%q]", filepath.Join(home, ".claude"))) || !strings.Contains(o, "note: the current folder contains your home folder") || !strings.Contains(o, "summary skills=1 global=1 project=0 ") {
+		if c != 0 || !strings.Contains(o, fmt.Sprintf("scan roots=[%q]", filepath.Join(home, ".claude"))) || !strings.Contains(o, "note: the current folder contains your home folder") || !strings.Contains(o, "summary skills=1 listed=0 global=1 project=0 ") {
 			t.Fatal(run, c, o, e)
 		}
 	}
@@ -606,5 +606,69 @@ func TestN5ScanRefusesCustomOptions(t *testing.T) {
 	}
 	if dirs := reportFolders(t, home); len(dirs) != 0 {
 		t.Fatal("no report folder may be created", dirs)
+	}
+}
+
+func TestK1TextListsOnlySkillsNeedingAttention(t *testing.T) {
+	_, inv := textFixture(t)
+	_, o, e := invoke("audit", "--inventory", inv)
+	if strings.Contains(o, "/clean") || !strings.Contains(o, "/brand-guidelines\" correlation=exact") || !strings.Contains(o, "/risky\" correlation=unknown") || !strings.Contains(o, "summary skills=3 listed=2 ") {
+		t.Fatal(o, e)
+	}
+	if _, j, _ := invoke("audit", "--inventory", inv, "--json"); !strings.Contains(j, "/clean") {
+		t.Fatal("JSON must list every skill")
+	}
+}
+
+func TestK2ExclusionsAndGapsCollapse(t *testing.T) {
+	root := testRoot(t)
+	pkg := filepath.Join(root, "r")
+	writeFixture(t, filepath.Join(pkg, "skill", "SKILL.md"), "# fixture")
+	writeFixture(t, filepath.Join(pkg, ".git", "HEAD"), "ref")
+	writeFixture(t, filepath.Join(pkg, "app", "node_modules", "x.js"), "x")
+	for _, n := range []string{"a", "b", "c"} {
+		if e := os.Symlink(filepath.Join(pkg, "skill", "SKILL.md"), filepath.Join(pkg, n)); e != nil {
+			t.Skip("symlinks unavailable:", e)
+		}
+	}
+	_, o, e := invoke("inventory", "--root", pkg, "--out", filepath.Join(root, "inventory.json"))
+	if strings.Count(o, "excluded ") != 1 || !strings.Contains(o, ".git=1") || !strings.Contains(o, "node_modules=1") || strings.Contains(o, "exclusion=") || strings.Contains(o, "examples=") || !strings.Contains(o, `"symlink_skipped" count=3 example=`) {
+		t.Fatal(o, e)
+	}
+}
+
+func TestK3BaselineChangesAreListed(t *testing.T) {
+	root, inv := textFixture(t)
+	home, projects := filepath.Join(root, "home"), filepath.Join(root, "projects")
+	state := filepath.Join(root, "state.json")
+	if c, o, e := invoke("audit", "--inventory", inv, "--state", state, "--record", "baseline"); c != 1 {
+		t.Fatal(c, o, e)
+	}
+	writeFixture(t, filepath.Join(home, ".claude", "skills", "clean", "SKILL.md"), "---\nname: clean\n---\nEdited.\n")
+	writeFixture(t, filepath.Join(home, ".claude", "skills", "fresh", "SKILL.md"), "---\nname: fresh\n---\nNew.\n")
+	if c, o, e := invoke("inventory", "--root", filepath.Join(home, ".claude", "skills"), "--root", projects, "--home", home, "--out", inv); c != 0 {
+		t.Fatal(c, o, e)
+	}
+	_, o, e := invoke("audit", "--inventory", inv, "--state", state)
+	if !strings.Contains(o, "/clean\" correlation=unknown lineage=changed") || !strings.Contains(o, "/fresh\" correlation=unknown lineage=not_in_baseline") {
+		t.Fatal(o, e)
+	}
+}
+
+func TestK4ShortCandidateLineKeepsUpstreamChanges(t *testing.T) {
+	root, inv := textFixture(t)
+	home, projects := filepath.Join(root, "home"), filepath.Join(root, "projects")
+	skill := filepath.Join(home, ".claude", "skills", "brand-guidelines", "SKILL.md")
+	b, err := os.ReadFile(skill)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, skill, string(b)+"\nLocal note.\n")
+	if c, o, e := invoke("inventory", "--root", filepath.Join(home, ".claude", "skills"), "--root", projects, "--home", home, "--out", inv); c != 0 {
+		t.Fatal(c, o, e)
+	}
+	_, o, e := invoke("audit", "--inventory", inv)
+	if !strings.Contains(o, `candidate="brand-guidelines" repository="https://github.com/anthropics/skills" commit="dbd4588f9e10" basis="inferred_candidate" score=`) || strings.Contains(o, "upstream_path=") || !strings.Contains(o, `upstream_modified="SKILL.md"`) {
+		t.Fatal(o, e)
 	}
 }

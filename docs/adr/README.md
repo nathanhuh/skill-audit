@@ -21,6 +21,7 @@ Each ADR records one decision: its rule, consequences, acceptance scenarios with
 | [0015](0015-text-output-summary.md) | Text output is a summary; JSON is the evidence | accepted | L1–L4 |
 | [0016](0016-one-command-scan.md) | One-command scan | accepted | N1–N5 |
 | [0017](0017-finding-identity.md) | Finding identity uses the full matched command | accepted | F1–F3 |
+| [0018](0018-compact-text-output.md) | Text lists only skills that need attention | accepted | K1–K4 |
 
 ## Status
 

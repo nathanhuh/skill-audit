@@ -31,3 +31,7 @@ Rejected alternative: a `--verbose` flag that restores per-record text. JSON alr
 ## Implementation gaps
 
 None at acceptance. Implemented together with this ADR; see [scenario-tests.json](scenario-tests.json).
+
+## Later amendment
+
+[ADR-0018](0018-compact-text-output.md) (2026-10-30) lists only skills that need attention, adds `listed=N` to the summary line (L3), collapses routine exclusions into one line of counts, and prints one example path for a repeated diagnostic code instead of up to three (L1).

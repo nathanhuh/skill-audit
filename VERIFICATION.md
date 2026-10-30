@@ -1,3 +1,15 @@
+# Verification — v0.1.2: compact text output, 2026-10-30
+
+Started on canonical `main` at `428d5ac`, published as `v0.1.1`. Prompted by the user's first `skill-audit scan` on their own machine: 63 skills, 61 of them clean `unknown`, printed about 75 lines.
+
+- **ADR-0018 (accepted, K1–K4), amending ADR-0015 L1 and L3.** Text lists a skill only when it matched upstream, has findings, was measured incompletely or has diagnostics, changed against a baseline, or has an evaluation ADR-0015 would print. The summary adds `listed=N`. Routine exclusions collapse into one `excluded …=N` line, largest first. A repeated diagnostic code prints one example path. Candidate lines show a 12-character commit, basis and score. Paths stay absolute, `inventory` text still lists every package, and JSON, `report.json`, exit codes and versioned identifiers are unchanged.
+- The L3, N1 and N2 tests now expect `listed=` in the summary. README samples were regenerated from real demo and fixture-scan output.
+- A fixture `scan` of three skills lists the exact copy and the finding's skill, counts the clean one, prints `excluded .git=1`, and exits 1.
+
+Freeze checklist (ADR-0008 rule 6): no versioned identifier changed since `v0.1.1`; text output is not a versioned contract.
+
+Checks: `gofmt -l cmd internal` prints nothing; `go vet ./...` and `GOOS=windows go vet ./...` exit 0; Linux and Windows cross-builds succeed; `go test -count=1 ./...` passes with 215 passing and the same 3 skipped; `scripts/verify-scenarios.py` maps 107 accepted scenarios; `sh scripts/demo.sh` exits 0; every relative Markdown link and anchor outside `vendor/` resolves; `git diff --check` exits 0; the suite left the real `~/.skill-audit` untouched.
+
 # Verification — v0.1.1: one-command scan and full-match finding identity, 2026-10-30
 
 Continues the v0.1.1 work on canonical `main` after `9c7eab5`. Includes an external review of `v0.1.0` (`d9956e0`) reported by Dots from ChatGPT. That review independently passed native Linux tests, vet, build and the race detector, and also passed on Go 1.23.12. It confirmed two issues. Issue 2, the `verify-scenarios.py` module-path normalization, was already fixed in `4ac91cc`. Issue 1 is fixed here.
